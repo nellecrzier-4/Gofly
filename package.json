@@ -1,0 +1,11 @@
+{
+  "name": "gofile-expressive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "File manager GoFile dengan tema Material 3 Expressive — login via magic link",
+  "scripts": {
+    "check": "node --check js/api.js && node --check js/app.js",
+    "serve": "python3 serve.py"
+  }
+}

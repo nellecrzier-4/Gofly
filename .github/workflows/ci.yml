@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Validasi sumber
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Siapkan Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cek sintaks JavaScript
+        run: npm run check
+
+      - name: Cek sintaks server Python
+        run: python3 -m py_compile serve.py
+
+      - name: Pastikan aset inti ada
+        run: |
+          test -f index.html
+          test -f styles.css
+          test -f js/api.js
+          test -f js/app.js
+          echo "Aset inti lengkap."
