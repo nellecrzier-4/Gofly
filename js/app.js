@@ -39,6 +39,11 @@ const els = {
   busy: $("#busy"),
   accountName: $("#account-name"),
   avatar: $("#avatar"),
+  uploadBtn: $("#upload-btn"),
+  androidNotice: $("#android-notice"),
+  grantNotif: $("#grant-notif"),
+  grantBg: $("#grant-bg"),
+  transferPanel: $("#transfer-panel"),
 };
 
 const state = {
@@ -49,6 +54,9 @@ const state = {
   sortIndex: 0,
   view: "grid",
   search: "",
+  android: false,
+  transfers: {},
+  itemLinks: {},
 };
 
 const SORTS = [
@@ -258,6 +266,7 @@ async function loadFolder(id, name, push = true) {
       throw new GoFileError("Folder ini tidak dapat diakses dengan akun ini.", { kind: "input" });
     }
     const children = data?.children || {};
+    state.itemLinks = {};
     state.items = Object.entries(children).map(([key, item]) => ({ id: key, ...item }));
     renderFiles();
   } catch (error) {
@@ -343,20 +352,23 @@ function renderFiles() {
     .map((item, index) => {
       const glyph = iconFor(item);
       const detail = item.type === "folder" ? "Folder" : `${formatBytes(item.size)} · ${formatDate(item.createTime)}`;
+      const canDownload = state.android && item.type !== "folder" && !!item.link;
+      if (canDownload) state.itemLinks[item.id] = item.link;
       return `
-        <button class="file-card" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(item.type)}" style="--i:${Math.min(index, 20)}" type="button">
+        <div class="file-card ${canDownload ? "has-download" : ""}" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(item.type)}" style="--i:${Math.min(index, 20)}" role="button" tabindex="0">
           <span class="icon-tile ${glyph.cls}">${icon(glyph.name)}</span>
           <span class="file-meta">
             <span class="file-name">${escapeHtml(item.name || "Tanpa nama")}</span>
             <span class="file-detail">${escapeHtml(detail)}</span>
           </span>
+          ${canDownload ? `<span class="dl-btn" data-dl-id="${escapeHtml(item.id)}" title="Unduh">${icon("download")}</span>` : ""}
           ${icon("arrow_forward", { cls: "file-arrow" })}
-        </button>`;
+        </div>`;
     })
     .join("");
 
   $$(".file-card", els.fileGrid).forEach((card) => {
-    card.addEventListener("click", () => {
+    const open = () => {
       const item = state.items.find((i) => i.id === card.dataset.id);
       if (!item) return;
       if (item.type === "folder") {
@@ -364,14 +376,151 @@ function renderFiles() {
       } else {
         window.open(`https://gofile.io/d/${encodeURIComponent(item.id)}`, "_blank", "noopener,noreferrer");
       }
+    };
+    card.addEventListener("click", (event) => {
+      if (event.target.closest(".dl-btn")) return;
+      open();
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
     });
   });
+
+  $$(".dl-btn", els.fileGrid).forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (!state.android) return;
+      const id = button.dataset.dlId;
+      const link = state.itemLinks[id];
+      const item = state.items.find((i) => i.id === id);
+      if (!link || !item) return;
+      if (!window.AndroidBridge.hasNotificationPermission()) {
+        refreshPermissionUI();
+        toast("Nyalakan izin notifikasi dulu agar unduh tetap berjalan di latar belakang.", true);
+        return;
+      }
+      window.AndroidBridge.download(link, item.name || "berkas");
+    });
+  });
+}
+
+/* ============================ Android bridge ============================ */
+
+function initAndroidBridge() {
+  const bridge = window.AndroidBridge;
+  if (!bridge || typeof bridge.isAvailable !== "function" || !bridge.isAvailable()) return;
+  state.android = true;
+
+  // Dipanggil Kotlin setiap kali progres transfer berubah.
+  window.onTransferUpdate = (update) => {
+    const id = String(update?.id || "");
+    if (!id) return;
+    state.transfers[id] = { ...update, updatedAt: Date.now() };
+    renderTransfers();
+
+    if (update.state === "success") {
+      if (update.type === "upload") {
+        const current = state.path[state.path.length - 1];
+        if (current && !els.manager.hidden) loadFolder(current.id, current.name, false);
+      }
+      toast(
+        update.type === "upload"
+          ? `${update.fileName} berhasil diunggah.`
+          : `${update.fileName} tersimpan di Downloads.`,
+      );
+    } else if (update.state === "error") {
+      toast(update.message || "Transfer gagal.", true);
+    }
+  };
+
+  window.onPermissionResult = (kind, granted) => {
+    if (kind === "notifications" && granted) {
+      refreshPermissionUI();
+      toast("Izin notifikasi sudah aktif.");
+    }
+  };
+
+  window.onPermissionRequired = () => {
+    refreshPermissionUI();
+    els.androidNotice.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  els.uploadBtn.hidden = false;
+
+  try {
+    const saved = JSON.parse(bridge.getTransfers() || "[]");
+    saved.forEach((item) => {
+      state.transfers[item.id] = { ...item, updatedAt: Date.now() };
+    });
+    renderTransfers();
+  } catch {
+    /* abaikan kalau format tidak dikenali */
+  }
+
+  refreshPermissionUI();
+}
+
+function refreshPermissionUI() {
+  if (!state.android) return;
+  const bridge = window.AndroidBridge;
+  const notifications = !!bridge.hasNotificationPermission();
+  const background = typeof bridge.isBackgroundAllowed === "function" ? !!bridge.isBackgroundAllowed() : true;
+  els.androidNotice.hidden = notifications && background;
+  els.grantNotif.classList.toggle("is-active-ok", notifications);
+  els.grantBg.classList.toggle("is-active-ok", background);
+}
+
+function renderTransfers() {
+  const list = Object.values(state.transfers)
+    .filter((item) => {
+      const fresh = Date.now() - (item.updatedAt || 0) < 12000;
+      return item.state === "running" || fresh;
+    })
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  els.transferPanel.hidden = list.length === 0;
+  if (!list.length) {
+    els.transferPanel.innerHTML = "";
+    return;
+  }
+
+  els.transferPanel.innerHTML = `
+    <div class="transfer-head">${icon("swap_vert")} Transfer GoFile<span>${list.length}</span></div>
+    ${list
+      .map((item) => {
+        const cls =
+          item.state === "error" ? "is-error" : item.state === "success" ? "is-success" : "";
+        const glyph = item.type === "upload" ? "upload" : "download";
+        const caption =
+          item.state === "success"
+            ? "Selesai"
+            : item.state === "error"
+              ? item.message || "Gagal"
+              : Number(item.progress) >= 0
+                ? `${item.progress}% · ${item.message || "Berjalan"}`
+                : "Menyiapkan…";
+        const progress = Math.max(0, Math.min(100, Number(item.progress) || 0));
+        return `
+          <div class="transfer-row ${cls}">
+            <span class="ms" data-fill="1">${glyph}</span>
+            <div class="transfer-body">
+              <div class="transfer-name">${escapeHtml(item.fileName || "berkas")}</div>
+              <div class="progress"><i style="width:${progress}%"></i></div>
+              <small>${escapeHtml(caption)}</small>
+            </div>
+          </div>`;
+      })
+      .join("")}`;
 }
 
 /* ============================ wiring ============================ */
 
 function init() {
   attachRipples();
+  initAndroidBridge();
 
   els.formEmail.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -443,6 +592,26 @@ function init() {
       const current = state.path[state.path.length - 1];
       loadFolder(current.id, current.name, false);
     }
+  });
+
+  els.uploadBtn.addEventListener("click", () => {
+    if (!state.android || !state.session) return;
+    const current = state.path[state.path.length - 1];
+    if (!current) return;
+    if (!window.AndroidBridge.hasNotificationPermission()) {
+      refreshPermissionUI();
+      toast("Nyalakan izin notifikasi dulu agar unggah tetap berjalan di latar belakang.", true);
+      return;
+    }
+    window.AndroidBridge.pickAndUpload(current.id, state.session.token);
+  });
+
+  els.grantNotif.addEventListener("click", () => {
+    window.AndroidBridge.requestNotificationPermission();
+  });
+
+  els.grantBg.addEventListener("click", () => {
+    window.AndroidBridge.requestBackgroundPermission();
   });
 
   document.addEventListener("keydown", (event) => {

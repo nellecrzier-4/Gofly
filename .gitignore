@@ -1,3 +1,13 @@
 .DS_Store
 *.log
 .env
+__pycache__/
+*.pyc
+
+# Android build artefacts (wrapper jar and gradlew are intentionally committed)
+android/.gradle/
+android/local.properties
+android/build/
+android/app/build/
+android/.idea/
+*.iml

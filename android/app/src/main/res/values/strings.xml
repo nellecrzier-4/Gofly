@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Gofile Expressive</string>
+    <string name="channel_name">Transfer GoFile</string>
+    <string name="channel_description">Progres unggah dan unduh file GoFile</string>
+    <string name="notification_permission_title">Izin notifikasi</string>
+    <string name="notification_permission_message">Aktifkan notifikasi supaya kamu bisa melihat progres unggah/unduh, dan transfer tetap berjalan saat aplikasi ditutup atau pindah ke latar belakang.</string>
+</resources>

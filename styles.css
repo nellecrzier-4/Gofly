@@ -455,6 +455,78 @@ button { cursor: pointer; }
 }
 .busy-overlay .ms { font-size: 52px; color: var(--primary); animation: spin 1s linear infinite; }
 
+/* ============================ Android bridge UI ============================ */
+.android-notice {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin: 0 clamp(18px, 4vw, 48px);
+  padding: 14px 18px;
+  border-radius: var(--shape-md);
+  background: linear-gradient(120deg, rgba(124, 92, 255, 0.2), rgba(255, 111, 156, 0.12));
+  border: 1px solid rgba(198, 182, 255, 0.32);
+  animation: step-in 0.6s var(--ease-emphasized) both;
+}
+.android-notice[hidden] { display: none; }
+.notice-icon { font-size: 30px; color: var(--tertiary); animation: sparkle 3.4s var(--ease-spring) infinite; }
+.notice-copy { flex: 1 1 300px; min-width: 0; }
+.notice-copy strong { display: block; font-size: 13.5px; }
+.notice-copy span { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5; color: var(--on-surface-dim); }
+.android-notice .btn { flex: none; }
+.android-notice .btn .ms { font-size: 18px; }
+
+.transfer-panel {
+  position: fixed; right: 22px; bottom: 22px; z-index: 55;
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px 16px;
+  border-radius: var(--shape-lg);
+  background: rgba(28, 22, 46, 0.94);
+  border: 1px solid var(--outline-strong);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(20px);
+  animation: pop-in 0.5s var(--ease-spring) both;
+}
+.transfer-panel[hidden] { display: none; }
+.transfer-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; font-size: 13px; font-weight: 700;
+}
+.transfer-head .ms { font-size: 19px; color: var(--primary); }
+.transfer-head span {
+  margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px;
+  display: grid; place-items: center; border-radius: 8px;
+  background: var(--primary-strong); color: white; font-size: 11px;
+}
+.transfer-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--outline); }
+.transfer-row > .ms { font-size: 20px; color: var(--tertiary); margin-top: 2px; }
+.transfer-row.is-error > .ms { color: #ff8ba6; }
+.transfer-row.is-success > .ms { color: #8ce0c6; }
+.transfer-body { min-width: 0; flex: 1; }
+.transfer-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.transfer-body small { display: block; margin-top: 3px; font-size: 10.5px; color: var(--on-surface-muted); }
+.progress { height: 6px; margin-top: 7px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.progress i {
+  display: block; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary-strong), var(--tertiary-strong));
+  transition: width 0.3s var(--ease-standard);
+}
+.transfer-row.is-success .progress i { background: #56c9a3; }
+.transfer-row.is-error .progress i { background: #ff6f9c; }
+
+.dl-btn {
+  flex: none; width: 36px; height: 36px; display: grid; place-items: center;
+  border-radius: 12px; border: 1px solid var(--outline);
+  background: rgba(124, 92, 255, 0.14); color: var(--primary);
+  transition: all 0.3s var(--ease-spring);
+}
+.dl-btn:hover { background: var(--primary-strong); color: white; transform: translateY(-2px); }
+.dl-btn .ms { font-size: 19px; }
+.file-card.has-download .file-arrow { display: none; }
+
+@media (max-width: 780px) {
+  .android-notice { padding: 12px 14px; gap: 10px; }
+  .android-notice .btn { flex: 1 1 auto; justify-content: center; }
+  .transfer-panel { right: 12px; bottom: 12px; }
+}
+
 /* View transition magic for folder navigation */
 ::view-transition-old(root) { animation: 180ms ease both fade-out; }
 ::view-transition-new(root) { animation: 320ms var(--ease-emphasized) both fade-in; }

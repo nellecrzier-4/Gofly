@@ -1,0 +1,2 @@
+-keep class com.nellecrzier.gofileexpressive.GofileBridge { *; }
+-keepattributes JavascriptInterface

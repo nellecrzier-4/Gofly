@@ -131,6 +131,20 @@
           </div>
         </header>
 
+        <div id="android-notice" class="android-notice" hidden>
+          <span class="ms notice-icon" data-fill="1">notifications_active</span>
+          <div class="notice-copy">
+            <strong>Izin notifikasi &amp; latar belakang</strong>
+            <span>Aktifkan notifikasi dan izinkan aplikasi berjalan di latar belakang supaya unggah/unduh tidak terhenti saat kamu keluar aplikasi.</span>
+          </div>
+          <button id="grant-notif" class="btn btn-tonal btn-sm" type="button">
+            <span class="ms">notifications</span><span>Notifikasi</span>
+          </button>
+          <button id="grant-bg" class="btn btn-tonal btn-sm" type="button">
+            <span class="ms">bolt</span><span>Latar belakang</span>
+          </button>
+        </div>
+
         <main class="content">
           <nav class="breadcrumbs" id="breadcrumbs" aria-label="Lokasi folder"></nav>
 
@@ -144,6 +158,9 @@
           </div>
 
           <div class="toolbar">
+            <button id="upload-btn" class="btn btn-primary btn-sm" type="button" hidden>
+              <span class="ms">upload</span><span>Unggah file</span>
+            </button>
             <div class="segmented" role="group" aria-label="Tampilan">
               <button class="seg is-active" data-view="grid" type="button" title="Grid"><span class="ms">grid_view</span></button>
               <button class="seg" data-view="list" type="button" title="Daftar"><span class="ms">list</span></button>
@@ -164,6 +181,7 @@
         </main>
       </section>
 
+      <div id="transfer-panel" class="transfer-panel" hidden aria-live="polite"></div>
       <div id="snackbar" class="snackbar" role="status" aria-live="polite"></div>
       <div id="busy" class="busy-overlay" hidden><span class="ms">progress_activity</span></div>
     </div>
