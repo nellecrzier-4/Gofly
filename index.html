@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f0c18" />
+    <title>Gofile Expressive — File manager dengan jiwa Material Expressive</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Outfit:wght@300..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+
+    <!-- Generator website-token resmi GoFile. Dipakai untuk request /contents/* -->
+    <script src="https://gofile.io/js/wt.obf.js" defer></script>
+    <script type="module" src="./js/app.js"></script>
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true">
+      <span class="blob blob-a"></span>
+      <span class="blob blob-b"></span>
+      <span class="blob blob-c"></span>
+    </div>
+
+    <div id="app" class="app-shell">
+      <!-- ===================== AUTH ===================== -->
+      <section id="auth" class="auth-view" aria-labelledby="auth-title">
+        <div class="auth-card">
+          <div class="auth-top">
+            <div class="brand-mark" aria-hidden="true">
+              <span class="ms brand-icon" data-fill="1">cloud</span>
+              <span class="brand-spark"><span class="ms">auto_awesome</span></span>
+            </div>
+            <p class="eyebrow">GOFILE · MATERIAL EXPRESSIVE</p>
+            <h1 id="auth-title" class="auth-title">File kamu,<br /><span class="gradient-text">penuh karakter.</span></h1>
+            <p class="auth-subtitle">Masuk pakai link yang dikirim ke email. Tanpa kata sandi, tanpa ribet.</p>
+          </div>
+
+          <ol class="stepper" aria-label="Langkah masuk">
+            <li class="step is-active" data-step="1"><span>1</span> Email</li>
+            <li class="step" data-step="2"><span>2</span> Link</li>
+            <li class="step" data-step="3"><span>3</span> Berhasil</li>
+          </ol>
+
+          <!-- Step 1: email -->
+          <form id="form-email" class="auth-step is-visible" novalidate>
+            <label class="field-label" for="email">Alamat email GoFile</label>
+            <div class="field">
+              <span class="ms field-icon">mail</span>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="nama@email.com" required />
+            </div>
+            <p class="field-hint"><span class="ms hint-icon">bolt</span> Kami akan mengirim login link ke email ini.</p>
+            <button class="btn btn-primary btn-block" type="submit">
+              <span class="ms">send</span>
+              <span>Kirim login link</span>
+              <span class="ms btn-trail">arrow_forward</span>
+            </button>
+          </form>
+
+          <!-- Step 2: paste link -->
+          <form id="form-link" class="auth-step" novalidate hidden>
+            <div class="sent-badge">
+              <span class="ms sent-icon" data-fill="1">mark_email_read</span>
+              <div>
+                <strong>Link sudah dikirim!</strong>
+                <small id="sent-to">Cek kotak masuk email kamu.</small>
+              </div>
+            </div>
+
+            <label class="field-label" for="login-link">Tempel login link dari email</label>
+            <div class="field field-link">
+              <span class="ms field-icon">link</span>
+              <input id="login-link" name="loginLink" type="text" autocomplete="off" spellcheck="false"
+                placeholder="https://gofile.io/login/..." required />
+              <button type="button" id="paste-btn" class="icon-btn field-action" title="Tempel dari clipboard">
+                <span class="ms">content_paste</span>
+              </button>
+            </div>
+            <p class="field-hint"><span class="ms hint-icon">key</span> Boleh juga tempel langsung token 32 karakternya.</p>
+
+            <button class="btn btn-primary btn-block" type="submit">
+              <span class="ms">login</span>
+              <span>Masuk sekarang</span>
+              <span class="ms btn-trail">arrow_forward</span>
+            </button>
+            <div class="auth-links">
+              <button type="button" id="resend-btn" class="text-btn"><span class="ms">refresh</span> Kirim ulang</button>
+              <button type="button" id="change-email-btn" class="text-btn"><span class="ms">edit</span> Ubah email</button>
+            </div>
+          </form>
+
+          <p id="auth-error" class="auth-error" role="alert" hidden></p>
+
+          <div class="auth-foot">
+            <span class="ms">shield</span>
+            Token hanya disimpan di browser ini. Keluar kapan saja.
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== FILE MANAGER ===================== -->
+      <section id="manager" class="manager-view" hidden aria-labelledby="manager-title">
+        <header class="topbar">
+          <div class="topbar-brand">
+            <span class="ms brand-mini" data-fill="1">cloud</span>
+            <div>
+              <h2 id="manager-title">Ruangku</h2>
+              <p>GoFile · tersinkron</p>
+            </div>
+          </div>
+
+          <div class="topbar-actions">
+            <div class="search-pill">
+              <span class="ms">search</span>
+              <input id="search" type="search" placeholder="Cari di folder ini…" aria-label="Cari" />
+              <kbd>/</kbd>
+            </div>
+            <button id="sync-btn" class="btn btn-tonal" type="button" title="Sinkron ulang">
+              <span class="ms sync-icon">sync</span><span class="btn-label">Sinkron</span>
+            </button>
+            <div class="account-chip" id="account-chip" title="Akun aktif">
+              <span id="avatar" class="avatar">G</span>
+              <span id="account-name" class="account-name">Akun</span>
+            </div>
+            <button id="logout-btn" class="icon-btn" type="button" title="Keluar">
+              <span class="ms">logout</span>
+            </button>
+          </div>
+        </header>
+
+        <main class="content">
+          <nav class="breadcrumbs" id="breadcrumbs" aria-label="Lokasi folder"></nav>
+
+          <div class="hero-row">
+            <div>
+              <p class="eyebrow">AKUN GOFILE · ROOT</p>
+              <h1 class="page-title" id="folder-title">Root folder</h1>
+              <p class="page-sub" id="folder-sub">Menyiapkan isi folder…</p>
+            </div>
+            <div class="stat-row" id="stats"></div>
+          </div>
+
+          <div class="toolbar">
+            <div class="segmented" role="group" aria-label="Tampilan">
+              <button class="seg is-active" data-view="grid" type="button" title="Grid"><span class="ms">grid_view</span></button>
+              <button class="seg" data-view="list" type="button" title="Daftar"><span class="ms">list</span></button>
+            </div>
+            <button id="sort-btn" class="btn btn-tonal btn-sm" type="button">
+              <span class="ms">sort</span><span id="sort-label">Nama A–Z</span><span class="ms">expand_more</span>
+            </button>
+          </div>
+
+          <div id="loading" class="skeleton-grid" hidden></div>
+          <div id="file-grid" class="file-grid" hidden></div>
+
+          <div id="empty" class="empty-state" hidden>
+            <span class="ms empty-icon" data-fill="1">folder_off</span>
+            <h3 id="empty-title">Folder ini kosong</h3>
+            <p id="empty-text">Belum ada file atau folder di sini.</p>
+          </div>
+        </main>
+      </section>
+
+      <div id="snackbar" class="snackbar" role="status" aria-live="polite"></div>
+      <div id="busy" class="busy-overlay" hidden><span class="ms">progress_activity</span></div>
+    </div>
+  </body>
+</html>
