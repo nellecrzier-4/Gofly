@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -34,6 +36,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -105,6 +108,9 @@ fun GofileApp(activity: MainActivity) {
         var items by remember { mutableStateOf(listOf<GItem>()) }
         var busy by remember { mutableStateOf(false) }
         var notice by remember { mutableStateOf<String?>(null) }
+        var showCreateFolder by remember { mutableStateOf(false) }
+        var newFolderName by remember { mutableStateOf("") }
+        var pendingDelete by remember { mutableStateOf<GItem?>(null) }
         var loginStep by remember { mutableStateOf(if (session.isLoggedIn) "ready" else "email") }
         var email by remember { mutableStateOf("") }
         var tokenInput by remember { mutableStateOf("") }
@@ -129,6 +135,47 @@ fun GofileApp(activity: MainActivity) {
             }
         }
 
+        fun createFolder() {
+            val parent = stack.lastOrNull()?.id ?: return
+            val name = newFolderName.trim()
+            if (name.isBlank()) return
+            scope.launch {
+                busy = true
+                notice = null
+                try {
+                    withContext(Dispatchers.IO) {
+                        GofileApi.createFolder(session.token, parent, name)
+                    }
+                    items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, parent) }
+                    showCreateFolder = false
+                    newFolderName = ""
+                    notice = "Folder \"$name\" dibuat."
+                } catch (error: Exception) {
+                    report(error)
+                } finally {
+                    busy = false
+                }
+            }
+        }
+
+        fun deleteItem(item: GItem) {
+            val parent = stack.lastOrNull()?.id ?: return
+            scope.launch {
+                busy = true
+                notice = null
+                try {
+                    withContext(Dispatchers.IO) { GofileApi.deleteContent(session.token, item.id) }
+                    items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, parent) }
+                    pendingDelete = null
+                    notice = "\"${item.name}\" dihapus."
+                } catch (error: Exception) {
+                    report(error)
+                } finally {
+                    busy = false
+                }
+            }
+        }
+
         fun enter(sessionValue: GSession) {
             SessionStore.save(context, sessionValue)
             session = sessionValue
@@ -145,6 +192,9 @@ fun GofileApp(activity: MainActivity) {
             items = emptyList()
             tokenInput = ""
             notice = null
+            showCreateFolder = false
+            newFolderName = ""
+            pendingDelete = null
             loginStep = "email"
         }
 
@@ -187,6 +237,15 @@ fun GofileApp(activity: MainActivity) {
                             }
                         },
                         actions = {
+                            IconButton(
+                                onClick = {
+                                    newFolderName = ""
+                                    showCreateFolder = true
+                                },
+                                enabled = !busy,
+                            ) {
+                                Icon(Icons.Filled.CreateNewFolder, contentDescription = "Folder baru")
+                            }
                             IconButton(onClick = { stack.lastOrNull()?.let { loadFolder(it.id) } }) {
                                 Icon(Icons.Filled.Refresh, contentDescription = "Muat ulang")
                             }
@@ -243,6 +302,7 @@ fun GofileApp(activity: MainActivity) {
                             onDownload = { item ->
                                 activity.startDownload(item.link, item.name, session.token)
                             },
+                            onDelete = { item -> pendingDelete = item },
                             modifier = Modifier.fillMaxSize(),
                         )
                         TransferPanel(
@@ -321,6 +381,53 @@ fun GofileApp(activity: MainActivity) {
                     )
                 }
             }
+        }
+
+        if (showCreateFolder) {
+            AlertDialog(
+                onDismissRequest = { showCreateFolder = false },
+                title = { Text("Folder baru") },
+                text = {
+                    OutlinedTextField(
+                        value = newFolderName,
+                        onValueChange = { newFolderName = it },
+                        label = { Text("Nama folder") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { createFolder() },
+                        enabled = newFolderName.isNotBlank() && !busy,
+                    ) {
+                        Text("Buat")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCreateFolder = false }) { Text("Batal") }
+                },
+            )
+        }
+
+        pendingDelete?.let { target ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text("Hapus ${if (target.isFolder) "folder" else "file"}?") },
+                text = {
+                    Text(
+                        "\"${target.name}\" akan dihapus permanen dari GoFile. Tindakan ini tidak bisa dibatalkan.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { deleteItem(target) }, enabled = !busy) {
+                        Text("Hapus")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDelete = null }) { Text("Batal") }
+                },
+            )
         }
     }
 }
@@ -502,6 +609,7 @@ private fun FolderList(
     busy: Boolean,
     onOpen: (GItem) -> Unit,
     onDownload: (GItem) -> Unit,
+    onDelete: (GItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (busy && items.isEmpty()) {
@@ -548,9 +656,18 @@ private fun FolderList(
                     }
                 },
                 trailingContent = {
-                    if (!item.isFolder) {
-                        IconButton(onClick = { onDownload(item) }) {
-                            Icon(Icons.Filled.Download, contentDescription = "Unduh ${item.name}")
+                    Row {
+                        if (!item.isFolder && item.link.startsWith("http")) {
+                            IconButton(onClick = { onDownload(item) }) {
+                                Icon(Icons.Filled.Download, contentDescription = "Unduh ${item.name}")
+                            }
+                        }
+                        IconButton(onClick = { onDelete(item) }) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = "Hapus ${item.name}",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                 },
@@ -584,15 +701,18 @@ private fun TransferPanel(transfers: List<TransferInfo>, modifier: Modifier = Mo
             Spacer(Modifier.height(8.dp))
             recent.forEach { transfer ->
                 val progress = transfer.progress
-                Text(
-                    text = when (transfer.state) {
-                        "success" -> "${transfer.fileName} · selesai"
-                        "error" -> "${transfer.fileName} · ${transfer.message}"
-                        else -> if (progress < 0) "${transfer.fileName} · menyiapkan…"
+                val status = when (transfer.state) {
+                    "success" -> "${transfer.fileName} · selesai"
+                    "error" -> "${transfer.fileName} · ${transfer.message}"
+                    else -> transfer.message.ifBlank {
+                        if (progress < 0) "${transfer.fileName} · menyiapkan…"
                         else "${transfer.fileName} · $progress%"
-                    },
+                    }
+                }
+                Text(
+                    text = status,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
+                    maxLines = 3,
                 )
                 Spacer(Modifier.height(5.dp))
                 if (progress < 0) {

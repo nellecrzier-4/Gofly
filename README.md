@@ -51,9 +51,10 @@ Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard
 Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`** — seluruh UI dan panggilan API berjalan native:
 
 - **Login native**: kirim magic link, tempel link/token, atau masuk sebagai tamu. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
-- **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar,.refresh, dan logout.
+- **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar, refresh, dan logout.
+- **Kelola folder**: buat folder baru (`POST /contents/createFolder`) dan hapus file/folder (`DELETE /contents`) langsung dari daftar.
 - **Unggah file** dari pemilih file Android → `POST https://upload.gofile.io/uploadfile` ke folder yang sedang dibuka (dengan token akun).
-- **Unduh file** ke folder *Downloads* perangkat (MediaStore di Android 10+, folder `Gofile Expressive/Downloads` di Android 9 ke bawah).
+- **Unduh file** ke folder *Downloads* perangkat (MediaStore di Android 10+, folder `Gofile Expressive/Downloads` di Android 9 ke bawah). Fallback otomatis mencoba ulang tanpa header akun jika node CDN menolak header tersebut.
 - **Foreground service** bertipe `dataSync` + *partial wake lock*: transfer tetap berjalan saat aplikasi ditutup, pindah ke home screen, atau layar mati.
 - **Notifikasi progres** (channel `gofile_transfers`) menampilkan persentase dan hasil akhir; notifikasi bisa diketuk untuk kembali ke aplikasi.
 - **Izin wajib**: `POST_NOTIFICATIONS` (Android 13+) diminta sebelum transfer, dan pengguna diarahkan untuk mengizinkan *Ignore battery optimizations* agar sistem tidak mematikan transfer di latar belakang.

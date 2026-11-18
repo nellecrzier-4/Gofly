@@ -10,9 +10,9 @@ data class TransferInfo(
     val id: String,
     val type: String,
     val fileName: String,
-    var progress: Int = 0,
-    var state: String = "running",
-    var message: String = "",
+    val progress: Int = 0,
+    val state: String = "running",
+    val message: String = "",
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
@@ -43,11 +43,22 @@ object TransferStore {
         state: String? = null,
         message: String? = null,
     ) {
-        val info = synchronized(lock) { items[id] } ?: return
-        if (progress != null) info.progress = progress
-        if (state != null) info.state = state
-        if (message != null) info.message = message
-        publish()
+        var changed = false
+        synchronized(lock) {
+            val current = items[id]
+            if (current != null) {
+                // TransferInfo harus immutable: mutation in-place membuat
+                // StateFlow mengira daftar lama dan baru sama, sehingga UI
+                // tidak pernah menerima update progres.
+                items[id] = current.copy(
+                    progress = progress ?: current.progress,
+                    state = state ?: current.state,
+                    message = message ?: current.message,
+                )
+                changed = true
+            }
+        }
+        if (changed) publish()
     }
 
     private fun publish() {

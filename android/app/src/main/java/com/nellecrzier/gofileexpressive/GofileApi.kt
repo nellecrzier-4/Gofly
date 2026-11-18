@@ -61,10 +61,7 @@ object GofileApi {
         val data = request(
             "/contents/$folderId?$query",
             token = token,
-            extra = mapOf(
-                "X-Website-Token" to websiteToken(token),
-                "X-BL" to language,
-            ),
+            extra = contentHeaders(token),
         )
         val children = data.optJSONObject("children") ?: return emptyList()
         val items = mutableListOf<GItem>()
@@ -86,6 +83,40 @@ object GofileApi {
         }
         return items.sortedWith(compareBy({ !it.isFolder }, { it.name.lowercase(Locale.ROOT) }))
     }
+
+    /** Buat folder baru di dalam folder induk tertentu. */
+    fun createFolder(token: String, parentFolderId: String, folderName: String) {
+        val body = JSONObject()
+            .put("token", token)
+            .put("parentFolderId", parentFolderId)
+            .put("folderName", folderName)
+        request(
+            "/contents/createFolder",
+            "POST",
+            body.toString(),
+            token = token,
+            extra = contentHeaders(token),
+        )
+    }
+
+    /** Hapus file atau folder beserta isinya. */
+    fun deleteContent(token: String, contentId: String) {
+        val body = JSONObject()
+            .put("token", token)
+            .put("contentsId", contentId)
+        request(
+            "/contents",
+            "DELETE",
+            body.toString(),
+            token = token,
+            extra = contentHeaders(token),
+        )
+    }
+
+    private fun contentHeaders(token: String): Map<String, String> = mapOf(
+        "X-Website-Token" to websiteToken(token),
+        "X-BL" to language,
+    )
 
     /** SHA-256(userAgent :: language :: token :: periode :: secret). */
     fun websiteToken(token: String): String {
