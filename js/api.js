@@ -18,10 +18,17 @@ export class GoFileError extends Error {
   }
 }
 
+const REQUEST_TIMEOUT_MS = 20_000;
+
 export async function apiFetch(path, { method = "GET", body, token, headers = {} } = {}) {
   const finalHeaders = { ...headers };
   if (body !== undefined) finalHeaders["Content-Type"] = "application/json";
   if (token) finalHeaders["Authorization"] = `Bearer ${token}`;
+
+  // Tanpa timeout, fetch bisa menggantung selamanya di WebView/HP dan overlay
+  // "busy" tidak pernah hilang (terlihat seperti aplikasi stuck).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   let response;
   try {
@@ -29,12 +36,18 @@ export async function apiFetch(path, { method = "GET", body, token, headers = {}
       method,
       headers: finalHeaders,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch (error) {
-    throw new GoFileError("Tidak dapat terhubung ke server GoFile. Periksa koneksi lalu coba lagi.", {
-      kind: "network",
-      cause: error,
-    });
+    const aborted = error?.name === "AbortError";
+    throw new GoFileError(
+      aborted
+        ? "Waktu tunggu habis. Periksa koneksi internet lalu coba lagi."
+        : "Tidak dapat terhubung ke server GoFile. Periksa koneksi lalu coba lagi.",
+      { kind: aborted ? "timeout" : "network", cause: error },
+    );
+  } finally {
+    clearTimeout(timer);
   }
 
   let payload = null;
@@ -85,8 +98,20 @@ export function getAccount(token) {
  * skrip resmi https://gofile.io/js/wt.obf.js (dimuat di index.html).
  */
 export async function websiteToken(token) {
+  // Di WebView/HP, skrip eksternal kadang masih termuat saat halaman siap.
+  // Tunggu sebentar sebelum menyerah, daripada langsung menggagalkan login.
   if (typeof window.generateWT !== "function") {
-    throw new GoFileError("Generator token website GoFile belum termuat. Muat ulang halaman.", {
+    await new Promise((resolve) => {
+      const started = Date.now();
+      const check = () => {
+        if (typeof window.generateWT === "function" || Date.now() - started > 8000) resolve();
+        else setTimeout(check, 120);
+      };
+      check();
+    });
+  }
+  if (typeof window.generateWT !== "function") {
+    throw new GoFileError("Generator token website GoFile belum termuat. Periksa koneksi lalu muat ulang halaman.", {
       kind: "setup",
     });
   }
@@ -132,11 +157,24 @@ export function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-/** Terima URL penuh (`https://gofile.io/login/xxxx`) atau token mentah 32 char. */
+/**
+ * Terima URL penuh (`https://gofile.io/login/<token>`), URL dengan query
+ * (`?token=...`), atau token mentah 32 karakter. Toleran terhadap slash
+ * tambahan, spasi, tanda kutip hasil copy, dan parameter pelacakan email.
+ */
 export function extractToken(input) {
-  const clean = String(input ?? "").trim().replace(/[\s"'`]/g, "");
-  const fromUrl = clean.match(/(?:^|\/)login\/([a-zA-Z0-9]{32})(?:[?#].*)?$/i);
-  if (fromUrl) return fromUrl[1];
-  if (/^[a-zA-Z0-9]{32}$/.test(clean)) return clean;
+  const clean = String(input ?? "")
+    .trim()
+    .replace(/[\s"'`]/g, "");
+  if (!clean) return null;
+
+  const tokenPattern = "[a-zA-Z0-9_-]{16,64}";
+  const fromPath = clean.match(new RegExp(`login/(${tokenPattern})`, "i"));
+  if (fromPath) return fromPath[1];
+
+  const fromQuery = clean.match(new RegExp(`[?&](?:token|apiToken)=(${tokenPattern})`, "i"));
+  if (fromQuery) return fromQuery[1];
+
+  if (new RegExp(`^${tokenPattern}$`).test(clean)) return clean;
   return null;
 }
