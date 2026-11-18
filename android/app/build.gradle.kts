@@ -14,7 +14,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "APP_URL", "\"https://nellecrzier-4.github.io/gofile-expressive/\"")
+        buildConfigField("String", "APP_URL", "\"https://nellecrzier-4.github.io/gofile-expressive/?v=3\"")
     }
 
     buildTypes {
