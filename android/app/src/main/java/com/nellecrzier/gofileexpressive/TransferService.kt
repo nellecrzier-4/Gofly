@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.io.OutputStream
 import java.io.PushbackInputStream
 import java.net.HttpURLConnection
@@ -142,113 +143,140 @@ class TransferService : Service() {
 
     /* ------------------------------ unggah ------------------------------ */
 
+    private data class UploadSource(val uri: Uri, val size: Long, val temporaryFile: File?)
+
     private fun doUpload(id: String, uri: Uri, token: String, folderId: String, fileName: String) {
         val safeName = sanitize(fileName)
-        val expectedSize = queryFileSize(uri)
-
         TransferStore.update(id, state = "running", message = "Membaca $safeName")
         reportProgress(id, safeName, -1, indeterminate = true)
 
-        val boundary = "----GofileBoundary${System.currentTimeMillis()}"
-        val connection = URL("https://upload.gofile.io/uploadfile").openConnection() as HttpURLConnection
-        connection.apply {
-            requestMethod = "POST"
-            doOutput = true
-            // Streaming: jangan menampung seluruh file di memori (bisa OOM).
-            setChunkedStreamingMode(64 * 1024)
-            connectTimeout = 20_000
-            readTimeout = 180_000
-            setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty(
-                "User-Agent",
-                "Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36",
-            )
-            if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
-        }
+        val source = prepareUploadSource(uri)
+        try {
+            // GoFile menolak Transfer-Encoding: chunked (HTTP 400), jadi harus
+            // mengirim Content-Length yang tepat lewat fixed-length streaming.
+            val boundary = "----GofileBoundary${System.currentTimeMillis()}"
+            val tokenPart = if (token.isNotBlank()) formPart(boundary, "token", token) else ByteArray(0)
+            val folderPart = if (folderId.isNotBlank()) formPart(boundary, "folderId", folderId) else ByteArray(0)
+            val fileHeader = (
+                "--$boundary\r\n" +
+                    "Content-Disposition: form-data; name=\"file\"; filename=\"${safeName.replace("\"", "")}\"\r\n" +
+                    "Content-Type: application/octet-stream\r\n\r\n"
+                ).toByteArray(Charsets.UTF_8)
+            val closing = "\r\n--$boundary--\r\n".toByteArray(Charsets.UTF_8)
+            val total = tokenPart.size.toLong() + folderPart.size.toLong() +
+                fileHeader.size.toLong() + source.size + closing.size.toLong()
 
-        val rawOut = connection.outputStream
-        val preamble = StringBuilder()
-            .append("--").append(boundary).append("\r\n")
-            .append("Content-Disposition: form-data; name=\"file\"; filename=\"")
-            .append(safeName.replace("\"", "")).append("\"\r\n")
-            .append("Content-Type: application/octet-stream\r\n\r\n")
-            .toString()
-        rawOut.write(preamble.toByteArray(Charsets.UTF_8))
-
-        var fileBytes = 0L
-        val counting = CountingOutputStream(rawOut, expectedSize) { uploaded, size ->
-            if (size > 0) reportProgress(id, safeName, (uploaded * 100 / size).toInt().coerceAtMost(99))
-        }
-
-        contentResolver.openInputStream(uri).use { input ->
-            if (input == null) {
-                throw IllegalArgumentException("Berkas tidak dapat dibaca. Pilih dari aplikasi Files/Downloads.")
+            val connection = URL("https://upload.gofile.io/uploadfile").openConnection() as HttpURLConnection
+            connection.apply {
+                requestMethod = "POST"
+                doOutput = true
+                setFixedLengthStreamingMode(total)
+                connectTimeout = 20_000
+                readTimeout = 180_000
+                setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                setRequestProperty("Accept", "*/*")
+                setRequestProperty(
+                    "User-Agent",
+                    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36",
+                )
+                if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
             }
-            val buffer = ByteArray(64 * 1024)
-            var read: Int
-            while (input.read(buffer).also { read = it } != -1) {
-                counting.write(buffer, 0, read)
-                fileBytes += read
-            }
-        }
 
-        if (fileBytes <= 0) {
+            val rawOut = connection.outputStream
+            rawOut.write(tokenPart)
+            rawOut.write(folderPart)
+            rawOut.write(fileHeader)
+
+            var fileBytes = 0L
+            val counting = CountingOutputStream(rawOut, source.size) { uploaded, size ->
+                if (size > 0) reportProgress(id, safeName, (uploaded * 100 / size).toInt().coerceAtMost(99))
+            }
+            contentResolver.openInputStream(source.uri).use { input ->
+                if (input == null) {
+                    throw IllegalArgumentException("Berkas tidak dapat dibaca. Pilih dari aplikasi Files/Downloads.")
+                }
+                val buffer = ByteArray(64 * 1024)
+                var read: Int
+                while (input.read(buffer).also { read = it } != -1) {
+                    counting.write(buffer, 0, read)
+                    fileBytes += read
+                }
+            }
+            if (fileBytes != source.size) {
+                connection.disconnect()
+                throw IllegalArgumentException(
+                    "Ukuran berkas berubah saat dibaca (${source.size} → $fileBytes byte). Pilih ulang file.",
+                )
+            }
+            rawOut.write(closing)
+            rawOut.flush()
+            try { rawOut.close() } catch (_: Exception) {}
+
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
             connection.disconnect()
+
+            if (code !in 200..299) {
+                throw IllegalArgumentException("GoFile menolak unggahan (HTTP $code): ${response.take(160)}")
+            }
+            val json = try {
+                JSONObject(response)
+            } catch (_: Exception) {
+                throw IllegalArgumentException("Balasan GoFile tidak dikenali: ${response.take(160)}")
+            }
+            if (json.optString("status") != "ok") {
+                val message = json.optJSONObject("data")?.optString("message").takeUnless { it.isNullOrBlank() }
+                    ?: json.optString("status").takeUnless { it.isBlank() }
+                    ?: "GoFile menolak unggahan"
+                throw IllegalArgumentException(message)
+            }
+
+            val data = json.optJSONObject("data")
+            val accepted = data?.optLong("size") ?: -1L
+            if (accepted > 0 && accepted != fileBytes) {
+                throw IllegalArgumentException(
+                    "GoFile menerima $accepted byte, padahal berkas berisi $fileBytes byte. Coba unggah ulang.",
+                )
+            }
+            val destination = data?.optString("parentFolder").orEmpty()
+            if (folderId.isNotBlank() && destination.isNotBlank() &&
+                !destination.equals(folderId, ignoreCase = true)
+            ) {
+                throw IllegalArgumentException("File masuk ke folder lain, bukan folder saat ini. Coba ulang.")
+            }
+
+            reportProgress(id, safeName, 100)
+            TransferStore.update(
+                id,
+                state = "success",
+                progress = 100,
+                message = "Unggah selesai: $safeName ($fileBytes byte)",
+            )
+            showResult("Unggah selesai", safeName, "$fileBytes byte tersimpan", failed = false)
+        } finally {
+            source.temporaryFile?.delete()
+        }
+    }
+
+    /** Pastikan ukuran file diketahui; kalau tidak, salin ke cache dulu. */
+    private fun prepareUploadSource(uri: Uri): UploadSource {
+        val known = queryFileSize(uri)
+        if (known > 0) return UploadSource(uri, known, null)
+        val temporaryFile = File(cacheDir, "upload-${UUID.randomUUID()}.bin")
+        val input: InputStream? = contentResolver.openInputStream(uri)
+        if (input == null) {
+            throw IllegalArgumentException("Berkas tidak dapat dibaca. Pilih dari aplikasi Files/Downloads.")
+        }
+        input.use { source ->
+            FileOutputStream(temporaryFile).use { out -> source.copyTo(out, 64 * 1024) }
+        }
+        val size = temporaryFile.length()
+        if (size <= 0) {
+            temporaryFile.delete()
             throw IllegalArgumentException("Berkas kosong (0 byte) atau aksesnya habis. Pilih ulang file.")
         }
-
-        if (folderId.isNotBlank()) rawOut.write(formPart(boundary, "folderId", folderId))
-        if (token.isNotBlank()) rawOut.write(formPart(boundary, "token", token))
-        rawOut.write("\r\n--$boundary--\r\n".toByteArray(Charsets.UTF_8))
-        rawOut.flush()
-        // Tutup output stream sebelum membaca respons; diperlukan sebagian
-        // server/upload fleet agar request benar-benar selesai.
-        try { rawOut.close() } catch (_: Exception) {}
-
-        val code = connection.responseCode
-        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-        val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-        connection.disconnect()
-
-        if (code !in 200..299) {
-            throw IllegalArgumentException("GoFile menolak unggahan (HTTP $code): ${response.take(160)}")
-        }
-
-        val json = try {
-            JSONObject(response)
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Balasan GoFile tidak dikenali: ${response.take(160)}")
-        }
-        if (json.optString("status") != "ok") {
-            val message = json.optJSONObject("data")?.optString("message").takeUnless { it.isNullOrBlank() }
-                ?: json.optString("status").takeUnless { it.isBlank() }
-                ?: "GoFile menolak unggahan"
-            throw IllegalArgumentException(message)
-        }
-
-        val data = json.optJSONObject("data")
-        val accepted = data?.optLong("size") ?: -1L
-        if (accepted > 0 && accepted != fileBytes) {
-            throw IllegalArgumentException(
-                "GoFile menerima $accepted byte, padahal berkas berisi $fileBytes byte. Coba unggah ulang.",
-            )
-        }
-        val destination = data?.optString("parentFolder").orEmpty()
-        if (folderId.isNotBlank() && destination.isNotBlank() &&
-            !destination.equals(folderId, ignoreCase = true)
-        ) {
-            throw IllegalArgumentException("File masuk ke folder lain, bukan folder saat ini. Coba ulang.")
-        }
-
-        reportProgress(id, safeName, 100)
-        TransferStore.update(
-            id,
-            state = "success",
-            progress = 100,
-            message = "Unggah selesai: $safeName ($fileBytes byte)",
-        )
-        showResult("Unggah selesai", safeName, "$fileBytes byte tersimpan", failed = false)
+        return UploadSource(Uri.fromFile(temporaryFile), size, temporaryFile)
     }
 
     private fun queryFileSize(uri: Uri): Long {
@@ -269,11 +297,7 @@ class TransferService : Service() {
     }
 
     private fun formPart(boundary: String, name: String, value: String): ByteArray =
-        StringBuilder()
-            .append("\r\n--").append(boundary).append("\r\n")
-            .append("Content-Disposition: form-data; name=\"").append(name).append("\"\r\n\r\n")
-            .append(value).append("\r\n")
-            .toString()
+        "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n"
             .toByteArray(Charsets.UTF_8)
 
     /* ------------------------------ unduh ------------------------------ */
