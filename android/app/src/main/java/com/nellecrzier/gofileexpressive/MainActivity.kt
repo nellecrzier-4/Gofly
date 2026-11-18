@@ -101,9 +101,13 @@ class MainActivity : Activity() {
         }
         pendingFolderId = folderId
         pendingToken = token
-        val picker = Intent(Intent.ACTION_GET_CONTENT).apply {
+        // ACTION_OPEN_DOCUMENT + persistable permission membuat berkas tetap
+        // bisa dibaca TransferService walaupun picker sudah ditutup.
+        val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             type = "*/*"
             addCategory(Intent.CATEGORY_OPENABLE)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
         }
         try {
@@ -154,6 +158,15 @@ class MainActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQ_PICK_FILE || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        } catch (_: SecurityException) {
+            // Beberapa provider tidak mendukung persistable permission;
+            // flag GRANT_READ di bawah masih mencakup service di proses yang sama.
+        }
 
         val name = queryDisplayName(uri) ?: "berkas-${System.currentTimeMillis()}"
         val id = UUID.randomUUID().toString()
@@ -161,6 +174,7 @@ class MainActivity : Activity() {
 
         val intent = Intent(this, TransferService::class.java).apply {
             action = TransferService.ACTION_UPLOAD
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             putExtra(TransferService.EXTRA_TRANSFER_ID, id)
             putExtra(TransferService.EXTRA_URI, uri)
             putExtra(TransferService.EXTRA_TOKEN, pendingToken)
