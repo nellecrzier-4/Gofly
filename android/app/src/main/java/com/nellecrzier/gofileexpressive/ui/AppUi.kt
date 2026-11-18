@@ -8,6 +8,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -1401,6 +1402,7 @@ private fun LoginScreen(
     val isEmailStep = step == "email"
     val emailInvalid = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
     val emailReady = email.isNotBlank() && !emailInvalid
+    val fieldShape = RoundedCornerShape(16.dp)
 
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
@@ -1409,7 +1411,7 @@ private fun LoginScreen(
         animationSpec = tween(if (reduceMotion) 0 else 380, easing = EmphasizedDecelerate),
         label = "loginEntrance",
     )
-    val entranceOffset = with(LocalDensity.current) { (1f - entrance) * 22.dp.toPx() }
+    val entranceOffset = with(LocalDensity.current) { (1f - entrance) * 18.dp.toPx() }
 
     // Blur hanya untuk latar dekoratif. Kartu form tetap solid supaya teks dan
     // kontras tidak bergantung pada warna di belakangnya.
@@ -1420,20 +1422,20 @@ private fun LoginScreen(
     ) {
         Box(
             Modifier
-                .offset(x = (-96).dp, y = (-160).dp)
-                .size(300.dp)
+                .offset(x = (-120).dp, y = (-140).dp)
+                .size(260.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                 .blur(90.dp),
         )
         Box(
             Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = 80.dp, y = 120.dp)
-                .size(280.dp)
+                .offset(x = 60.dp, y = 100.dp)
+                .size(240.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f))
-                .blur(110.dp),
+                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f))
+                .blur(100.dp),
         )
 
         Column(
@@ -1441,7 +1443,7 @@ private fun LoginScreen(
                 .align(Alignment.Center)
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 20.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
                 .imePadding()
                 .graphicsLayer {
                     alpha = entrance
@@ -1451,30 +1453,30 @@ private fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(26.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(54.dp),
+                        modifier = Modifier.size(50.dp),
                     ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Filled.CloudQueue,
                                 contentDescription = null,
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(26.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }
                     }
-                    Spacer(Modifier.width(14.dp))
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
                             text = "Gofile Expressive",
@@ -1489,13 +1491,13 @@ private fun LoginScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
             Text(
                 text = if (isEmailStep) "Masuk ke GoFile" else "Cek email kamu",
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 text = if (isEmailStep) {
                     "Kami kirim tautan login sekali pakai. Tidak perlu kata sandi."
@@ -1506,16 +1508,20 @@ private fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
             LoginStepRail(isEmailStep = isEmailStep)
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
 
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(26.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(
+                        animationSpec = tween(260, easing = EmphasizedEasing),
+                    ),
             ) {
-                Column(Modifier.padding(18.dp)) {
+                Column(Modifier.padding(16.dp)) {
                     AnimatedContent(
                         targetState = isEmailStep,
                         label = "loginStep",
@@ -1543,97 +1549,103 @@ private fun LoginScreen(
                         },
                     ) { emailStepValue ->
                         if (emailStepValue) {
-                            OutlinedTextField(
-                                value = email,
-                                onValueChange = onEmailChange,
-                                label = { Text("Alamat email") },
-                                placeholder = { Text("nama@contoh.com") },
-                                leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
-                                supportingText = {
-                                    Text(
-                                        if (emailInvalid) {
-                                            "Format email belum benar."
-                                        } else {
-                                            "Tautan login hanya dikirim ke alamat ini."
-                                        },
-                                    )
-                                },
-                                isError = emailInvalid,
-                                enabled = !busy,
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Email,
-                                    imeAction = ImeAction.Send,
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onSend = { if (emailReady && !busy) onSend() },
-                                ),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            PrimaryBusyButton(
-                                busy = busy,
-                                enabled = emailReady && !busy,
-                                label = "Kirim tautan login",
-                                busyLabel = "Mengirim tautan...",
-                                onClick = onSend,
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            OutlinedButton(
-                                onClick = onGuest,
-                                enabled = !busy,
-                                shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                            ) {
-                                Icon(Icons.Filled.CloudQueue, contentDescription = null)
-                                Spacer(Modifier.width(10.dp))
-                                Text("Lanjut sebagai tamu")
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = "Sesi tamu bersifat sementara dan tidak menyimpan akun.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        } else {
-                            OutlinedTextField(
-                                value = tokenInput,
-                                onValueChange = onTokenChange,
-                                label = { Text("Tautan atau token dari email") },
-                                placeholder = { Text("https://gofile.io/login/...") },
-                                leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null) },
-                                supportingText = { Text("Tempel tautan lengkap, bukan hanya kode.") },
-                                enabled = !busy,
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(
-                                    onDone = { if (tokenInput.isNotBlank() && !busy) onLogin() },
-                                ),
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            PrimaryBusyButton(
-                                busy = busy,
-                                enabled = tokenInput.isNotBlank() && !busy,
-                                label = "Masuk",
-                                busyLabel = "Memeriksa tautan...",
-                                onClick = onLogin,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                TextButton(
+                            Column(Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = email,
+                                    onValueChange = onEmailChange,
+                                    label = { Text("Alamat email") },
+                                    placeholder = { Text("nama@contoh.com") },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.Email, contentDescription = null)
+                                    },
+                                    supportingText = {
+                                        Text(
+                                            if (emailInvalid) {
+                                                "Format email belum benar."
+                                            } else {
+                                                "Tautan login hanya dikirim ke alamat ini."
+                                            },
+                                        )
+                                    },
+                                    isError = emailInvalid,
+                                    enabled = !busy,
+                                    singleLine = true,
+                                    shape = fieldShape,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Email,
+                                        imeAction = ImeAction.Send,
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onSend = { if (emailReady && !busy) onSend() },
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                PrimaryBusyButton(
+                                    busy = busy,
+                                    enabled = emailReady && !busy,
+                                    label = "Kirim tautan login",
+                                    busyLabel = "Mengirim tautan...",
                                     onClick = onSend,
-                                    enabled = email.isNotBlank() && !busy,
-                                ) { Text("Kirim ulang") }
-                                TextButton(onClick = onBackToEmail, enabled = !busy) {
-                                    Text("Ganti email")
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = onGuest,
+                                    enabled = !busy,
+                                    shape = fieldShape,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp),
+                                ) {
+                                    Icon(Icons.Filled.CloudQueue, contentDescription = null)
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("Lanjut sebagai tamu")
+                                }
+                            }
+                        } else {
+                            Column(Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = tokenInput,
+                                    onValueChange = onTokenChange,
+                                    label = { Text("Tautan atau token dari email") },
+                                    placeholder = { Text("https://gofile.io/login/...") },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.Key, contentDescription = null)
+                                    },
+                                    supportingText = {
+                                        Text("Tempel tautan lengkap, bukan hanya kode.")
+                                    },
+                                    enabled = !busy,
+                                    singleLine = true,
+                                    shape = fieldShape,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            if (tokenInput.isNotBlank() && !busy) onLogin()
+                                        },
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                PrimaryBusyButton(
+                                    busy = busy,
+                                    enabled = tokenInput.isNotBlank() && !busy,
+                                    label = "Masuk",
+                                    busyLabel = "Memeriksa tautan...",
+                                    onClick = onLogin,
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    TextButton(
+                                        onClick = onSend,
+                                        enabled = email.isNotBlank() && !busy,
+                                    ) { Text("Kirim ulang") }
+                                    TextButton(onClick = onBackToEmail, enabled = !busy) {
+                                        Text("Ganti email")
+                                    }
                                 }
                             }
                         }
@@ -1641,9 +1653,9 @@ private fun LoginScreen(
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = "Token disimpan lokal di perangkat ini. Tidak ada kata sandi yang dikirim.",
+                text = "Token disimpan lokal di perangkat.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
