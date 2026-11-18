@@ -7,6 +7,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -16,6 +17,7 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import java.io.File
@@ -24,12 +26,14 @@ import java.io.OutputStream
 import java.io.PushbackInputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Foreground service (dataSync) untuk unggah/unduh sungguhan.
- * Tetap hidup saat aplikasi ditutup, dengan notifikasi progres.
+ * Tetap hidup di latar belakang, dengan notifikasi progres yang terus diperbarui
+ * dan notifikasi hasil yang tidak langsung hilang.
  */
 class TransferService : Service() {
 
@@ -47,8 +51,10 @@ class TransferService : Service() {
         const val EXTRA_URL = "url"
 
         private const val NOTIFICATION_ID = 1001
+        private const val RESULT_ID_BASE = 2000
         private const val TAG = "TransferService"
         private val active = AtomicInteger(0)
+        private val resultSequence = AtomicInteger(0)
 
         fun hasNotificationPermission(context: Context): Boolean =
             Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -58,9 +64,17 @@ class TransferService : Service() {
                 ) == PackageManager.PERMISSION_GRANTED
     }
 
+    private val notificationManager: NotificationManager by lazy {
+        getSystemService(NotificationManager::class.java)
+    }
+    private val notificationLock = Any()
     private var wakeLock: PowerManager.WakeLock? = null
     @Volatile
+    private var lastNotifiedId = ""
+    @Volatile
     private var lastNotifiedProgress = -1
+    @Volatile
+    private var lastNotifyTime = 0L
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
@@ -70,13 +84,14 @@ class TransferService : Service() {
         }
 
         NotificationHelper.createChannel(this)
-        acquireWakeLock()
-        val isFirst = active.incrementAndGet() == 1
-        lastNotifiedProgress = -1
-        showProgress("Transfer GoFile", -1, indeterminate = true)
-
         val transferId = intent.getStringExtra(EXTRA_TRANSFER_ID) ?: UUID.randomUUID().toString()
         val fileName = intent.getStringExtra(EXTRA_FILE_NAME).orEmpty().ifBlank { "berkas" }
+
+        // Wake lock mengikuti service, bukan per-transfer, supaya transfer kedua
+        // tidak mematikan wake lock milik transfer pertama.
+        val nowActive = active.incrementAndGet()
+        if (nowActive == 1) acquireWakeLock()
+        reportProgress(transferId, "Transfer GoFile", -1, indeterminate = true)
 
         Thread {
             try {
@@ -96,7 +111,12 @@ class TransferService : Service() {
                     ACTION_DOWNLOAD -> {
                         val url = intent.getStringExtra(EXTRA_URL).orEmpty()
                         if (!url.startsWith("http")) throw IllegalArgumentException("Tautan unduh tidak valid")
-                        doDownload(id = transferId, url = url, fileName = fileName)
+                        doDownload(
+                            id = transferId,
+                            url = url,
+                            fileName = fileName,
+                            token = intent.getStringExtra(EXTRA_TOKEN).orEmpty(),
+                        )
                     }
                 }
             } catch (error: Exception) {
@@ -105,8 +125,7 @@ class TransferService : Service() {
                 TransferStore.update(transferId, state = "error", message = reason, progress = -1)
                 showResult("Transfer gagal", fileName, reason, failed = true)
             } finally {
-                releaseWakeLock()
-                finishOne(startId, isFirst)
+                finishOne(startId)
             }
         }.start()
 
@@ -128,18 +147,23 @@ class TransferService : Service() {
         val expectedSize = queryFileSize(uri)
 
         TransferStore.update(id, state = "running", message = "Membaca $safeName")
-        showProgress(safeName, -1, indeterminate = expectedSize <= 0)
+        reportProgress(id, safeName, -1, indeterminate = true)
 
         val boundary = "----GofileBoundary${System.currentTimeMillis()}"
         val connection = URL("https://upload.gofile.io/uploadfile").openConnection() as HttpURLConnection
         connection.apply {
             requestMethod = "POST"
             doOutput = true
+            // Streaming: jangan menampung seluruh file di memori (bisa OOM).
+            setChunkedStreamingMode(64 * 1024)
             connectTimeout = 20_000
             readTimeout = 180_000
             setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "GofileExpressive/1.0")
+            setRequestProperty(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36",
+            )
             if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
         }
 
@@ -157,26 +181,18 @@ class TransferService : Service() {
             if (size > 0) reportProgress(id, safeName, (uploaded * 100 / size).toInt().coerceAtMost(99))
         }
 
-        try {
-            contentResolver.openInputStream(uri).use { input ->
-                if (input == null) {
-                    throw IllegalArgumentException(
-                        "Berkas tidak dapat dibaca. Coba pilih dari aplikasi Files/Downloads.",
-                    )
-                }
-                val buffer = ByteArray(64 * 1024)
-                var read: Int
-                while (input.read(buffer).also { read = it } != -1) {
-                    counting.write(buffer, 0, read)
-                    fileBytes += read
-                }
+        contentResolver.openInputStream(uri).use { input ->
+            if (input == null) {
+                throw IllegalArgumentException("Berkas tidak dapat dibaca. Pilih dari aplikasi Files/Downloads.")
             }
-        } finally {
-            counting.flush()
+            val buffer = ByteArray(64 * 1024)
+            var read: Int
+            while (input.read(buffer).also { read = it } != -1) {
+                counting.write(buffer, 0, read)
+                fileBytes += read
+            }
         }
 
-        // Jangan kirim request kosong: ini penyebab "progress penuh tapi tidak
-        // ada file di GoFile" ketika URI tidak bisa dibaca service.
         if (fileBytes <= 0) {
             connection.disconnect()
             throw IllegalArgumentException("Berkas kosong (0 byte) atau aksesnya habis. Pilih ulang file.")
@@ -186,9 +202,18 @@ class TransferService : Service() {
         if (token.isNotBlank()) rawOut.write(formPart(boundary, "token", token))
         rawOut.write("\r\n--$boundary--\r\n".toByteArray(Charsets.UTF_8))
         rawOut.flush()
+        // Tutup output stream sebelum membaca respons; diperlukan sebagian
+        // server/upload fleet agar request benar-benar selesai.
+        try { rawOut.close() } catch (_: Exception) {}
 
-        val response = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        val code = connection.responseCode
+        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+        val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
         connection.disconnect()
+
+        if (code !in 200..299) {
+            throw IllegalArgumentException("GoFile menolak unggahan (HTTP $code): ${response.take(160)}")
+        }
 
         val json = try {
             JSONObject(response)
@@ -197,7 +222,7 @@ class TransferService : Service() {
         }
         if (json.optString("status") != "ok") {
             val message = json.optJSONObject("data")?.optString("message").takeUnless { it.isNullOrBlank() }
-                ?: json.optString("status")
+                ?: json.optString("status").takeUnless { it.isBlank() }
                 ?: "GoFile menolak unggahan"
             throw IllegalArgumentException(message)
         }
@@ -254,15 +279,26 @@ class TransferService : Service() {
     /* ------------------------------ unduh ------------------------------ */
 
     @Suppress("DEPRECATION")
-    private fun doDownload(id: String, url: String, fileName: String) {
+    private fun doDownload(id: String, url: String, fileName: String, token: String) {
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.apply {
             connectTimeout = 20_000
             readTimeout = 180_000
             instanceFollowRedirects = true
-            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36")
+            setRequestProperty(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+            )
             setRequestProperty("Accept", "*/*")
+            // Mencegah Content-Length tidak cocok karena kompresi.
+            setRequestProperty("Accept-Encoding", "identity")
             setRequestProperty("Referer", "https://gofile.io/")
+            if (token.isNotBlank()) {
+                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("X-Website-Token", GofileApi.websiteToken(token))
+                setRequestProperty("X-BL", Locale.getDefault().toLanguageTag().ifBlank { "en-US" })
+            }
         }
         connection.connect()
 
@@ -278,16 +314,19 @@ class TransferService : Service() {
         val mime = connection.contentType ?: "application/octet-stream"
 
         TransferStore.update(id, state = "running", message = "Mengunduh $name")
-        showProgress(name, -1, indeterminate = expected <= 0)
+        reportProgress(id, name, -1, indeterminate = true)
 
         val input = PushbackInputStream(connection.inputStream, 1024)
         val probe = ByteArray(1024)
         val probeLength = try { input.read(probe) } catch (_: Exception) { -1 }
         if (probeLength > 0) input.unread(probe, 0, probeLength)
         val head = if (probeLength > 0) String(probe, 0, probeLength, Charsets.UTF_8) else ""
-        if (head.startsWith("{\"status\":\"error", ignoreCase = true) ||
-            head.contains("error-notPremium", ignoreCase = true) ||
-            head.startsWith("{\"error", ignoreCase = true)
+        val trimmed = head.trimStart()
+        val contentType = mime.lowercase(Locale.ROOT)
+        if (trimmed.startsWith("{") &&
+            (contentType.contains("json") ||
+                trimmed.contains("\"status\"") ||
+                trimmed.contains("\"error\""))
         ) {
             connection.disconnect()
             throw IllegalArgumentException("GoFile mengirim pesan error, bukan file: ${head.take(160)}")
@@ -311,7 +350,9 @@ class TransferService : Service() {
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                 "Gofile Expressive",
             )
-            if (!dir.exists()) dir.mkdirs()
+            if (!dir.exists() && !dir.mkdirs()) {
+                throw IllegalStateException("Gagal membuat folder Downloads/Gofile Expressive")
+            }
             output = FileOutputStream(File(dir, name))
         }
 
@@ -322,11 +363,16 @@ class TransferService : Service() {
                 output.use { out ->
                     val buffer = ByteArray(64 * 1024)
                     var read: Int
+                    var sinceReport = 0
                     while (source.read(buffer).also { read = it } != -1) {
                         out.write(buffer, 0, read)
                         written += read
+                        sinceReport += read
                         if (expected > 0) {
                             reportProgress(id, name, (written * 100 / expected).toInt().coerceAtMost(99))
+                        } else if (sinceReport >= 256 * 1024) {
+                            sinceReport = 0
+                            reportProgress(id, name, -1, indeterminate = true)
                         }
                     }
                 }
@@ -352,7 +398,7 @@ class TransferService : Service() {
                         contentResolver.delete(mediaUri, null, null)
                     }
                 } catch (_: Exception) {
-                    // abaikan; notify di bawah sudah cukup
+                    // abaikan; notifikasi error sudah cukup
                 }
             }
             connection.disconnect()
@@ -384,29 +430,49 @@ class TransferService : Service() {
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(openApp)
-            .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
     }
 
-    private fun showProgress(title: String, progress: Int, indeterminate: Boolean) {
-        val notification = baseNotification(
-            title,
-            if (indeterminate) "Menyiapkan transfer…" else "$progress% selesai",
-        )
-            .setProgress(100, progress.coerceAtLeast(0), indeterminate)
-            .build()
-        startForeground(NOTIFICATION_ID, notification)
-    }
-
-    private fun reportProgress(id: String, title: String, progress: Int) {
-        TransferStore.update(id, progress = progress)
-        if (progress - lastNotifiedProgress >= 2 || progress >= 100) {
-            lastNotifiedProgress = progress
-            showProgress(title, progress, indeterminate = false)
+    private fun reportProgress(
+        id: String,
+        title: String,
+        progress: Int,
+        indeterminate: Boolean = false,
+    ) {
+        TransferStore.update(id, progress = if (indeterminate) -1 else progress)
+        synchronized(notificationLock) {
+            val now = System.currentTimeMillis()
+            val changedId = id != lastNotifiedId
+            val progressed = progress - lastNotifiedProgress >= 2
+            val timedOut = now - lastNotifyTime >= 400
+            if (changedId || progressed || timedOut || progress >= 100) {
+                lastNotifiedId = id
+                lastNotifiedProgress = progress
+                lastNotifyTime = now
+                val notification = baseNotification(
+                    title,
+                    if (indeterminate) "Menyiapkan transfer…" else "$progress% selesai",
+                )
+                    .setOngoing(true)
+                    .setProgress(100, progress.coerceAtLeast(0), indeterminate)
+                    .build()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ServiceCompat.startForeground(
+                        this,
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            }
         }
     }
 
+    /** Notifikasi hasil memakai id berbeda agar tidak menimpa notifikasi progres. */
     private fun showResult(title: String, fileName: String, text: String, failed: Boolean) {
         val notification = baseNotification(title, "$fileName · $text")
             .setOngoing(false)
@@ -414,16 +480,23 @@ class TransferService : Service() {
             .setProgress(0, 0, false)
             .setPriority(if (failed) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_LOW)
             .build()
-        startForeground(NOTIFICATION_ID, notification)
+        val resultId = RESULT_ID_BASE + resultSequence.getAndIncrement()
+        notificationManager.notify(resultId, notification)
     }
 
-    private fun finishOne(startId: Int, wasFirst: Boolean) {
+    private fun finishOne(startId: Int) {
         val remaining = active.decrementAndGet()
         if (remaining <= 0) {
+            releaseWakeLock()
+            synchronized(notificationLock) {
+                lastNotifiedId = ""
+                lastNotifiedProgress = -1
+            }
+            // Hapus notifikasi progres; notifikasi hasil tetap tampil sampai
+            // pengguna menghapusnya sendiri.
             stopForeground(STOP_FOREGROUND_REMOVE)
-            getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
             stopSelfResult(startId)
-        } else if (wasFirst) {
+        } else {
             Log.d(TAG, "Masih ada $remaining transfer aktif")
         }
     }
@@ -433,7 +506,7 @@ class TransferService : Service() {
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "gofile:transfer")
             .apply {
                 setReferenceCounted(false)
-                acquire(10 * 60 * 1000L)
+                acquire(2 * 60 * 60 * 1000L)
             }
     }
 

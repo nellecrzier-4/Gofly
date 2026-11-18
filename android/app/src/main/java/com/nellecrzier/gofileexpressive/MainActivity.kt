@@ -2,6 +2,7 @@ package com.nellecrzier.gofileexpressive
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,6 +19,8 @@ import com.nellecrzier.gofileexpressive.ui.GofileApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.UUID
 
+private data class PendingDownload(val url: String, val fileName: String, val token: String)
+
 /**
  * Aktivitas native — TIDAK memakai WebView. Seluruh antarmuka dibangun dengan
  * Jetpack Compose dan seluruh komunikasi GoFile lewat GofileApi.
@@ -32,6 +35,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var notificationLauncher: ActivityResultLauncher<String>
     private lateinit var batteryLauncher: ActivityResultLauncher<Intent>
     private lateinit var fileLauncher: ActivityResultLauncher<Intent>
+    private lateinit var storageLauncher: ActivityResultLauncher<String>
+    private var pendingDownload: PendingDownload? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +55,16 @@ class MainActivity : ComponentActivity() {
                 if (result.resultCode != RESULT_OK) return@registerForActivityResult
                 val uri = result.data?.data ?: return@registerForActivityResult
                 handlePickedFile(uri)
+            }
+        storageLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                val request = pendingDownload
+                pendingDownload = null
+                if (granted && request != null) {
+                    launchDownload(request)
+                } else if (!granted) {
+                    toast("Izin penyimpanan ditolak. File tidak bisa disimpan ke Downloads.")
+                }
             }
 
         NotificationHelper.createChannel(this)
@@ -132,7 +147,7 @@ class MainActivity : ComponentActivity() {
         ContextCompat.startForegroundService(this, intent)
     }
 
-    fun startDownload(url: String, fileName: String) {
+    fun startDownload(url: String, fileName: String, token: String) {
         if (!url.startsWith("http")) {
             toast("Tautan unduh tidak valid.")
             return
@@ -141,13 +156,29 @@ class MainActivity : ComponentActivity() {
             toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
             return
         }
+        val request = PendingDownload(url, fileName, token)
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingDownload = request
+            storageLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+        launchDownload(request)
+    }
+
+    private fun launchDownload(request: PendingDownload) {
         val id = UUID.randomUUID().toString()
-        TransferStore.add(TransferInfo(id, "download", fileName, 0, "running"))
+        TransferStore.add(TransferInfo(id, "download", request.fileName, 0, "running"))
         val intent = Intent(this, TransferService::class.java).apply {
             action = TransferService.ACTION_DOWNLOAD
             putExtra(TransferService.EXTRA_TRANSFER_ID, id)
-            putExtra(TransferService.EXTRA_URL, url)
-            putExtra(TransferService.EXTRA_FILE_NAME, fileName)
+            putExtra(TransferService.EXTRA_URL, request.url)
+            putExtra(TransferService.EXTRA_FILE_NAME, request.fileName)
+            putExtra(TransferService.EXTRA_TOKEN, request.token)
         }
         ContextCompat.startForegroundService(this, intent)
     }

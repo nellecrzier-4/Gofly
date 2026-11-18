@@ -241,7 +241,7 @@ fun GofileApp(activity: MainActivity) {
                                 }
                             },
                             onDownload = { item ->
-                                activity.startDownload(item.link, item.name)
+                                activity.startDownload(item.link, item.name, session.token)
                             },
                             modifier = Modifier.fillMaxSize(),
                         )

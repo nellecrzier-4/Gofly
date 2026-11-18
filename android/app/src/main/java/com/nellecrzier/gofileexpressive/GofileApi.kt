@@ -88,7 +88,7 @@ object GofileApi {
     }
 
     /** SHA-256(userAgent :: language :: token :: periode :: secret). */
-    private fun websiteToken(token: String): String {
+    fun websiteToken(token: String): String {
         val period = System.currentTimeMillis() / PERIOD_MS
         val message = "$USER_AGENT::$language::$token::$period::$SECRET"
         val bytes = MessageDigest.getInstance("SHA-256").digest(message.toByteArray(Charsets.UTF_8))
