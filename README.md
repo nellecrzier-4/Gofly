@@ -1,6 +1,6 @@
 # Gofile Expressive
 
-File manager GoFile berbasis web dengan **tema Material 3 Expressive**: warna aksen berani, bentuk membulat, ikon ekspresif, dan animasi spring. Tanpa build step — cukup HTML, CSS, dan JavaScript native.
+File manager GoFile berbasis web dengan **tema Material 3 Expressive**: warna aksen berani, bentuk membulat, ikon ekspresif, dan animasi spring. Tanpa build step: cukup HTML, CSS, dan JavaScript native.
 
 ## Alur login (magic link)
 
@@ -19,7 +19,7 @@ File manager GoFile berbasis web dengan **tema Material 3 Expressive**: warna ak
 - **Statistik**: jumlah item, folder, file, dan total ukuran.
 - **Material Expressive**:
   - token warna dinamis (ungu/violet + aksen pink), permukaan kaca, blob ambient;
-  - Material Symbols Rounded dengan axis `FILL`, `wght`, `GRAD`, `opsz` — ikon bisa "berisi" saat aktif;
+  - Material Symbols Rounded dengan axis `FILL`, `wght`, `GRAD`, `opsz`: ikon bisa "berisi" saat aktif;
   - animasi emphasized/spring, stagger card, ripple, ikon bergoyang, breadcrumb halus, skeleton shimmer, snackbar meluncur, dan View Transitions saat pindah folder.
 - **Responsif** dan menghormati `prefers-reduced-motion`.
 
@@ -39,22 +39,22 @@ Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard
 ## Catatan teknis
 
 - Endpoint mengikuti apa yang dipakai situs resmi `gofile.io`:
-  - `POST /accounts` — kirim login link (membuat akun jika belum ada),
-  - `GET /accounts/website` — tukar token jadi profil + `rootFolder`,
-  - `GET /contents/{id}` — children folder dengan header `X-Website-Token` dan `X-BL`.
+  - `POST /accounts`: kirim login link (membuat akun jika belum ada),
+  - `GET /accounts/website`: tukar token jadi profil + `rootFolder`,
+  - `GET /contents/{id}`: children folder dengan header `X-Website-Token` dan `X-BL`.
 - `X-Website-Token` dihasilkan oleh skrip resmi GoFile `https://gofile.io/js/wt.obf.js` yang dimuat dari CDN di `index.html`. Skrip ini dapat dirotasi oleh GoFile; aplikasi memuatnya segar setiap halaman dibuka.
 - Token disimpan di `localStorage` browser (`gofile-expressive-session`) hanya untuk sesi ini. Tombol **Keluar** menghapusnya. Jangan pakai di komputer bersama tanpa membersihkan sesi.
 - Permintaan langsung dari browser ke `api.gofile.io` diizinkan (CORS). Jika GoFile mengubah kebijakan CORS atau proteksi website-token, aplikasi perlu disesuaikan.
 
 ## Aplikasi Android (native Kotlin)
 
-Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`** — seluruh UI dan panggilan API berjalan native:
+Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`**: seluruh UI dan panggilan API berjalan native:
 
-- **Login native**: kartu setup dengan step rail dua langkah, validasi email, aksi keyboard/IME, dan pesan kesalahan yang bisa dibaca. Bisa kirim magic link, tempel link/token, atau masuk sebagai tamu. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
-- **Navigasi tiga tab mengambang**: pill Beranda, Folder, dan Pengaturan dengan indikator terpilih animatif, label, dan target sentuh yang nyaman.
-- **Animasi Material 3 Expressive**: entrance layar, transisi tab dan langkah login, indikator progres transfer, segmented control tema, stagger daftar, dan feedback tekan tombol. Semua durasi mengikuti skala animator sistem saat *reduce motion* aktif.
+- **Login native**: onboarding tiga halaman dengan latar radial yang bergerak, tipografi display tebal, indikator halaman, tombol Kembali/Lanjut, dan haptik ringan. Validasi email, aksi keyboard/IME, dan pesan kesalahan tetap terbaca. Bisa kirim magic link, tempel link/token, atau masuk sebagai tamu. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
+- **Navigasi tiga tab mengambang**: pill bar yang mengikuti isi, tab tidak terpilih hanya ikon, tab terpilih membuka label di samping ikon dengan spring, skala tekan 0.95, dan bayangan 8dp.
+- **Animasi Material 3 Expressive**: transisi halaman setup memakai slide spring 300 dan fade 500ms dengan `SizeTransform(clip = false)`, entrance per halaman, transisi tab, indikator progres transfer, segmented control tema, stagger daftar, dan feedback tekan tombol. Semua durasi mengikuti skala animator sistem saat *reduce motion* aktif.
 - **Checklist izin**: notifikasi dan izin latar belakang ditampilkan sebagai satu kartu status dengan aksi langsung.
-- **Tema Material 3**: dynamic color di Android 12+ dengan fallback terang/gelap lengkap, bentuk dan tipografi berbasis token Material, edge-to-edge, serta blur lembut yang hanya dipakai sebagai latar dekoratif layar masuk (permukaan form tetap solid).
+- **Tema Material 3**: dynamic color di Android 12+ dengan fallback terang/gelap lengkap, tipografi display extra bold, bentuk 20 sampai 30dp, edge-to-edge, serta latar gradien radial dekoratif di layar setup (permukaan form tetap solid).
 - **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar, refresh, dan logout.
 - **Kelola folder**: buat folder baru (`POST /contents/createFolder`) dan hapus file/folder (`DELETE /contents`) langsung dari daftar.
 - **Unggah file** dari pemilih file Android → `POST https://upload.gofile.io/uploadfile` ke folder yang sedang dibuka (dengan token akun).

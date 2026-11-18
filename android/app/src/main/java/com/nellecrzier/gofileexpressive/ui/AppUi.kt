@@ -6,13 +6,17 @@ import android.util.Patterns
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,6 +28,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -42,6 +47,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -53,6 +59,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -112,22 +119,30 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.nellecrzier.gofileexpressive.BuildConfig
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.GoFileException
 import com.nellecrzier.gofileexpressive.GofileApi
@@ -206,6 +221,99 @@ private fun StaggerIn(
     val offsetPx = with(LocalDensity.current) { offsetY.toPx() }
     LaunchedEffect(Unit) { entered.value = true }
     Box(Modifier.fillMaxWidth().graphicsLayer(alpha = alpha, translationY = offsetPx)) { content() }
+}
+
+/**
+ * Latar radial yang bergerak mengikuti halaman setup. Dua sumber cahaya
+ * berpindah dengan spring lambat supaya perpindahan halaman terasa seperti
+ * satu ruang yang sama, bukan tiga layar terpisah.
+ */
+@Composable
+private fun SetupBackdrop(currentPage: Int, modifier: Modifier = Modifier) {
+    val targetA = when (currentPage) {
+        0 -> Offset(0.2f, 0.2f)
+        1 -> Offset(0.8f, 0.1f)
+        else -> Offset(0.1f, 0.8f)
+    }
+    val targetB = when (currentPage) {
+        0 -> Offset(0.8f, 0.8f)
+        1 -> Offset(0.2f, 0.7f)
+        else -> Offset(0.9f, 0.2f)
+    }
+    val spec = spring<Offset>(dampingRatio = 0.8f, stiffness = 50f)
+    val posA by animateOffsetAsState(targetA, spec, label = "setupPosA")
+    val posB by animateOffsetAsState(targetB, spec, label = "setupPosB")
+    val primary = MaterialTheme.colorScheme.primary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+
+    Canvas(modifier.background(MaterialTheme.colorScheme.surface)) {
+        val radius = size.width * 0.62f
+        val centerA = Offset(size.width * posA.x, size.height * posA.y)
+        val centerB = Offset(size.width * posB.x, size.height * posB.y)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(primary.copy(alpha = 0.18f), Color.Transparent),
+                center = centerA,
+                radius = radius,
+            ),
+            radius = radius,
+            center = centerA,
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(tertiary.copy(alpha = 0.14f), Color.Transparent),
+                center = centerB,
+                radius = radius,
+            ),
+            radius = radius,
+            center = centerB,
+        )
+    }
+}
+
+/** Judul bagian ringkas dengan huruf kapital dan jarak huruf lebar. */
+@Composable
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.6.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(start = 10.dp, bottom = 8.dp),
+    )
+}
+
+@Composable
+private fun SetupFeature(icon: ImageVector, title: String, body: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.size(46.dp),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -378,7 +486,8 @@ fun GofileApp(activity: MainActivity) {
                         title = {
                             Text(
                                 text = topTitle,
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.ExtraBold,
                             )
                         },
                         navigationIcon = {
@@ -724,26 +833,63 @@ private fun FloatingNavBar(
     currentTab: String,
     onSelect: (String) -> Unit,
 ) {
+    val density = LocalDensity.current
+    val measurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+    val labelWidths = APP_TABS.map { tab ->
+        with(density) {
+            measurer.measure(AnnotatedString(tab.label), labelStyle).size.width.toDp() + 8.dp
+        }
+    }
+
+    // Bar mengikuti isi: tab tidak terpilih hanya ikon, tab terpilih membuka
+    // labelnya di samping ikon. Lebar label dianimasikan, bukan diganti
+    // mendadak, jadi pil terasa membuka seperti satu benda.
     Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
         shadowElevation = 8.dp,
-        modifier = Modifier
-            .padding(horizontal = 20.dp, vertical = 10.dp)
-            .widthIn(max = 520.dp)
-            .fillMaxWidth(),
+        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Row(
-            modifier = Modifier.padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            APP_TABS.forEach { tab ->
+            APP_TABS.forEachIndexed { index, tab ->
                 val selected = currentTab == tab.key
+                val interactionSource = remember { MutableInteractionSource() }
+                val pressed by interactionSource.collectIsPressedAsState()
+
+                val openWidth by animateDpAsState(
+                    targetValue = if (selected) labelWidths[index] else 0.dp,
+                    animationSpec = spring(dampingRatio = 0.78f, stiffness = 420f),
+                    label = "navLabelWidth",
+                )
+                val labelAlpha by animateFloatAsState(
+                    targetValue = if (selected) 1f else 0f,
+                    animationSpec = tween(if (selected) 180 else 90, easing = EmphasizedDecelerate),
+                    label = "navLabelAlpha",
+                )
+                val pressScale by animateFloatAsState(
+                    targetValue = if (pressed) 0.95f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    label = "navPressScale",
+                )
+                val selectionScale by animateFloatAsState(
+                    targetValue = if (selected) 1.10f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    label = "navSelectionScale",
+                )
                 val container by animateColorAsState(
                     targetValue = if (selected) {
-                        MaterialTheme.colorScheme.secondaryContainer
+                        MaterialTheme.colorScheme.primary
                     } else {
                         Color.Transparent
                     },
@@ -752,180 +898,60 @@ private fun FloatingNavBar(
                 )
                 val contentColor by animateColorAsState(
                     targetValue = if (selected) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                        MaterialTheme.colorScheme.onPrimary
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    animationSpec = tween(180, easing = EmphasizedDecelerate),
+                    animationSpec = tween(200, easing = EmphasizedDecelerate),
                     label = "navContent",
                 )
-                val iconScale by animateFloatAsState(
-                    targetValue = if (selected) 1.08f else 1f,
-                    animationSpec = spring(dampingRatio = 0.55f, stiffness = 700f),
-                    label = "navIconScale",
-                )
-                Column(
+
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 54.dp)
-                        .clip(RoundedCornerShape(22.dp))
+                        .graphicsLayer {
+                            scaleX = pressScale * selectionScale
+                            scaleY = pressScale * selectionScale
+                        }
+                        .height(48.dp)
+                        .defaultMinSize(minWidth = 48.dp)
+                        .clip(RoundedCornerShape(24.dp))
                         .background(container)
                         .selectable(
                             selected = selected,
-                            onClick = { onSelect(tab.key) },
+                            interactionSource = interactionSource,
+                            indication = null,
                             role = Role.Tab,
+                            onClick = { onSelect(tab.key) },
                         )
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = null,
                         tint = contentColor,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Box(
                         modifier = Modifier
-                            .size(22.dp)
-                            .graphicsLayer { scaleX = iconScale; scaleY = iconScale },
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        text = tab.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                        color = contentColor,
-                        maxLines = 1,
-                    )
+                            .width(openWidth)
+                            .clipToBounds(),
+                    ) {
+                        Text(
+                            text = tab.label,
+                            style = labelStyle,
+                            color = contentColor,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .alpha(labelAlpha),
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun LoginStepRail(isEmailStep: Boolean) {
-    val connector by animateFloatAsState(
-        targetValue = if (isEmailStep) 0f else 1f,
-        animationSpec = tween(280, easing = EmphasizedEasing),
-        label = "stepConnector",
-    )
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            StepNode(
-                number = 1,
-                label = "Email",
-                active = isEmailStep,
-                done = !isEmailStep,
-            )
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 10.dp)
-                    .weight(1f)
-                    .height(2.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outlineVariant),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(connector)
-                        .height(2.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                )
-            }
-            StepNode(
-                number = 2,
-                label = "Tautan",
-                active = !isEmailStep,
-                done = false,
-            )
-        }
-    }
-}
-
-@Composable
-private fun StepNode(
-    number: Int,
-    label: String,
-    active: Boolean,
-    done: Boolean,
-) {
-    val container by animateColorAsState(
-        targetValue = when {
-            active -> MaterialTheme.colorScheme.primary
-            done -> MaterialTheme.colorScheme.primaryContainer
-            else -> MaterialTheme.colorScheme.surfaceContainerHighest
-        },
-        animationSpec = tween(220, easing = EmphasizedEasing),
-        label = "stepContainer",
-    )
-    val content by animateColorAsState(
-        targetValue = when {
-            active -> MaterialTheme.colorScheme.onPrimary
-            done -> MaterialTheme.colorScheme.onPrimaryContainer
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        animationSpec = tween(220, easing = EmphasizedEasing),
-        label = "stepContent",
-    )
-    val scale by animateFloatAsState(
-        targetValue = if (active) 1.06f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 600f),
-        label = "stepScale",
-    )
-    val status = when {
-        done -> "selesai"
-        active -> "aktif"
-        else -> "belum aktif"
-    }
-    Row(
-        modifier = Modifier
-            .widthIn(min = 92.dp)
-            .clearAndSetSemantics {
-                contentDescription = "Langkah $number dari 2, $label, $status"
-            },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .graphicsLayer { scaleX = scale; scaleY = scale }
-                .clip(CircleShape)
-                .background(container),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (done) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = content,
-                    modifier = Modifier.size(16.dp),
-                )
-            } else {
-                Text(
-                    text = "$number",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = content,
-                )
-            }
-        }
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (active || done) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
     }
 }
 
@@ -1152,6 +1178,7 @@ private fun HomeScreen(
         label = "homeEntrance",
     )
     val entranceOffset = with(LocalDensity.current) { (1f - entrance) * 14.dp.toPx() }
+    val heroContentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -1168,50 +1195,93 @@ private fun HomeScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Surface(
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(30.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.secondaryContainer,
+                                ),
+                            ),
+                        ),
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(56.dp),
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.matchParentSize()) {
+                        drawCircle(
+                            color = heroContentColor.copy(alpha = 0.06f),
+                            radius = size.width * 0.42f,
+                            center = Offset(size.width * 0.94f, size.height * 0.08f),
+                        )
+                        drawCircle(
+                            color = heroContentColor.copy(alpha = 0.05f),
+                            radius = size.width * 0.26f,
+                            center = Offset(size.width * 0.72f, size.height * 0.96f),
+                        )
+                    }
+                    Column(Modifier.padding(22.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Filled.CloudQueue,
                                 contentDescription = null,
-                                modifier = Modifier.size(28.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "GOFILE CLOUD",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.6.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
                             )
                         }
-                    }
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Halo, GoFile", style = MaterialTheme.typography.titleLarge)
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            text = "Halo,",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        )
                         Text(
                             text = email.ifBlank { "Akun tamu" },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                    }
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                    ) {
-                        Text(
-                            text = tier.ifBlank { "Tamu" },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            maxLines = 1,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        )
+                        Spacer(Modifier.height(16.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                            ) {
+                                Text(
+                                    text = tier.ifBlank { "Tamu" },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                )
+                            }
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                            ) {
+                                Text(
+                                    text = "Siap transfer",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1238,13 +1308,8 @@ private fun HomeScreen(
                 )
             }
 
-            Spacer(Modifier.height(22.dp))
-            Text(
-                text = "Aksi cepat",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(24.dp))
+            SectionLabel("Aksi cepat")
             Button(
                 onClick = onOpenFolder,
                 shape = RoundedCornerShape(18.dp),
@@ -1296,8 +1361,7 @@ private fun HomeScreen(
             }
 
             Spacer(Modifier.height(28.dp))
-            Text("Transfer terbaru", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
+            SectionLabel("Transfer terbaru")
             if (transfers.isEmpty()) {
                 Text(
                     "Belum ada transfer. Unggah atau unduh file untuk melihat progresnya di sini.",
@@ -1325,18 +1389,38 @@ private fun StatChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
     ) {
         Column(Modifier.padding(14.dp)) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(10.dp))
-            Text(value, style = MaterialTheme.typography.titleMedium)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(42.dp),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
             Text(
-                label,
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
         }
     }
@@ -1362,23 +1446,41 @@ private fun AnimatedActionCard(
     Card(
         onClick = onClick,
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
         modifier = modifier.graphicsLayer { scaleX = scale; scaleY = scale },
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(label, style = MaterialTheme.typography.labelLarge)
-                Text(
-                    supporting,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        Column(Modifier.padding(14.dp)) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(42.dp),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
             }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Text(
+                text = supporting,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -1399,157 +1501,173 @@ private fun LoginScreen(
     onGuest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isEmailStep = step == "email"
+    val haptic = LocalHapticFeedback.current
+    var page by rememberSaveable {
+        mutableStateOf(if (step == "token") 2 else 0)
+    }
+    LaunchedEffect(step) {
+        if (step == "token" && page != 2) page = 2
+        if (step == "email" && page > 1) page = 1
+    }
+
+    BackHandler(enabled = page > 0 && !busy) {
+        if (page == 2) {
+            page = 1
+            onBackToEmail()
+        } else {
+            page = 0
+        }
+    }
+
     val emailInvalid = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
     val emailReady = email.isNotBlank() && !emailInvalid
-    val fieldShape = RoundedCornerShape(16.dp)
+    val fieldShape = RoundedCornerShape(18.dp)
 
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
-    val entrance by animateFloatAsState(
-        targetValue = if (entered || reduceMotion) 1f else 0f,
-        animationSpec = tween(if (reduceMotion) 0 else 380, easing = EmphasizedDecelerate),
-        label = "loginEntrance",
-    )
-    val entranceOffset = with(LocalDensity.current) { (1f - entrance) * 18.dp.toPx() }
+    fun tap() {
+        if (!reduceMotion) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    }
 
-    // Blur hanya untuk latar dekoratif. Kartu form tetap solid supaya teks dan
-    // kontras tidak bergantung pada warna di belakangnya.
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        Box(
-            Modifier
-                .offset(x = (-120).dp, y = (-140).dp)
-                .size(260.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                .blur(90.dp),
-        )
-        Box(
-            Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = 60.dp, y = 100.dp)
-                .size(240.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f))
-                .blur(100.dp),
-        )
+    Box(modifier.fillMaxSize()) {
+        SetupBackdrop(currentPage = page, modifier = Modifier.fillMaxSize())
 
         Column(
-            Modifier
-                .align(Alignment.Center)
-                .widthIn(max = 480.dp)
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .imePadding()
-                .graphicsLayer {
-                    alpha = entrance
-                    translationY = entranceOffset
-                }
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
         ) {
-            Surface(
-                shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(50.dp),
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.CloudQueue,
-                                contentDescription = null,
-                                modifier = Modifier.size(26.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            AnimatedContent(
+                targetState = page,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                label = "setupPage",
+                transitionSpec = {
+                    if (reduceMotion) {
+                        fadeIn(tween(140)) togetherWith fadeOut(tween(120))
+                    } else {
+                        val slideSpec = spring<IntOffset>(dampingRatio = 0.8f, stiffness = 300f)
+                        val fadeSpec = tween<Float>(500)
+                        if (targetState > initialState) {
+                            ContentTransform(
+                                (slideInHorizontally(slideSpec) { fullWidth -> fullWidth } +
+                                    fadeIn(fadeSpec)),
+                                (slideOutHorizontally(slideSpec) { fullWidth -> -fullWidth } +
+                                    fadeOut(fadeSpec)),
+                                0f,
+                                SizeTransform(clip = false),
+                            )
+                        } else {
+                            ContentTransform(
+                                (slideInHorizontally(slideSpec) { fullWidth -> -fullWidth } +
+                                    fadeIn(fadeSpec)),
+                                (slideOutHorizontally(slideSpec) { fullWidth -> fullWidth } +
+                                    fadeOut(fadeSpec)),
+                                0f,
+                                SizeTransform(clip = false),
                             )
                         }
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = "Gofile Expressive",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = "Upload dan download native tanpa WebView.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = if (isEmailStep) "Masuk ke GoFile" else "Cek email kamu",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = if (isEmailStep) {
-                    "Kami kirim tautan login sekali pakai. Tidak perlu kata sandi."
-                } else {
-                    "Buka email dari GoFile, salin tautan login, lalu tempel di bawah."
                 },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(16.dp))
-            LoginStepRail(isEmailStep = isEmailStep)
-            Spacer(Modifier.height(14.dp))
+            ) { currentPage ->
+                val entrance = remember { Animatable(0f) }
+                LaunchedEffect(Unit) {
+                    entrance.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(dampingRatio = 0.7f, stiffness = 150f),
+                    )
+                }
 
-            Surface(
-                shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(
-                        animationSpec = tween(260, easing = EmphasizedEasing),
-                    ),
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    AnimatedContent(
-                        targetState = isEmailStep,
-                        label = "loginStep",
-                        transitionSpec = {
-                            if (reduceMotion) {
-                                fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                            } else {
-                                (
-                                    fadeIn(tween(180, easing = EmphasizedDecelerate)) +
-                                        scaleIn(
-                                            animationSpec = tween(240, easing = EmphasizedDecelerate),
-                                            initialScale = 0.96f,
-                                        ) +
-                                        slideInHorizontally(
-                                            animationSpec = tween(240, easing = EmphasizedDecelerate),
-                                        ) { width -> if (targetState) width / 14 else -width / 14 }
-                                    ) togetherWith (
-                                    fadeOut(tween(120)) +
-                                        scaleOut(
-                                            animationSpec = tween(160, easing = FastOutSlowInEasing),
-                                            targetScale = 0.98f,
-                                        )
-                                    )
-                            }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 28.dp)
+                        .graphicsLayer {
+                            val progress = entrance.value
+                            alpha = progress
+                            translationY = 40f * (1f - progress)
                         },
-                    ) { emailStepValue ->
-                        if (emailStepValue) {
-                            Column(Modifier.fillMaxWidth()) {
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 460.dp)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        when (currentPage) {
+                            0 -> {
+                                Text(
+                                    text = "SELAMAT DATANG",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 4.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    text = "GoFile",
+                                    style = MaterialTheme.typography.displayLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                Box(
+                                    Modifier
+                                        .width(72.dp)
+                                        .height(3.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                )
+                                Spacer(Modifier.height(20.dp))
+                                Text(
+                                    text = "Klien cloud native untuk mengunggah, mengunduh, dan merapikan folder tanpa WebView.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(28.dp))
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    SetupFeature(
+                                        icon = Icons.Filled.CloudQueue,
+                                        title = "Native dan ringan",
+                                        body = "Dibangun dengan Kotlin dan Jetpack Compose.",
+                                    )
+                                    SetupFeature(
+                                        icon = Icons.Filled.Upload,
+                                        title = "Transfer latar belakang",
+                                        body = "Progres tetap berjalan lewat foreground service.",
+                                    )
+                                    SetupFeature(
+                                        icon = Icons.Filled.Folder,
+                                        title = "Folder rapi",
+                                        body = "Buat, buka, dan hapus isi cloud langsung dari aplikasi.",
+                                    )
+                                }
+                            }
+
+                            1 -> {
+                                Text(
+                                    text = "Masuk ke GoFile",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    text = "Kami kirim tautan login sekali pakai ke email kamu. Tidak perlu kata sandi.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(24.dp))
                                 OutlinedTextField(
                                     value = email,
                                     onValueChange = onEmailChange,
@@ -1581,18 +1699,13 @@ private fun LoginScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 Spacer(Modifier.height(14.dp))
-                                PrimaryBusyButton(
-                                    busy = busy,
-                                    enabled = emailReady && !busy,
-                                    label = "Kirim tautan login",
-                                    busyLabel = "Mengirim tautan...",
-                                    onClick = onSend,
-                                )
-                                Spacer(Modifier.height(8.dp))
                                 OutlinedButton(
-                                    onClick = onGuest,
+                                    onClick = {
+                                        tap()
+                                        onGuest()
+                                    },
                                     enabled = !busy,
-                                    shape = fieldShape,
+                                    shape = RoundedCornerShape(18.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(52.dp),
@@ -1601,9 +1714,31 @@ private fun LoginScreen(
                                     Spacer(Modifier.width(10.dp))
                                     Text("Lanjut sebagai tamu")
                                 }
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    text = "Token disimpan lokal di perangkat.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
                             }
-                        } else {
-                            Column(Modifier.fillMaxWidth()) {
+
+                            else -> {
+                                Text(
+                                    text = "Cek email kamu",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    text = "Buka email dari GoFile, salin tautan login, lalu tempel di bawah.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(Modifier.height(24.dp))
                                 OutlinedTextField(
                                     value = tokenInput,
                                     onValueChange = onTokenChange,
@@ -1626,26 +1761,22 @@ private fun LoginScreen(
                                     ),
                                     modifier = Modifier.fillMaxWidth(),
                                 )
-                                Spacer(Modifier.height(14.dp))
-                                PrimaryBusyButton(
-                                    busy = busy,
-                                    enabled = tokenInput.isNotBlank() && !busy,
-                                    label = "Masuk",
-                                    busyLabel = "Memeriksa tautan...",
-                                    onClick = onLogin,
-                                )
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(10.dp))
                                 Row(
-                                    Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     TextButton(
-                                        onClick = onSend,
+                                        onClick = { onSend() },
                                         enabled = email.isNotBlank() && !busy,
                                     ) { Text("Kirim ulang") }
-                                    TextButton(onClick = onBackToEmail, enabled = !busy) {
-                                        Text("Ganti email")
-                                    }
+                                    TextButton(
+                                        onClick = {
+                                            page = 1
+                                            onBackToEmail()
+                                        },
+                                        enabled = !busy,
+                                    ) { Text("Ganti email") }
                                 }
                             }
                         }
@@ -1653,51 +1784,110 @@ private fun LoginScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = "Token disimpan lokal di perangkat.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(3) { index ->
+                    val selected = index == page
+                    val width by animateDpAsState(
+                        targetValue = if (selected) 24.dp else 8.dp,
+                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+                        label = "setupIndicatorWidth",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .height(8.dp)
+                            .width(width)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                            ),
+                    )
+                }
+            }
 
-@Composable
-private fun PrimaryBusyButton(
-    busy: Boolean,
-    enabled: Boolean,
-    label: String,
-    busyLabel: String,
-    onClick: () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.65f, stiffness = 900f),
-        label = "primaryPress",
-    )
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        interactionSource = interactionSource,
-        shape = RoundedCornerShape(18.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale },
-    ) {
-        if (busy) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                color = MaterialTheme.colorScheme.onPrimary,
-                strokeWidth = 2.dp,
-            )
-            Spacer(Modifier.width(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (page > 0) {
+                    Button(
+                        onClick = {
+                            tap()
+                            if (page == 2) {
+                                page = 1
+                                onBackToEmail()
+                            } else {
+                                page = 0
+                            }
+                        },
+                        enabled = !busy,
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                    ) {
+                        Text(
+                            text = "Kembali",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+
+                val nextEnabled = when (page) {
+                    0 -> !busy
+                    1 -> emailReady && !busy
+                    else -> tokenInput.isNotBlank() && !busy
+                }
+                Button(
+                    onClick = {
+                        tap()
+                        when (page) {
+                            0 -> page = 1
+                            1 -> if (emailReady && !busy) onSend()
+                            else -> if (tokenInput.isNotBlank() && !busy) onLogin()
+                        }
+                    },
+                    enabled = nextEnabled,
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                ) {
+                    Text(
+                        text = when {
+                            busy && page == 1 -> "Mengirim..."
+                            busy && page == 2 -> "Memeriksa..."
+                            page == 2 -> "Masuk"
+                            page == 1 -> "Kirim tautan"
+                            else -> "Lanjut"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
         }
-        Text(if (busy) busyLabel else label)
     }
 }
 
@@ -1772,7 +1962,7 @@ private fun FolderList(
                 start = 12.dp,
                 end = 12.dp,
                 top = 4.dp,
-                bottom = 104.dp,
+                bottom = 28.dp,
             ),
         ) {
             itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
@@ -1793,13 +1983,13 @@ private fun FolderList(
                         },
                         leadingContent = {
                             Surface(
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(14.dp),
                                 color = if (item.isFolder) {
                                     MaterialTheme.colorScheme.primaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.surfaceContainerHighest
                                 },
-                                modifier = Modifier.size(40.dp),
+                                modifier = Modifier.size(44.dp),
                             ) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Icon(
@@ -1839,11 +2029,11 @@ private fun FolderList(
                             }
                         },
                         colors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         ),
                         modifier = Modifier
-                            .padding(horizontal = 4.dp, vertical = 3.dp)
-                            .clip(RoundedCornerShape(20.dp))
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(22.dp))
                             .clickable { onOpen(item) },
                     )
                 }
@@ -1871,6 +2061,7 @@ private fun SettingsScreen(
         label = "settingsEntrance",
     )
     val offset = with(LocalDensity.current) { (1f - entrance) * 12.dp.toPx() }
+    val headerContentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -1885,75 +2076,103 @@ private fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Surface(
+                shape = RoundedCornerShape(30.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Box(
+                    modifier = Modifier.background(
+                        Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer,
+                            ),
+                        ),
+                    ),
+                ) {
+                    Canvas(Modifier.matchParentSize()) {
+                        drawCircle(
+                            color = headerContentColor.copy(alpha = 0.07f),
+                            radius = size.width * 0.5f,
+                            center = Offset(size.width, 0f),
+                        )
+                    }
+                    Column(Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                                modifier = Modifier.size(56.dp),
+                            ) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Filled.CloudQueue,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(28.dp),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = session.email.ifBlank { "Akun tamu" },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = "Tier ${session.tier.ifBlank { "Tamu" }}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(18.dp))
+                        Button(
+                            onClick = onLogout,
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                            Spacer(Modifier.width(10.dp))
+                            Text("Keluar dari akun", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            SectionLabel("Tampilan")
+            Surface(
                 shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(52.dp),
-                        ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Filled.CloudQueue,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = session.email.ifBlank { "Akun tamu" },
-                                style = MaterialTheme.typography.titleMedium,
-                                maxLines = 1,
-                            )
-                            Text(
-                                text = "Tier: ${session.tier.ifBlank { "Tamu" }}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedButton(
-                        onClick = onLogout,
-                        shape = RoundedCornerShape(18.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                        Spacer(Modifier.width(10.dp))
-                        Text("Keluar dari akun")
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = "Tampilan",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-            )
-            Surface(
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("Tema", style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = "Tema",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(12.dp))
                     ThemeSegmented(value = themeMode, onChange = onThemeChange)
-                    Spacer(Modifier.height(18.dp))
+                    Spacer(Modifier.height(20.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Warna dinamis", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = "Warna dinamis",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
                             Text(
                                 text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                     "Mengikuti warna wallpaper perangkat."
@@ -1971,25 +2190,68 @@ private fun SettingsScreen(
                             enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
                         )
                     }
+                    Spacer(Modifier.height(14.dp))
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = if (reduceMotion) {
+                                "Animasi diperkecil sesuai skala animator sistem."
+                            } else {
+                                "Transisi pendek dan mikro-interaksi mengikuti Material 3 Expressive."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            SectionLabel("Tentang")
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "Gofile Expressive",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = "Native Kotlin dan Jetpack Compose",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                        ) {
+                            Text(
+                                text = "v${BuildConfig.VERSION_NAME}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = if (reduceMotion) {
-                            "Animasi diperkecil sesuai skala animator sistem."
-                        } else {
-                            "Transisi pendek dan mikro-interaksi mengikuti Material 3 Expressive."
-                        },
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Tanpa WebView. Upload, download, folder, dan progres latar belakang berjalan di aplikasi ini.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-
-            Spacer(Modifier.height(28.dp))
-            Text(
-                text = "Gofile Expressive · native Kotlin",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             Spacer(Modifier.height(16.dp))
         }
     }
