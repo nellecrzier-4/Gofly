@@ -51,7 +51,7 @@ Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard
 Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`**: seluruh UI dan panggilan API berjalan native:
 
 - **Login native**: onboarding tiga halaman dengan latar radial yang bergerak, tipografi display tebal, indikator halaman, tombol Kembali/Lanjut, dan haptik ringan. Validasi email, aksi keyboard/IME, dan pesan kesalahan tetap terbaca. Bisa kirim magic link, tempel link/token, atau masuk sebagai tamu. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
-- **Navigasi tiga tab mengambang**: pill bar yang mengikuti isi, tab tidak terpilih hanya ikon, tab terpilih membuka label di samping ikon dengan spring, skala tekan 0.95, dan bayangan 8dp.
+- **Navigasi tiga tab mengambang**: pill bar yang mengikuti isi, tab tidak terpilih hanya ikon, tab terpilih membuka label di samping ikon dengan spring, skala tekan 0.95. Tidak ada kotak latar di belakang bar maupun di belakang judul layar; hanya pil yang terlihat.
 - **Animasi Material 3 Expressive**: transisi halaman setup memakai slide spring 300 dan fade 500ms dengan `SizeTransform(clip = false)`, entrance per halaman, transisi tab, indikator progres transfer, segmented control tema, stagger daftar, dan feedback tekan tombol. Semua durasi mengikuti skala animator sistem saat *reduce motion* aktif.
 - **Checklist izin**: notifikasi dan izin latar belakang ditampilkan sebagai satu kartu status dengan aksi langsung.
 - **Tema Material 3**: dynamic color di Android 12+ dengan fallback terang/gelap lengkap, tipografi display extra bold, bentuk 20 sampai 30dp, edge-to-edge, serta latar gradien radial dekoratif di layar setup (permukaan form tetap solid).
@@ -62,7 +62,8 @@ Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tid
 - **Foreground service** bertipe `dataSync` + *partial wake lock*: transfer tetap berjalan saat aplikasi ditutup, pindah ke home screen, atau layar mati.
 - **Notifikasi progres** (channel `gofile_transfers`) menampilkan persentase dan hasil akhir; notifikasi bisa diketuk untuk kembali ke aplikasi.
 - **Izin wajib**: `POST_NOTIFICATIONS` (Android 13+) diminta sebelum transfer, dan pengguna diarahkan untuk mengizinkan *Ignore battery optimizations* agar sistem tidak mematikan transfer di latar belakang.
-- **Panel transfer Compose**: progres upload/download diamati langsung dari `TransferStore` (StateFlow), termasuk keadaan indeterminate saat ukuran belum diketahui. Setiap baris bisa digeser ke kiri atau kanan untuk dihapus, dan tombol tutup membersihkan seluruh daftar.
+- **Panel transfer Compose**: progres upload/download diamati langsung dari `TransferStore` (StateFlow) di dalam panelnya sendiri, termasuk keadaan indeterminate saat ukuran belum diketahui. Setiap baris bisa digeser ke kiri atau kanan untuk dihapus, dan tombol tutup membersihkan seluruh daftar.
+- **Indikator loading ekspresif**: `ExpressiveLoader` menggambar satu blob berdenyut yang berputar, dipakai di tombol, sinkronisasi, dan keadaan kosong, menggantikan spinner cincin biasa.
 - **Tanpa jembatan JavaScript**: tidak ada `AndroidBridge`, tidak ada `window.*`, dan tidak bergantung pada halaman GitHub Pages.
 
 ### Build APK

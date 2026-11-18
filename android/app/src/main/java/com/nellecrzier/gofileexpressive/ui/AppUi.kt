@@ -91,7 +91,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -113,6 +112,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -123,6 +124,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -130,6 +132,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -199,33 +202,6 @@ private fun rememberReduceMotion(): Boolean {
             1f,
         ) == 0f
     }
-}
-
-/** Entrance berurutan untuk grup kecil. Tidak memblokir interaksi. */
-@Composable
-private fun StaggerIn(
-    index: Int,
-    reduceMotion: Boolean,
-    content: @Composable () -> Unit,
-) {
-    val entered = remember { mutableStateOf(false) }
-    val alpha by animateFloatAsState(
-        targetValue = if (entered.value || reduceMotion) 1f else 0f,
-        animationSpec = tween(if (reduceMotion) 0 else 200, easing = FastOutSlowInEasing),
-        label = "staggerAlpha",
-    )
-    val offsetY by animateDpAsState(
-        targetValue = if (entered.value || reduceMotion) 0.dp else 10.dp,
-        animationSpec = tween(
-            durationMillis = if (reduceMotion) 0 else 240,
-            delayMillis = if (reduceMotion) 0 else index.coerceAtMost(8) * 28,
-            easing = FastOutSlowInEasing,
-        ),
-        label = "staggerOffset",
-    )
-    val offsetPx = with(LocalDensity.current) { offsetY.toPx() }
-    LaunchedEffect(Unit) { entered.value = true }
-    Box(Modifier.fillMaxWidth().graphicsLayer(alpha = alpha, translationY = offsetPx)) { content() }
 }
 
 /**
@@ -350,10 +326,10 @@ fun GofileApp(activity: MainActivity) {
         var newFolderName by remember { mutableStateOf("") }
         var pendingDelete by remember { mutableStateOf<GItem?>(null) }
         var loginStep by rememberSaveable { mutableStateOf(if (session.isLoggedIn) "ready" else "email") }
+        var checkingSession by remember { mutableStateOf(session.isLoggedIn) }
         var currentTab by rememberSaveable { mutableStateOf("home") }
         var email by rememberSaveable { mutableStateOf("") }
         var tokenInput by rememberSaveable { mutableStateOf("") }
-        val transfers by TransferStore.transfers.collectAsState()
         val handledErrors = remember { mutableSetOf<String>() }
 
         fun showNotice(text: String, error: Boolean = true) {
@@ -460,12 +436,18 @@ fun GofileApp(activity: MainActivity) {
                     logout()
                 }
             }
+            checkingSession = false
         }
 
-        LaunchedEffect(transfers) {
-            transfers.filter { it.state == "error" && it.id !in handledErrors }.forEach {
-                handledErrors += it.id
-                activity.toast(it.message.ifBlank { "Transfer gagal." })
+        // Dikumpulkan di sini, bukan lewat collectAsState di root: progres
+        // transfer berubah beberapa kali per detik, dan state di root akan
+        // merekomposisi seluruh layar setiap tick.
+        LaunchedEffect(Unit) {
+            TransferStore.transfers.collect { list ->
+                list.filter { it.state == "error" && it.id !in handledErrors }.forEach {
+                    handledErrors += it.id
+                    activity.toast(it.message.ifBlank { "Transfer gagal." })
+                }
             }
         }
 
@@ -487,71 +469,51 @@ fun GofileApp(activity: MainActivity) {
         Scaffold(
             topBar = {
                 if (loginStep == "ready") {
-                    // Judul dan aksi masing-masing jadi pil sendiri, tanpa
-                    // bilah latar penuh lebar di belakangnya.
+                    // Tidak ada kotak di belakang judul atau aksi: hanya teks
+                    // dan ikon yang tampil, jadi halaman terasa lapang.
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (currentTab == "folder" && stack.size > 1) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.size(44.dp),
-                            ) {
-                                IconButton(onClick = {
-                                    stack = stack.dropLast(1)
-                                    loadFolder(stack.last().id)
-                                }) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Kembali",
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
+                            IconButton(onClick = {
+                                stack = stack.dropLast(1)
+                                loadFolder(stack.last().id)
+                            }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Kembali",
+                                    modifier = Modifier.size(22.dp),
+                                )
                             }
+                            Spacer(Modifier.width(4.dp))
                         }
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            modifier = Modifier.weight(1f, fill = false),
-                        ) {
-                            Text(
-                                text = topTitle,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .widthIn(max = 220.dp)
-                                    .padding(horizontal = 18.dp, vertical = 9.dp),
-                            )
-                        }
-                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = topTitle,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
                         when (currentTab) {
                             "folder" -> {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    modifier = Modifier.size(44.dp),
+                                IconButton(
+                                    onClick = {
+                                        newFolderName = ""
+                                        showCreateFolder = true
+                                    },
+                                    enabled = !busy,
                                 ) {
-                                    IconButton(
-                                        onClick = {
-                                            newFolderName = ""
-                                            showCreateFolder = true
-                                        },
-                                        enabled = !busy,
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.CreateNewFolder,
-                                            contentDescription = "Folder baru",
-                                            modifier = Modifier.size(20.dp),
-                                        )
-                                    }
+                                    Icon(
+                                        Icons.Filled.CreateNewFolder,
+                                        contentDescription = "Folder baru",
+                                        modifier = Modifier.size(22.dp),
+                                    )
                                 }
                                 RefreshAction(busy, reduceMotion) {
                                     stack.lastOrNull()?.let { loadFolder(it.id) }
@@ -633,7 +595,28 @@ fun GofileApp(activity: MainActivity) {
                     }
                 }
 
-                if (loginStep == "ready") {
+                if (loginStep == "ready" && checkingSession) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ExpressiveLoader(
+                                size = 52.dp,
+                                reduceMotion = reduceMotion,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                text = "Menyiapkan sesi",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                } else if (loginStep == "ready") {
                     AnimatedContent(
                         targetState = currentTab,
                         modifier = Modifier.weight(1f),
@@ -692,7 +675,6 @@ fun GofileApp(activity: MainActivity) {
                                         .widthIn(max = 720.dp),
                                 )
                                 TransferPanel(
-                                    transfers = transfers,
                                     reduceMotion = reduceMotion,
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
@@ -713,7 +695,6 @@ fun GofileApp(activity: MainActivity) {
                                 email = session.email,
                                 tier = session.tier,
                                 items = items,
-                                transfers = transfers,
                                 busy = busy,
                                 reduceMotion = reduceMotion,
                                 onOpenFolder = { openFolderTab() },
@@ -926,7 +907,7 @@ private fun FloatingNavBar(
                     targetValue = if (selected) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
+                        Color.Transparent
                     },
                     animationSpec = tween(220, easing = EmphasizedEasing),
                     label = "navContainer",
@@ -1001,20 +982,14 @@ private fun RefreshAction(
         animationSpec = tween(600, easing = FastOutSlowInEasing),
         label = "refreshRotation",
     )
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.size(44.dp),
-    ) {
-        IconButton(onClick = onClick, enabled = !busy) {
-            Icon(
-                Icons.Filled.Refresh,
-                contentDescription = "Muat ulang",
-                modifier = Modifier
-                    .size(20.dp)
-                    .graphicsLayer { rotationZ = rotation },
-            )
-        }
+    IconButton(onClick = onClick, enabled = !busy) {
+        Icon(
+            Icons.Filled.Refresh,
+            contentDescription = "Muat ulang",
+            modifier = Modifier
+                .size(22.dp)
+                .graphicsLayer { rotationZ = rotation },
+        )
     }
 }
 
@@ -1201,7 +1176,6 @@ private fun HomeScreen(
     email: String,
     tier: String,
     items: List<GItem>,
-    transfers: List<TransferInfo>,
     busy: Boolean,
     reduceMotion: Boolean,
     onOpenFolder: () -> Unit,
@@ -1210,9 +1184,9 @@ private fun HomeScreen(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val folderCount = items.count { it.isFolder }
-    val fileCount = items.size - folderCount
-    val totalSize = items.filter { !it.isFolder }.sumOf { it.size }
+    val folderCount = remember(items) { items.count { it.isFolder } }
+    val fileCount = remember(items) { items.size - items.count { it.isFolder } }
+    val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     val entrance by animateFloatAsState(
@@ -1252,20 +1226,20 @@ private fun HomeScreen(
                                     MaterialTheme.colorScheme.secondaryContainer,
                                 ),
                             ),
-                        ),
+                        )
+                        .drawBehind {
+                            drawCircle(
+                                color = heroContentColor.copy(alpha = 0.06f),
+                                radius = size.width * 0.42f,
+                                center = Offset(size.width * 0.94f, size.height * 0.08f),
+                            )
+                            drawCircle(
+                                color = heroContentColor.copy(alpha = 0.05f),
+                                radius = size.width * 0.26f,
+                                center = Offset(size.width * 0.72f, size.height * 0.96f),
+                            )
+                        },
                 ) {
-                    Canvas(Modifier.matchParentSize()) {
-                        drawCircle(
-                            color = heroContentColor.copy(alpha = 0.06f),
-                            radius = size.width * 0.42f,
-                            center = Offset(size.width * 0.94f, size.height * 0.08f),
-                        )
-                        drawCircle(
-                            color = heroContentColor.copy(alpha = 0.05f),
-                            radius = size.width * 0.26f,
-                            center = Offset(size.width * 0.72f, size.height * 0.96f),
-                        )
-                    }
                     Column(Modifier.padding(22.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -1387,13 +1361,15 @@ private fun HomeScreen(
 
             if (busy) {
                 Spacer(Modifier.height(12.dp))
-                LinearProgressIndicator(Modifier.fillMaxWidth())
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Menyinkronkan isi folder...",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ExpressiveLoader(size = 20.dp, reduceMotion = reduceMotion)
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "Menyinkronkan isi folder...",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             } else {
                 Spacer(Modifier.height(12.dp))
                 FilledTonalButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
@@ -1405,20 +1381,12 @@ private fun HomeScreen(
 
             Spacer(Modifier.height(28.dp))
             SectionLabel("Transfer terbaru")
-            if (transfers.isEmpty()) {
-                Text(
-                    "Belum ada transfer. Unggah atau unduh file untuk melihat progresnya di sini.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                TransferPanel(
-                    transfers = transfers,
-                    limit = 2,
-                    reduceMotion = reduceMotion,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            TransferPanel(
+                limit = 2,
+                reduceMotion = reduceMotion,
+                showEmptyHint = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -1917,6 +1885,14 @@ private fun LoginScreen(
                         .weight(1f)
                         .height(56.dp),
                 ) {
+                    if (busy) {
+                        ExpressiveLoader(
+                            size = 18.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            reduceMotion = reduceMotion,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                    }
                     Text(
                         text = when {
                             busy && page == 1 -> "Mengirim..."
@@ -1948,7 +1924,7 @@ private fun FolderList(
 ) {
     if (busy && items.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            ExpressiveLoader(size = 44.dp, reduceMotion = reduceMotion)
         }
         return
     }
@@ -2008,8 +1984,7 @@ private fun FolderList(
                 bottom = 28.dp,
             ),
         ) {
-            itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
-                StaggerIn(index = index, reduceMotion = reduceMotion) {
+            itemsIndexed(items, key = { _, item -> item.id }) { _, item ->
                     ListItem(
                         headlineContent = {
                             Text(
@@ -2075,11 +2050,11 @@ private fun FolderList(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         ),
                         modifier = Modifier
+                            .animateItem()
                             .padding(horizontal = 4.dp, vertical = 4.dp)
                             .clip(RoundedCornerShape(22.dp))
                             .clickable { onOpen(item) },
                     )
-                }
             }
         }
     }
@@ -2124,22 +2099,23 @@ private fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier.background(
-                        Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.secondaryContainer,
+                                ),
                             ),
-                        ),
-                    ),
-                ) {
-                    Canvas(Modifier.matchParentSize()) {
-                        drawCircle(
-                            color = headerContentColor.copy(alpha = 0.07f),
-                            radius = size.width * 0.5f,
-                            center = Offset(size.width, 0f),
                         )
-                    }
+                        .drawBehind {
+                            drawCircle(
+                                color = headerContentColor.copy(alpha = 0.07f),
+                                radius = size.width * 0.5f,
+                                center = Offset(size.width, 0f),
+                            )
+                        },
+                ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
@@ -2382,12 +2358,25 @@ private fun ThemeSegmented(
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun TransferPanel(
-    transfers: List<TransferInfo>,
     modifier: Modifier = Modifier,
     limit: Int = 3,
     reduceMotion: Boolean = false,
+    showEmptyHint: Boolean = false,
 ) {
+    // State diamati di sini, bukan di root, supaya tiap tick progres hanya
+    // merekomposisi panel ini.
+    val transfers by TransferStore.transfers.collectAsState()
     val recent = transfers.takeLast(limit).asReversed()
+    if (recent.isEmpty()) {
+        if (showEmptyHint) {
+            Text(
+                "Belum ada transfer. Unggah atau unduh file untuk melihat progresnya di sini.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
     AnimatedVisibility(
         visible = recent.isNotEmpty(),
         enter = if (reduceMotion) {
@@ -2409,8 +2398,8 @@ private fun TransferPanel(
             modifier = modifier,
             shape = RoundedCornerShape(26.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 2.dp,
-            shadowElevation = 6.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 3.dp,
         ) {
             Column(Modifier.padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2437,18 +2426,12 @@ private fun TransferPanel(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.width(4.dp))
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        IconButton(onClick = { TransferStore.dismissAll() }) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Tutup semua progres transfer",
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
+                    IconButton(onClick = { TransferStore.dismissAll() }) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Tutup semua progres transfer",
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -2476,12 +2459,31 @@ private fun SwipeToDismiss(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val offsetX = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
+    // Drag memakai state biasa dan snap, bukan Animatable di dalam coroutine
+    // per frame: satu peluncuran coroutine tiap delta drag membuat daftar
+    // transfer terasa berat saat digeser.
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    var dismissed by remember { mutableStateOf(false) }
+    var widthPx by remember { mutableIntStateOf(0) }
+
+    val offset by animateFloatAsState(
+        targetValue = when {
+            dismissed -> if (dragOffset >= 0f) widthPx * 1.4f else -widthPx * 1.4f
+            else -> dragOffset
+        },
+        animationSpec = if (dismissed) {
+            tween(180, easing = FastOutSlowInEasing)
+        } else {
+            spring(dampingRatio = 0.72f, stiffness = 520f)
+        },
+        finishedListener = { if (dismissed) onDismiss() },
+        label = "swipeOffset",
+    )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .onSizeChanged { widthPx = it.width }
             .semantics {
                 customActions = listOf(
                     CustomAccessibilityAction("Hapus dari daftar transfer") {
@@ -2491,35 +2493,23 @@ private fun SwipeToDismiss(
                 )
             }
             .graphicsLayer {
-                translationX = offsetX.value
-                val limit = size.width.coerceAtLeast(1f)
-                alpha = (1f - kotlin.math.abs(offsetX.value) / limit).coerceIn(0.2f, 1f)
+                translationX = offset
+                val limit = widthPx.coerceAtLeast(1).toFloat()
+                alpha = (1f - kotlin.math.abs(offset) / limit).coerceIn(0.2f, 1f)
             }
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
-                        val threshold = size.width * 0.32f
-                        if (kotlin.math.abs(offsetX.value) > threshold) {
-                            val target = if (offsetX.value > 0) size.width * 1.4f else -size.width * 1.4f
-                            scope.launch {
-                                offsetX.animateTo(target, tween(180, easing = FastOutSlowInEasing))
-                                onDismiss()
-                            }
+                        if (widthPx > 0 && kotlin.math.abs(dragOffset) > widthPx * 0.32f) {
+                            dismissed = true
                         } else {
-                            scope.launch {
-                                offsetX.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 520f),
-                                )
-                            }
+                            dragOffset = 0f
                         }
                     },
                     onHorizontalDrag = { change, dragAmount ->
                         change.consume()
-                        scope.launch {
-                            val limit = size.width * 1.4f
-                            offsetX.snapTo((offsetX.value + dragAmount).coerceIn(-limit, limit))
-                        }
+                        dragOffset = (dragOffset + dragAmount)
+                            .coerceIn(-widthPx * 1.4f, widthPx * 1.4f)
                     },
                 )
             },
@@ -2581,11 +2571,26 @@ private fun TransferRow(transfer: TransferInfo, reduceMotion: Boolean) {
         }
         Spacer(Modifier.height(6.dp))
         if (progress < 0 && !finished && !failed) {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            // Belum ada persentase: tampilkan denyut bentuk, bukan bar kosong
+            // yang bergerak tanpa arti.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(18.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                ExpressiveLoader(
+                    size = 16.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    reduceMotion = reduceMotion,
+                )
+            }
         } else {
             LinearProgressIndicator(
                 progress = { if (finished) 1f else animatedProgress },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp),
             )
         }
     }
