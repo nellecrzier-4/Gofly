@@ -43,6 +43,11 @@
 
 * { box-sizing: border-box; }
 
+/* Atribut `hidden` harus selalu menang atas aturan display milik sendiri
+   (mis. .busy-overlay { display: grid }). Tanpa ini overlay spinner tampil
+   terus dan menutupi seluruh UI. */
+[hidden] { display: none !important; }
+
 html, body { min-height: 100%; }
 
 body {
