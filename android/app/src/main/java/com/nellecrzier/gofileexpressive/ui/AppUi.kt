@@ -1,8 +1,13 @@
 package com.nellecrzier.gofileexpressive.ui
 
+import android.util.Patterns
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,15 +16,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudQueue
@@ -29,15 +39,14 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,11 +71,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GSession
@@ -108,17 +122,23 @@ fun GofileApp(activity: MainActivity) {
         var items by remember { mutableStateOf(listOf<GItem>()) }
         var busy by remember { mutableStateOf(false) }
         var notice by remember { mutableStateOf<String?>(null) }
+        var noticeIsError by remember { mutableStateOf(true) }
         var showCreateFolder by remember { mutableStateOf(false) }
         var newFolderName by remember { mutableStateOf("") }
         var pendingDelete by remember { mutableStateOf<GItem?>(null) }
         var loginStep by remember { mutableStateOf(if (session.isLoggedIn) "ready" else "email") }
-        var email by remember { mutableStateOf("") }
-        var tokenInput by remember { mutableStateOf("") }
+        var email by rememberSaveable { mutableStateOf("") }
+        var tokenInput by rememberSaveable { mutableStateOf("") }
         val transfers by TransferStore.transfers.collectAsState()
         val handledErrors = remember { mutableSetOf<String>() }
 
+        fun showNotice(text: String, error: Boolean = true) {
+            notice = text
+            noticeIsError = error
+        }
+
         fun report(error: Exception) {
-            notice = (error as? GoFileException)?.message ?: error.message ?: "Terjadi kesalahan."
+            showNotice((error as? GoFileException)?.message ?: error.message ?: "Terjadi kesalahan.")
         }
 
         fun loadFolder(id: String) {
@@ -149,7 +169,7 @@ fun GofileApp(activity: MainActivity) {
                     items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, parent) }
                     showCreateFolder = false
                     newFolderName = ""
-                    notice = "Folder \"$name\" dibuat."
+                    showNotice("Folder \"$name\" dibuat.", error = false)
                 } catch (error: Exception) {
                     report(error)
                 } finally {
@@ -167,7 +187,7 @@ fun GofileApp(activity: MainActivity) {
                     withContext(Dispatchers.IO) { GofileApi.deleteContent(session.token, item.id) }
                     items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, parent) }
                     pendingDelete = null
-                    notice = "\"${item.name}\" dihapus."
+                    showNotice("\"${item.name}\" dihapus.", error = false)
                 } catch (error: Exception) {
                     report(error)
                 } finally {
@@ -192,6 +212,7 @@ fun GofileApp(activity: MainActivity) {
             items = emptyList()
             tokenInput = ""
             notice = null
+            noticeIsError = true
             showCreateFolder = false
             newFolderName = ""
             pendingDelete = null
@@ -232,7 +253,7 @@ fun GofileApp(activity: MainActivity) {
                                     stack = stack.dropLast(1)
                                     loadFolder(stack.last().id)
                                 }) {
-                                    Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                                 }
                             }
                         },
@@ -250,7 +271,7 @@ fun GofileApp(activity: MainActivity) {
                                 Icon(Icons.Filled.Refresh, contentDescription = "Muat ulang")
                             }
                             IconButton(onClick = { logout() }) {
-                                Icon(Icons.Filled.Logout, contentDescription = "Keluar")
+                                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Keluar")
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
@@ -283,8 +304,11 @@ fun GofileApp(activity: MainActivity) {
                 notice?.let { text ->
                     NoticeCard(
                         text = text,
-                        error = true,
-                        onDismiss = { notice = null },
+                        error = noticeIsError,
+                        onDismiss = {
+                            notice = null
+                            noticeIsError = true
+                        },
                     )
                 }
 
@@ -303,7 +327,13 @@ fun GofileApp(activity: MainActivity) {
                                 activity.startDownload(item.link, item.name, session.token)
                             },
                             onDelete = { item -> pendingDelete = item },
-                            modifier = Modifier.fillMaxSize(),
+                            onUpload = {
+                                stack.lastOrNull()?.let { activity.pickFileForUpload(it.id, session.token) }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxSize()
+                                .widthIn(max = 720.dp),
                         )
                         TransferPanel(
                             transfers = transfers,
@@ -317,7 +347,6 @@ fun GofileApp(activity: MainActivity) {
                         step = loginStep,
                         email = email,
                         tokenInput = tokenInput,
-                        notice = notice,
                         busy = busy,
                         onEmailChange = { email = it },
                         onTokenChange = { tokenInput = it },
@@ -332,7 +361,10 @@ fun GofileApp(activity: MainActivity) {
                                 try {
                                     withContext(Dispatchers.IO) { GofileApi.sendLoginLink(email.trim()) }
                                     loginStep = "token"
-                                    notice = "Link login telah dikirim. Cek email lalu tempel di sini."
+                                    showNotice(
+                                        "Link login telah dikirim. Cek email lalu tempel di sini.",
+                                        error = false,
+                                    )
                                 } catch (error: Exception) {
                                     report(error)
                                 } finally {
@@ -343,7 +375,7 @@ fun GofileApp(activity: MainActivity) {
                         onLogin = {
                             val token = GofileApi.extractToken(tokenInput)
                             if (token == null) {
-                                notice = "Link atau token tidak dikenali. Tempel link lengkap dari email."
+                                showNotice("Link atau token tidak dikenali. Tempel link lengkap dari email.")
                             } else {
                                 scope.launch {
                                     busy = true
@@ -420,7 +452,13 @@ fun GofileApp(activity: MainActivity) {
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = { deleteItem(target) }, enabled = !busy) {
+                    TextButton(
+                        onClick = { deleteItem(target) },
+                        enabled = !busy,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
                         Text("Hapus")
                     }
                 },
@@ -513,7 +551,6 @@ private fun LoginScreen(
     step: String,
     email: String,
     tokenInput: String,
-    notice: String?,
     busy: Boolean,
     onEmailChange: (String) -> Unit,
     onTokenChange: (String) -> Unit,
@@ -523,82 +560,204 @@ private fun LoginScreen(
     onGuest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    val isEmailStep = step == "email"
+    val emailInvalid = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    val emailReady = email.isNotBlank() && !emailInvalid
+
+    // Blur hanya untuk latar dekoratif di layar setup. Permukaan form tetap solid
+    // supaya teks, kontras, dan dynamic color tidak bergantung pada warna latar.
+    Box(
         modifier
-            .padding(horizontal = 24.dp)
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(84.dp),
-        ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Filled.CloudQueue,
-                    contentDescription = null,
-                    modifier = Modifier.size(44.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        }
-        Spacer(Modifier.height(18.dp))
-        Text("GoFile Expressive", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Kelola file GoFile langsung dari perangkat.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+        Box(
+            Modifier
+                .offset(x = (-90).dp, y = (-150).dp)
+                .size(300.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
+                .blur(90.dp),
         )
-        Spacer(Modifier.height(28.dp))
+        Box(
+            Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 70.dp, y = 120.dp)
+                .size(280.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f))
+                .blur(110.dp),
+        )
 
-        if (step == "email") {
-            OutlinedTextField(
-                value = email,
-                onValueChange = onEmailChange,
-                label = { Text("Alamat email") },
-                leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(14.dp))
-            Button(onClick = onSend, enabled = email.isNotBlank() && !busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Kirim tautan login")
+        Column(
+            Modifier
+                .align(Alignment.Center)
+                .widthIn(max = 520.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(72.dp),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.CloudQueue,
+                        contentDescription = null,
+                        modifier = Modifier.size(38.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
             }
-            Spacer(Modifier.height(4.dp))
-            TextButton(onClick = onGuest, enabled = !busy) { Text("Lanjut sebagai tamu") }
-        } else {
-            OutlinedTextField(
-                value = tokenInput,
-                onValueChange = onTokenChange,
-                label = { Text("Link/token dari email") },
-                leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(14.dp))
-            Button(onClick = onLogin, enabled = tokenInput.isNotBlank() && !busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Masuk")
-            }
-            TextButton(onClick = onBackToEmail) { Text("Kirim ulang link") }
-        }
-
-        if (busy) {
-            Spacer(Modifier.height(16.dp))
-            CircularProgressIndicator()
-        }
-        if (notice != null) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
             Text(
-                notice,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
+                if (isEmailStep) "Masuk ke GoFile" else "Cek email kamu",
+                style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
             )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (isEmailStep) {
+                    "Kami kirim tautan login. Tempel tautannya di langkah berikutnya."
+                } else {
+                    "Buka email dari GoFile, salin tautan login, lalu tempel di bawah."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(24.dp))
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Langkah ${if (isEmailStep) "1" else "2"} dari 2",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    if (isEmailStep) "Email" else "Tautan login",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { if (isEmailStep) 0.34f else 0.67f },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(28.dp))
+
+            if (isEmailStep) {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = onEmailChange,
+                    label = { Text("Alamat email") },
+                    placeholder = { Text("nama@contoh.com") },
+                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+                    supportingText = {
+                        Text(
+                            if (emailInvalid) {
+                                "Format email belum benar."
+                            } else {
+                                "Tautan login hanya dikirim ke alamat ini."
+                            },
+                        )
+                    },
+                    isError = emailInvalid,
+                    enabled = !busy,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Send,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSend = { if (emailReady && !busy) onSend() },
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(16.dp))
+                PrimaryBusyButton(
+                    busy = busy,
+                    enabled = emailReady && !busy,
+                    label = "Kirim tautan login",
+                    busyLabel = "Mengirim tautan…",
+                    onClick = onSend,
+                )
+                Spacer(Modifier.height(4.dp))
+                TextButton(onClick = onGuest, enabled = !busy) {
+                    Text("Lanjut sebagai tamu")
+                }
+            } else {
+                OutlinedTextField(
+                    value = tokenInput,
+                    onValueChange = onTokenChange,
+                    label = { Text("Tautan atau token dari email") },
+                    placeholder = { Text("https://gofile.io/login/…") },
+                    leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null) },
+                    supportingText = { Text("Tempel tautan lengkap, bukan hanya kode.") },
+                    enabled = !busy,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (tokenInput.isNotBlank() && !busy) onLogin() },
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(16.dp))
+                PrimaryBusyButton(
+                    busy = busy,
+                    enabled = tokenInput.isNotBlank() && !busy,
+                    label = "Masuk",
+                    busyLabel = "Memeriksa tautan…",
+                    onClick = onLogin,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    TextButton(
+                        onClick = onSend,
+                        enabled = email.isNotBlank() && !busy,
+                    ) { Text("Kirim ulang") }
+                    TextButton(onClick = onBackToEmail, enabled = !busy) {
+                        Text("Ganti email")
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun PrimaryBusyButton(
+    busy: Boolean,
+    enabled: Boolean,
+    label: String,
+    busyLabel: String,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+    ) {
+        if (busy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp,
+            )
+            Spacer(Modifier.width(10.dp))
+        }
+        Text(if (busy) busyLabel else label)
     }
 }
 
@@ -610,6 +769,7 @@ private fun FolderList(
     onOpen: (GItem) -> Unit,
     onDownload: (GItem) -> Unit,
     onDelete: (GItem) -> Unit,
+    onUpload: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (busy && items.isEmpty()) {
@@ -628,7 +788,13 @@ private fun FolderList(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(10.dp))
-                Text("Folder ini kosong.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Folder ini kosong.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onUpload) { Text("Unggah file pertama") }
             }
         }
         return
@@ -641,19 +807,15 @@ private fun FolderList(
                     Text(if (item.isFolder) "Folder" else readableSize(item.size))
                 },
                 leadingContent = {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(42.dp),
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                if (item.isFolder) Icons.Filled.Folder else Icons.Filled.InsertDriveFile,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                    }
+                    Icon(
+                        if (item.isFolder) Icons.Filled.Folder else Icons.AutoMirrored.Filled.InsertDriveFile,
+                        contentDescription = null,
+                        tint = if (item.isFolder) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
                 },
                 trailingContent = {
                     Row {
@@ -686,9 +848,9 @@ private fun TransferPanel(transfers: List<TransferInfo>, modifier: Modifier = Mo
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -719,7 +881,7 @@ private fun TransferPanel(transfers: List<TransferInfo>, modifier: Modifier = Mo
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                 } else {
                     LinearProgressIndicator(
-                        progress = progress.coerceIn(0, 100) / 100f,
+                        progress = { progress.coerceIn(0, 100) / 100f },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
