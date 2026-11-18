@@ -38,6 +38,12 @@ class GofileBridge(private val activity: MainActivity) {
         activity.runOnUiThread { activity.startDownload(url, fileName) }
     }
 
+    /** Buka file/share link di browser atau aplikasi eksternal (window.open tidak jalan di WebView). */
+    @JavascriptInterface
+    fun openExternal(url: String) {
+        activity.runOnUiThread { activity.openExternal(url) }
+    }
+
     /** Kembalikan JSON array transfer terakhir supaya UI bisa dipulihkan. */
     @JavascriptInterface
     fun getTransfers(): String = TransferStore.toJson()

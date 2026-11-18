@@ -78,6 +78,14 @@ function icon(name, { cls = "", fill = false, size } = {}) {
   return `<span class="ms ${cls}" ${style ? `style="${style}"` : ""}>${name}</span>`;
 }
 
+function openExternal(url) {
+  if (state.android && typeof window.AndroidBridge?.openExternal === "function") {
+    window.AndroidBridge.openExternal(url);
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
 function toast(message, error = false) {
   const iconName = error ? "error" : "check_circle";
   els.snackbar.innerHTML = `${icon(iconName)}<span>${escapeHtml(message)}</span>`;
@@ -374,7 +382,7 @@ function renderFiles() {
       if (item.type === "folder") {
         withTransition(() => loadFolder(item.id, item.name || "Folder", true));
       } else {
-        window.open(`https://gofile.io/d/${encodeURIComponent(item.id)}`, "_blank", "noopener,noreferrer");
+        openExternal(`https://gofile.io/d/${encodeURIComponent(item.id)}`);
       }
     };
     card.addEventListener("click", (event) => {

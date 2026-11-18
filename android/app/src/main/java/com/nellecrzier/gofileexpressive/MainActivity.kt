@@ -113,6 +113,21 @@ class MainActivity : Activity() {
         }
     }
 
+    fun openExternal(url: String) {
+        if (!url.startsWith("http")) {
+            toast("Tautan tidak valid.");
+            return
+        }
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            toast("Tidak ada aplikasi yang bisa membuka tautan ini.");
+        }
+    }
+
     fun startDownload(url: String, fileName: String) {
         if (!hasNotificationPermission()) {
             guardPermission("notifications")
