@@ -48,14 +48,17 @@ Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard
 
 ## Aplikasi Android (native Kotlin)
 
-Folder `android/` berisi proyek Android native (Kotlin + Gradle) yang membuka versi web di atas lewat `WebView`, lalu menambahkan kemampuan yang tidak bisa dilakukan browser:
+Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`** — seluruh UI dan panggilan API berjalan native:
 
+- **Login native**: kirim magic link, tempel link/token, atau masuk sebagai tamu. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
+- **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar,.refresh, dan logout.
 - **Unggah file** dari pemilih file Android → `POST https://upload.gofile.io/uploadfile` ke folder yang sedang dibuka (dengan token akun).
 - **Unduh file** ke folder *Downloads* perangkat (MediaStore di Android 10+, folder `Gofile Expressive/Downloads` di Android 9 ke bawah).
 - **Foreground service** bertipe `dataSync` + *partial wake lock*: transfer tetap berjalan saat aplikasi ditutup, pindah ke home screen, atau layar mati.
 - **Notifikasi progres** (channel `gofile_transfers`) menampilkan persentase dan hasil akhir; notifikasi bisa diketuk untuk kembali ke aplikasi.
 - **Izin wajib**: `POST_NOTIFICATIONS` (Android 13+) diminta sebelum transfer, dan pengguna diarahkan untuk mengizinkan *Ignore battery optimizations* agar sistem tidak mematikan transfer di latar belakang.
-- **Jembatan JavaScript** `window.AndroidBridge` (`pickAndUpload`, `download`, `hasNotificationPermission`, `requestNotificationPermission`, `isBackgroundAllowed`, `requestBackgroundPermission`, `getTransfers`). Web mendeteksi jembatan ini dan otomatis menampilkan tombol Unggah, tombol unduh per file, panel progres, dan banner izin.
+- **Panel transfer Compose**: progres upload/download diamati langsung dari `TransferStore` (StateFlow), termasuk keadaan indeterminate saat ukuran belum diketahui.
+- **Tanpa jembatan JavaScript**: tidak ada `AndroidBridge`, tidak ada `window.*`, dan tidak bergantung pada halaman GitHub Pages.
 
 ### Build APK
 
@@ -69,7 +72,7 @@ export ANDROID_SDK_ROOT=$ANDROID_HOME
 
 Min SDK 26, target/compile SDK 35, JDK 17, AGP 8.6.1, Kotlin 2.0.20. Workflow `.github/workflows/android.yml` mem-build APK otomatis di GitHub Actions dan menyimpannya sebagai artefak `gofile-expressive-apk` setiap push ke `main`.
 
-> Aplikasi memuat `BuildConfig.APP_URL` (default: halaman GitHub Pages di atas). Untuk menguji perubahan web secara lokal, ubah nilai `APP_URL` di `android/app/build.gradle.kts` ke URL server lokal yang bisa diakses perangkat.
+> Aplikasi Android berdiri sendiri dan tidak memuat URL web apa pun. Versi web di GitHub Pages tetap tersedia untuk browser/desktop.
 
 ## Struktur
 
@@ -80,7 +83,7 @@ Min SDK 26, target/compile SDK 35, JDK 17, AGP 8.6.1, Kotlin 2.0.20. Workflow `.
 ├── js/
 │   ├── api.js      # klien API, sesi, parser token
 │   └── app.js      # state, alur login, file manager, jembatan Android
-├── android/        # proyek native Kotlin (WebView + foreground service)
+├── android/        # proyek native Kotlin + Compose (tanpa WebView) + foreground service
 ├── .github/workflows/
 │   ├── ci.yml              # validasi sumber
 │   ├── deploy-pages.yml    # deploy web ke GitHub Pages

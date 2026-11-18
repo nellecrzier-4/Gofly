@@ -1,127 +1,68 @@
 package com.nellecrzier.gofileexpressive
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.OpenableColumns
 import android.provider.Settings
-import android.util.Log
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import org.json.JSONObject
+import com.nellecrzier.gofileexpressive.ui.GofileApp
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.UUID
 
-class MainActivity : Activity() {
+/**
+ * Aktivitas native — TIDAK memakai WebView. Seluruh antarmuka dibangun dengan
+ * Jetpack Compose dan seluruh komunikasi GoFile lewat GofileApi.
+ */
+class MainActivity : ComponentActivity() {
 
-    private lateinit var webView: WebView
+    val permissionRevision = MutableStateFlow(0)
+
     private var pendingFolderId = ""
     private var pendingToken = ""
-    @Volatile
-    private var loadFailed = false
 
-    companion object {
-        private const val REQ_PICK_FILE = 1001
-        private const val REQ_NOTIFICATIONS = 1002
-        private const val REQ_BATTERY = 1003
-
-        private val UI_CHECK_JS = """
-            (function(){
-              function vis(id){
-                var el=document.getElementById(id);
-                if(!el || el.hidden) return false;
-                var s=getComputedStyle(el);
-                return s.display!=='none' && s.visibility!=='hidden';
-              }
-              return (vis('auth')||vis('manager')||vis('loading')) ? true : false;
-            })()
-        """.trimIndent()
-    }
+    private lateinit var notificationLauncher: ActivityResultLauncher<String>
+    private lateinit var batteryLauncher: ActivityResultLauncher<Intent>
+    private lateinit var fileLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        notificationLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                permissionRevision.value++
+                toast(if (granted) "Izin notifikasi aktif." else "Izin notifikasi ditolak.")
+            }
+        batteryLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                permissionRevision.value++
+            }
+        fileLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode != RESULT_OK) return@registerForActivityResult
+                val uri = result.data?.data ?: return@registerForActivityResult
+                handlePickedFile(uri)
+            }
+
         NotificationHelper.createChannel(this)
-
-        webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.databaseEnabled = true
-            settings.setSupportZoom(false)
-            settings.builtInZoomControls = false
-            settings.useWideViewPort = true
-            settings.loadWithOverviewMode = true
-            settings.mediaPlaybackRequiresUserGesture = false
-            webChromeClient = WebChromeClient()
-            webViewClient = object : WebViewClient() {
-                override fun onReceivedError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    error: WebResourceError?,
-                ) {
-                    super.onReceivedError(view, request, error)
-                    if (request?.isForMainFrame == true) {
-                        val detail = error?.description?.toString().orEmpty()
-                        Log.e("MainActivity", "Gagal memuat halaman: $detail")
-                        showLoadError(detail)
-                    }
-                }
-
-                override fun onReceivedHttpError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    errorResponse: android.webkit.WebResourceResponse?,
-                ) {
-                    super.onReceivedHttpError(view, request, errorResponse)
-                    if (request?.isForMainFrame == true) {
-                        val detail = "HTTP ${errorResponse?.statusCode ?: "unknown"}"
-                        Log.e("MainActivity", "Gagal memuat halaman: $detail")
-                        showLoadError(detail)
-                    }
-                }
-            }
-            setBackgroundColor(Color.parseColor("#0E0B17"))
-            addJavascriptInterface(GofileBridge(this@MainActivity), "AndroidBridge")
-        }
-        setContentView(webView)
-        webView.loadUrl(BuildConfig.APP_URL)
-
-        // Kalau halaman termuat tapi JS/CSS gagal sehingga antarmuka kosong,
-        // tampilkan pesan + tombol muat ulang daripada membiarkan layar hitam.
-        webView.postDelayed({
-            if (loadFailed) return@postDelayed
-            webView.evaluateJavascript(UI_CHECK_JS) { result ->
-                if (!loadFailed && result != "true") {
-                    Log.e("MainActivity", "Antarmuka tidak tampil setelah 15 detik: $result")
-                    showLoadError("Halaman termuat tetapi antarmuka tidak tampil.")
-                }
-            }
-        }, 15_000)
-
-        TransferStore.listener = { info -> postTransferToWeb(info) }
+        setContent { GofileApp(this) }
     }
 
-    override fun onDestroy() {
-        TransferStore.listener = null
-        super.onDestroy()
-    }
-
-    /* ---------------------------- izin ---------------------------- */
+    /* ------------------------------- izin ------------------------------- */
 
     fun hasNotificationPermission(): Boolean = TransferService.hasNotificationPermission(this)
 
     fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFICATIONS)
+            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
@@ -141,23 +82,21 @@ class MainActivity : Activity() {
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                 data = Uri.parse("package:$packageName")
             }
-            startActivityForResult(intent, REQ_BATTERY)
+            batteryLauncher.launch(intent)
         } catch (_: Exception) {
             toast("Buka Pengaturan → Baterai → Gofile Expressive → Izinkan latar belakang.")
         }
     }
 
-    /* --------------------------- transfer --------------------------- */
+    /* ------------------------------ transfer ---------------------------- */
 
     fun pickFileForUpload(folderId: String, token: String) {
         if (!hasNotificationPermission()) {
-            guardPermission("notifications")
+            toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
             return
         }
         pendingFolderId = folderId
         pendingToken = token
-        // ACTION_OPEN_DOCUMENT + persistable permission membuat berkas tetap
-        // bisa dibaca TransferService walaupun picker sudah ditutup.
         val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             type = "*/*"
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -166,30 +105,40 @@ class MainActivity : Activity() {
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
         }
         try {
-            startActivityForResult(Intent.createChooser(picker, "Pilih berkas untuk diunggah"), REQ_PICK_FILE)
+            fileLauncher.launch(Intent.createChooser(picker, "Pilih berkas untuk diunggah"))
         } catch (_: Exception) {
             toast("Tidak ada aplikasi pemilih berkas di perangkat ini.")
         }
     }
 
-    fun openExternal(url: String) {
-        if (!url.startsWith("http")) {
-            toast("Tautan tidak valid.");
-            return
-        }
+    private fun handlePickedFile(uri: Uri) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        } catch (_: Exception) {
-            toast("Tidak ada aplikasi yang bisa membuka tautan ini.");
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            // Sebagian provider tidak mendukung izin persistable.
         }
+        val name = queryDisplayName(uri) ?: "berkas-${System.currentTimeMillis()}"
+        val id = UUID.randomUUID().toString()
+        TransferStore.add(TransferInfo(id, "upload", name, 0, "running"))
+        val intent = Intent(this, TransferService::class.java).apply {
+            action = TransferService.ACTION_UPLOAD
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra(TransferService.EXTRA_TRANSFER_ID, id)
+            putExtra(TransferService.EXTRA_URI, uri)
+            putExtra(TransferService.EXTRA_TOKEN, pendingToken)
+            putExtra(TransferService.EXTRA_FOLDER_ID, pendingFolderId)
+            putExtra(TransferService.EXTRA_FILE_NAME, name)
+        }
+        ContextCompat.startForegroundService(this, intent)
     }
 
     fun startDownload(url: String, fileName: String) {
+        if (!url.startsWith("http")) {
+            toast("Tautan unduh tidak valid.")
+            return
+        }
         if (!hasNotificationPermission()) {
-            guardPermission("notifications")
+            toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
             return
         }
         val id = UUID.randomUUID().toString()
@@ -203,55 +152,6 @@ class MainActivity : Activity() {
         ContextCompat.startForegroundService(this, intent)
     }
 
-    private fun guardPermission(kind: String) {
-        toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
-        callJs("window.onPermissionRequired && window.onPermissionRequired('$kind');")
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQ_PICK_FILE || resultCode != RESULT_OK) return
-        val uri = data?.data ?: return
-        try {
-            contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        } catch (_: SecurityException) {
-            // Beberapa provider tidak mendukung persistable permission;
-            // flag GRANT_READ di bawah masih mencakup service di proses yang sama.
-        }
-
-        val name = queryDisplayName(uri) ?: "berkas-${System.currentTimeMillis()}"
-        val id = UUID.randomUUID().toString()
-        TransferStore.add(TransferInfo(id, "upload", name, 0, "running"))
-
-        val intent = Intent(this, TransferService::class.java).apply {
-            action = TransferService.ACTION_UPLOAD
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra(TransferService.EXTRA_TRANSFER_ID, id)
-            putExtra(TransferService.EXTRA_URI, uri)
-            putExtra(TransferService.EXTRA_TOKEN, pendingToken)
-            putExtra(TransferService.EXTRA_FOLDER_ID, pendingFolderId)
-            putExtra(TransferService.EXTRA_FILE_NAME, name)
-        }
-        ContextCompat.startForegroundService(this, intent)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ_NOTIFICATIONS) {
-            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            callJs("window.onPermissionResult && window.onPermissionResult('notifications', $granted);")
-            if (granted) toast("Izin notifikasi aktif. Progres transfer akan tampil di notifikasi.")
-        }
-    }
-
     private fun queryDisplayName(uri: Uri): String? {
         contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -262,63 +162,7 @@ class MainActivity : Activity() {
         return null
     }
 
-    /* --------------------------- WebView --------------------------- */
-
     fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun callJs(script: String) {
-        webView.post { webView.evaluateJavascript(script, null) }
-    }
-
-    fun reloadPage() {
-        webView.post {
-            loadFailed = false
-            webView.clearCache(false)
-            webView.loadUrl(BuildConfig.APP_URL)
-        }
-    }
-
-    /** Fallback saat WebView gagal memuat, supaya layar tidak pernah kosong tanpa penjelasan. */
-    private fun showLoadError(detail: String) {
-        if (loadFailed) return
-        loadFailed = true
-        val safe = detail.replace("\\", "\\\\").replace("\"", "\\\"").take(240)
-        val html = """
-            <!doctype html><html lang="id"><head><meta charset="utf-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>
-              *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;
-              background:#0E0B17;color:#E9E3F5;font-family:system-ui,sans-serif;padding:28px;text-align:center}
-              .card{max-width:420px}.badge{font-size:44px}.title{font-size:22px;font-weight:700;margin:12px 0 8px}
-              .detail{font-size:13px;opacity:.7;word-break:break-word;background:#1B1630;padding:12px;border-radius:12px;margin:16px 0}
-              button{border:0;border-radius:999px;padding:13px 26px;background:#D0BCFF;color:#1B1630;font-size:15px;font-weight:700;cursor:pointer}
-            </style></head><body><div class="card">
-              <div class="badge">&#9888;</div>
-              <div class="title">Gagal memuat aplikasi</div>
-              <div>Periksa koneksi internet, lalu coba lagi.</div>
-              <div class="detail">$safe</div>
-              <button onclick="AndroidBridge.reload()">Muat ulang</button>
-            </div></body></html>
-        """.trimIndent()
-        webView.loadDataWithBaseURL(BuildConfig.APP_URL, html, "text/html", "utf-8", null)
-    }
-
-    private fun postTransferToWeb(info: TransferInfo) {
-        val json = JSONObject().apply {
-            put("id", info.id)
-            put("type", info.type)
-            put("fileName", info.fileName)
-            put("progress", info.progress)
-            put("state", info.state)
-            put("message", info.message)
-        }.toString()
-        callJs("window.onTransferUpdate && window.onTransferUpdate($json);")
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
     }
 }

@@ -1,2 +1,1 @@
--keep class com.nellecrzier.gofileexpressive.GofileBridge { *; }
--keepattributes JavascriptInterface
+# Aplikasi native tanpa WebView/JavascriptInterface.

@@ -1,5 +1,8 @@
 package com.nellecrzier.gofileexpressive
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -21,17 +24,17 @@ data class TransferInfo(
     }
 }
 
-/** Memegang progres transfer di memori proses agar WebView bisa mengambilnya kapan saja. */
+/** Memegang progres transfer di memori proses agar UI Compose bisa mengamatinya. */
 object TransferStore {
     private val lock = Any()
     private val items = LinkedHashMap<String, TransferInfo>()
+    private val _transfers = MutableStateFlow<List<TransferInfo>>(emptyList())
 
-    /** Dipasang MainActivity untuk meneruskan update ke JavaScript. */
-    var listener: ((TransferInfo) -> Unit)? = null
+    val transfers: StateFlow<List<TransferInfo>> = _transfers.asStateFlow()
 
     fun add(info: TransferInfo) {
         synchronized(lock) { items[info.id] = info }
-        emit(info)
+        publish()
     }
 
     fun update(
@@ -44,7 +47,11 @@ object TransferStore {
         if (progress != null) info.progress = progress
         if (state != null) info.state = state
         if (message != null) info.message = message
-        emit(info)
+        publish()
+    }
+
+    private fun publish() {
+        _transfers.value = synchronized(lock) { items.values.toList() }
     }
 
     fun get(id: String): TransferInfo? = synchronized(lock) { items[id] }
@@ -52,9 +59,4 @@ object TransferStore {
     fun all(): List<TransferInfo> = synchronized(lock) { items.values.toList() }
 
     fun toJson(): String = JSONArray(all().map { it.toJson() }).toString()
-
-    private fun emit(info: TransferInfo) {
-        val snapshot = info.copy()
-        listener?.invoke(snapshot)
-    }
 }
