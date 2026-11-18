@@ -7,7 +7,7 @@ import {
   clearSession,
   extractToken,
   GoFileError,
-} from "./api.js";
+} from "./api.js?v=2";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
