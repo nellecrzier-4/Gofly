@@ -51,6 +51,8 @@ Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard
 Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`** — seluruh UI dan panggilan API berjalan native:
 
 - **Login native**: kirim magic link, tempel link/token, atau masuk sebagai tamu. Alurnya dua langkah dengan indikator progres, validasi email, aksi keyboard/IME, dan pesan kesalahan yang bisa dibaca. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
+- **Navigasi tiga tab**: Beranda berisi ringkasan folder/file dan aksi cepat, Folder berisi browser root, dan Pengaturan berisi tema, warna dinamis, serta akun.
+- **Animasi Material 3**: transisi tab, perpindahan langkah login, stagger daftar, feedback tombol, dan panel transfer yang muncul dan hilang dengan halus. Semua animasi mengikuti skala animator sistem saat *reduce motion* aktif.
 - **Tema Material 3**: dynamic color di Android 12+ dengan fallback terang/gelap lengkap, bentuk dan tipografi berbasis token Material, edge-to-edge, serta blur lembut yang hanya dipakai sebagai latar dekoratif layar masuk (permukaan form tetap solid).
 - **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar, refresh, dan logout.
 - **Kelola folder**: buat folder baru (`POST /contents/createFolder`) dan hapus file/folder (`DELETE /contents`) langsung dari daftar.
