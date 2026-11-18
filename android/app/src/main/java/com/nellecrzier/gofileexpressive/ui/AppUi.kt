@@ -7,14 +7,17 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -28,18 +31,22 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,7 +58,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudQueue
@@ -64,6 +70,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
@@ -82,9 +89,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -107,13 +113,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.GoFileException
@@ -129,7 +141,19 @@ import kotlinx.coroutines.withContext
 
 private data class Crumb(val id: String, val name: String)
 
-private val TAB_ORDER = listOf("home", "folder", "settings")
+private data class AppTab(val key: String, val label: String, val icon: ImageVector)
+
+/** Kurva emphasized Material 3 Expressive, dibangun dari bezier agar stabil di Compose. */
+private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+
+private val APP_TABS = listOf(
+    AppTab("home", "Beranda", Icons.Filled.Home),
+    AppTab("folder", "Folder", Icons.Filled.Folder),
+    AppTab("settings", "Pengaturan", Icons.Filled.Settings),
+)
+
+private val TAB_ORDER = APP_TABS.map { it.key }
 
 private fun readableSize(bytes: Long): String {
     if (bytes <= 0) return "0 B"
@@ -180,7 +204,7 @@ private fun StaggerIn(
     )
     val offsetPx = with(LocalDensity.current) { offsetY.toPx() }
     LaunchedEffect(Unit) { entered.value = true }
-    Box(Modifier.graphicsLayer(alpha = alpha, translationY = offsetPx)) { content() }
+    Box(Modifier.fillMaxWidth().graphicsLayer(alpha = alpha, translationY = offsetPx)) { content() }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -211,7 +235,7 @@ fun GofileApp(activity: MainActivity) {
         var showCreateFolder by remember { mutableStateOf(false) }
         var newFolderName by remember { mutableStateOf("") }
         var pendingDelete by remember { mutableStateOf<GItem?>(null) }
-        var loginStep by remember { mutableStateOf(if (session.isLoggedIn) "ready" else "email") }
+        var loginStep by rememberSaveable { mutableStateOf(if (session.isLoggedIn) "ready" else "email") }
         var currentTab by rememberSaveable { mutableStateOf("home") }
         var email by rememberSaveable { mutableStateOf("") }
         var tokenInput by rememberSaveable { mutableStateOf("") }
@@ -350,7 +374,12 @@ fun GofileApp(activity: MainActivity) {
             topBar = {
                 if (loginStep == "ready") {
                     TopAppBar(
-                        title = { Text(topTitle) },
+                        title = {
+                            Text(
+                                text = topTitle,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        },
                         navigationIcon = {
                             if (currentTab == "folder" && stack.size > 1) {
                                 IconButton(onClick = {
@@ -383,7 +412,7 @@ fun GofileApp(activity: MainActivity) {
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
+                            containerColor = MaterialTheme.colorScheme.background,
                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                         ),
                     )
@@ -391,26 +420,18 @@ fun GofileApp(activity: MainActivity) {
             },
             bottomBar = {
                 if (loginStep == "ready") {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding(),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        NavigationBarItem(
-                            selected = currentTab == "home",
-                            onClick = { currentTab = "home" },
-                            icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-                            label = { Text("Beranda") },
-                        )
-                        NavigationBarItem(
-                            selected = currentTab == "folder",
-                            onClick = { openFolderTab() },
-                            icon = { Icon(Icons.Filled.Folder, contentDescription = null) },
-                            label = { Text("Folder") },
-                        )
-                        NavigationBarItem(
-                            selected = currentTab == "settings",
-                            onClick = { currentTab = "settings" },
-                            icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                            label = { Text("Pengaturan") },
+                        FloatingNavBar(
+                            currentTab = currentTab,
+                            onSelect = { tab ->
+                                currentTab = tab
+                                if (tab == "folder") openFolderTab()
+                            },
                         )
                     }
                 }
@@ -433,7 +454,9 @@ fun GofileApp(activity: MainActivity) {
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                PermissionCards(activity = activity, revision = permissionRevision)
+                if (loginStep == "ready") {
+                    PermissionCards(activity = activity, revision = permissionRevision)
+                }
 
                 AnimatedVisibility(
                     visible = notice != null,
@@ -475,15 +498,23 @@ fun GofileApp(activity: MainActivity) {
                             } else {
                                 val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
                                 (
-                                    slideInHorizontally(
-                                        animationSpec = tween(240, easing = FastOutSlowInEasing),
-                                    ) { fullWidth -> if (forward) fullWidth / 10 else -fullWidth / 10 } +
-                                        fadeIn(tween(180, easing = FastOutSlowInEasing))
+                                    fadeIn(tween(200, easing = EmphasizedDecelerate)) +
+                                        scaleIn(
+                                            animationSpec = tween(260, easing = EmphasizedDecelerate),
+                                            initialScale = 0.97f,
+                                        ) +
+                                        slideInHorizontally(
+                                            animationSpec = tween(260, easing = EmphasizedDecelerate),
+                                        ) { fullWidth -> if (forward) fullWidth / 12 else -fullWidth / 12 }
                                     ) togetherWith (
-                                    slideOutHorizontally(
-                                        animationSpec = tween(240, easing = FastOutSlowInEasing),
-                                    ) { fullWidth -> if (forward) -fullWidth / 10 else fullWidth / 10 } +
-                                        fadeOut(tween(140, easing = FastOutSlowInEasing))
+                                    fadeOut(tween(140, easing = FastOutSlowInEasing)) +
+                                        scaleOut(
+                                            animationSpec = tween(180, easing = FastOutSlowInEasing),
+                                            targetScale = 0.99f,
+                                        ) +
+                                        slideOutHorizontally(
+                                            animationSpec = tween(200, easing = FastOutSlowInEasing),
+                                        ) { fullWidth -> if (forward) -fullWidth / 16 else fullWidth / 16 }
                                     )
                             }
                         },
@@ -688,6 +719,216 @@ fun GofileApp(activity: MainActivity) {
 /* ------------------------------ komponen ------------------------------ */
 
 @Composable
+private fun FloatingNavBar(
+    currentTab: String,
+    onSelect: (String) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 3.dp,
+        shadowElevation = 8.dp,
+        modifier = Modifier
+            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .widthIn(max = 520.dp)
+            .fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            APP_TABS.forEach { tab ->
+                val selected = currentTab == tab.key
+                val container by animateColorAsState(
+                    targetValue = if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        Color.Transparent
+                    },
+                    animationSpec = tween(220, easing = EmphasizedEasing),
+                    label = "navContainer",
+                )
+                val contentColor by animateColorAsState(
+                    targetValue = if (selected) {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    animationSpec = tween(180, easing = EmphasizedDecelerate),
+                    label = "navContent",
+                )
+                val iconScale by animateFloatAsState(
+                    targetValue = if (selected) 1.08f else 1f,
+                    animationSpec = spring(dampingRatio = 0.55f, stiffness = 700f),
+                    label = "navIconScale",
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 54.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(container)
+                        .selectable(
+                            selected = selected,
+                            onClick = { onSelect(tab.key) },
+                            role = Role.Tab,
+                        )
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = tab.icon,
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .graphicsLayer { scaleX = iconScale; scaleY = iconScale },
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = contentColor,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoginStepRail(isEmailStep: Boolean) {
+    val connector by animateFloatAsState(
+        targetValue = if (isEmailStep) 0f else 1f,
+        animationSpec = tween(280, easing = EmphasizedEasing),
+        label = "stepConnector",
+    )
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            StepNode(
+                number = 1,
+                label = "Email",
+                active = isEmailStep,
+                done = !isEmailStep,
+            )
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 10.dp)
+                    .weight(1f)
+                    .height(2.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(connector)
+                        .height(2.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+            }
+            StepNode(
+                number = 2,
+                label = "Tautan",
+                active = !isEmailStep,
+                done = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StepNode(
+    number: Int,
+    label: String,
+    active: Boolean,
+    done: Boolean,
+) {
+    val container by animateColorAsState(
+        targetValue = when {
+            active -> MaterialTheme.colorScheme.primary
+            done -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        animationSpec = tween(220, easing = EmphasizedEasing),
+        label = "stepContainer",
+    )
+    val content by animateColorAsState(
+        targetValue = when {
+            active -> MaterialTheme.colorScheme.onPrimary
+            done -> MaterialTheme.colorScheme.onPrimaryContainer
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = tween(220, easing = EmphasizedEasing),
+        label = "stepContent",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (active) 1.06f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 600f),
+        label = "stepScale",
+    )
+    val status = when {
+        done -> "selesai"
+        active -> "aktif"
+        else -> "belum aktif"
+    }
+    Row(
+        modifier = Modifier
+            .widthIn(min = 92.dp)
+            .clearAndSetSemantics {
+                contentDescription = "Langkah $number dari 2, $label, $status"
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .clip(CircleShape)
+                .background(container),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (done) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = content,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else {
+                Text(
+                    text = "$number",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = content,
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (active || done) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+    }
+}
+
+@Composable
 private fun RefreshAction(
     busy: Boolean,
     reduceMotion: Boolean,
@@ -709,23 +950,128 @@ private fun RefreshAction(
 
 @Composable
 private fun PermissionCards(activity: MainActivity, revision: Int) {
-    // `revision` sengaja dibaca supaya kartu dihitung ulang setelah izin berubah.
+    // `revision` sengaja dibaca supaya status izin dihitung ulang setelah berubah.
     if (revision < 0) return
-    if (!activity.hasNotificationPermission()) {
-        NoticeCard(
-            text = "Aktifkan notifikasi agar progres upload/download tetap terlihat.",
-            actionLabel = "Aktifkan",
-            icon = Icons.Filled.NotificationsActive,
-            onAction = { activity.requestNotificationPermission() },
-        )
+    val notificationsReady = activity.hasNotificationPermission()
+    val batteryReady = activity.isIgnoringBatteryOptimizations()
+    if (notificationsReady && batteryReady) return
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.NotificationsActive,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "Siapkan transfer latar belakang",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "Dua izin ini menjaga progres tetap berjalan.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            SetupRow(
+                ready = notificationsReady,
+                title = "Notifikasi progres",
+                supporting = "Progres upload dan download tetap terlihat.",
+                actionLabel = "Aktifkan",
+                onAction = { activity.requestNotificationPermission() },
+            )
+            Spacer(Modifier.height(8.dp))
+            SetupRow(
+                ready = batteryReady,
+                title = "Izin latar belakang",
+                supporting = "Transfer tidak terhenti saat aplikasi ditutup.",
+                actionLabel = "Atur",
+                onAction = { activity.requestIgnoreBatteryOptimizations() },
+            )
+        }
     }
-    if (!activity.isIgnoringBatteryOptimizations()) {
-        NoticeCard(
-            text = "Izinkan latar belakang agar transfer tidak terhenti saat aplikasi ditutup.",
-            actionLabel = "Atur",
-            icon = Icons.Filled.BatteryChargingFull,
-            onAction = { activity.requestIgnoreBatteryOptimizations() },
+}
+
+@Composable
+private fun SetupRow(
+    ready: Boolean,
+    title: String,
+    supporting: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+) {
+    val container by animateColorAsState(
+        targetValue = if (ready) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = tween(240, easing = EmphasizedEasing),
+        label = "setupContainer",
+    )
+    val contentColor = if (ready) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(container)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = if (ready) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp),
         )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (ready) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = supporting,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+            )
+        }
+        if (ready) {
+            Text(
+                text = "Siap",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        } else {
+            TextButton(onClick = onAction) { Text(actionLabel) }
+        }
     }
 }
 
@@ -797,55 +1143,79 @@ private fun HomeScreen(
     val folderCount = items.count { it.isFolder }
     val fileCount = items.size - folderCount
     val totalSize = items.filter { !it.isFolder }.sumOf { it.size }
-    val lift by animateDpAsState(
-        targetValue = if (reduceMotion) 0.dp else 4.dp,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "homeIconLift",
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val entrance by animateFloatAsState(
+        targetValue = if (entered || reduceMotion) 1f else 0f,
+        animationSpec = tween(if (reduceMotion) 0 else 320, easing = EmphasizedDecelerate),
+        label = "homeEntrance",
     )
-    val liftPx = with(LocalDensity.current) { lift.toPx() }
+    val entranceOffset = with(LocalDensity.current) { (1f - entrance) * 14.dp.toPx() }
 
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .widthIn(max = 720.dp)
+                .graphicsLayer {
+                    alpha = entrance
+                    translationY = entranceOffset
+                    scaleX = 0.98f + entrance * 0.02f
+                    scaleY = 0.98f + entrance * 0.02f
+                }
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(56.dp),
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.CloudQueue,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(30.dp)
-                                .graphicsLayer { translationY = liftPx },
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(56.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.CloudQueue,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Halo, GoFile", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = email.ifBlank { "Akun tamu" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                    ) {
+                        Text(
+                            text = tier.ifBlank { "Tamu" },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         )
                     }
                 }
-                Spacer(Modifier.width(14.dp))
-                Column {
-                    Text("Halo, GoFile", style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        listOf(email.ifBlank { "Akun tamu" }, tier.ifBlank { "Tamu" })
-                            .filter { it.isNotBlank() }
-                            .joinToString(" · "),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatChip(
                     label = "Folder",
@@ -867,9 +1237,16 @@ private fun HomeScreen(
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(22.dp))
+            Text(
+                text = "Aksi cepat",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = onOpenFolder,
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -879,7 +1256,7 @@ private fun HomeScreen(
                 Text("Buka Folder Root")
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 AnimatedActionCard(
                     label = "Unggah",
@@ -904,7 +1281,7 @@ private fun HomeScreen(
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Menyinkronkan isi folder…",
+                    "Menyinkronkan isi folder...",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1024,76 +1401,104 @@ private fun LoginScreen(
     val isEmailStep = step == "email"
     val emailInvalid = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
     val emailReady = email.isNotBlank() && !emailInvalid
-    val pulse by animateFloatAsState(
-        targetValue = if (reduceMotion) 1f else 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "loginIconPulse",
-    )
 
-    // Blur hanya untuk latar dekoratif di layar setup. Permukaan form tetap solid
-    // supaya teks, kontras, dan dynamic color tidak bergantung pada warna latar.
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val entrance by animateFloatAsState(
+        targetValue = if (entered || reduceMotion) 1f else 0f,
+        animationSpec = tween(if (reduceMotion) 0 else 380, easing = EmphasizedDecelerate),
+        label = "loginEntrance",
+    )
+    val entranceOffset = with(LocalDensity.current) { (1f - entrance) * 22.dp.toPx() }
+
+    // Blur hanya untuk latar dekoratif. Kartu form tetap solid supaya teks dan
+    // kontras tidak bergantung pada warna di belakangnya.
     Box(
-        modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
         Box(
             Modifier
-                .offset(x = (-90).dp, y = (-150).dp)
+                .offset(x = (-96).dp, y = (-160).dp)
                 .size(300.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f))
                 .blur(90.dp),
         )
         Box(
             Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = 70.dp, y = 120.dp)
+                .offset(x = 80.dp, y = 120.dp)
                 .size(280.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f))
+                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f))
                 .blur(110.dp),
         )
 
         Column(
             Modifier
                 .align(Alignment.Center)
-                .widthIn(max = 520.dp)
+                .widthIn(max = 480.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 22.dp, vertical = 20.dp)
                 .imePadding()
+                .graphicsLayer {
+                    alpha = entrance
+                    translationY = entranceOffset
+                }
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(72.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Filled.CloudQueue,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .graphicsLayer { scaleX = pulse; scaleY = pulse },
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(54.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.CloudQueue,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = "Gofile Expressive",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = "Upload dan download native tanpa WebView.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
-            Spacer(Modifier.height(20.dp))
+
+            Spacer(Modifier.height(24.dp))
             Text(
-                if (isEmailStep) "Masuk ke GoFile" else "Cek email kamu",
+                text = if (isEmailStep) "Masuk ke GoFile" else "Cek email kamu",
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                if (isEmailStep) {
-                    "Kami kirim tautan login. Tempel tautannya di langkah berikutnya."
+                text = if (isEmailStep) {
+                    "Kami kirim tautan login sekali pakai. Tidak perlu kata sandi."
                 } else {
                     "Buka email dari GoFile, salin tautan login, lalu tempel di bawah."
                 },
@@ -1101,126 +1506,148 @@ private fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
+            LoginStepRail(isEmailStep = isEmailStep)
+            Spacer(Modifier.height(18.dp))
 
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Langkah ${if (isEmailStep) "1" else "2"} dari 2",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    if (isEmailStep) "Email" else "Tautan login",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { if (isEmailStep) 0.34f else 0.67f },
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(28.dp))
-
-            AnimatedContent(
-                targetState = isEmailStep,
-                label = "loginStep",
-                transitionSpec = {
-                    if (reduceMotion) {
-                        fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                    } else {
-                        (
-                            slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) {
-                                fullWidth -> if (targetState) fullWidth / 12 else -fullWidth / 12
-                            } + fadeIn(tween(160, easing = FastOutSlowInEasing))
-                            ) togetherWith (
-                            slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) {
-                                fullWidth -> if (targetState) -fullWidth / 12 else fullWidth / 12
-                            } + fadeOut(tween(130, easing = FastOutSlowInEasing))
-                            )
-                    }
-                },
-            ) { emailStepValue ->
-                if (emailStepValue) {
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = onEmailChange,
-                        label = { Text("Alamat email") },
-                        placeholder = { Text("nama@contoh.com") },
-                        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
-                        supportingText = {
-                            Text(
-                                if (emailInvalid) {
-                                    "Format email belum benar."
-                                } else {
-                                    "Tautan login hanya dikirim ke alamat ini."
-                                },
-                            )
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    AnimatedContent(
+                        targetState = isEmailStep,
+                        label = "loginStep",
+                        transitionSpec = {
+                            if (reduceMotion) {
+                                fadeIn(tween(120)) togetherWith fadeOut(tween(120))
+                            } else {
+                                (
+                                    fadeIn(tween(180, easing = EmphasizedDecelerate)) +
+                                        scaleIn(
+                                            animationSpec = tween(240, easing = EmphasizedDecelerate),
+                                            initialScale = 0.96f,
+                                        ) +
+                                        slideInHorizontally(
+                                            animationSpec = tween(240, easing = EmphasizedDecelerate),
+                                        ) { width -> if (targetState) width / 14 else -width / 14 }
+                                    ) togetherWith (
+                                    fadeOut(tween(120)) +
+                                        scaleOut(
+                                            animationSpec = tween(160, easing = FastOutSlowInEasing),
+                                            targetScale = 0.98f,
+                                        )
+                                    )
+                            }
                         },
-                        isError = emailInvalid,
-                        enabled = !busy,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Send,
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSend = { if (emailReady && !busy) onSend() },
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    PrimaryBusyButton(
-                        busy = busy,
-                        enabled = emailReady && !busy,
-                        label = "Kirim tautan login",
-                        busyLabel = "Mengirim tautan…",
-                        onClick = onSend,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    TextButton(onClick = onGuest, enabled = !busy) {
-                        Text("Lanjut sebagai tamu")
-                    }
-                } else {
-                    OutlinedTextField(
-                        value = tokenInput,
-                        onValueChange = onTokenChange,
-                        label = { Text("Tautan atau token dari email") },
-                        placeholder = { Text("https://gofile.io/login/…") },
-                        leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null) },
-                        supportingText = { Text("Tempel tautan lengkap, bukan hanya kode.") },
-                        enabled = !busy,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(
-                            onDone = { if (tokenInput.isNotBlank() && !busy) onLogin() },
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    PrimaryBusyButton(
-                        busy = busy,
-                        enabled = tokenInput.isNotBlank() && !busy,
-                        label = "Masuk",
-                        busyLabel = "Memeriksa tautan…",
-                        onClick = onLogin,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        TextButton(
-                            onClick = onSend,
-                            enabled = email.isNotBlank() && !busy,
-                        ) { Text("Kirim ulang") }
-                        TextButton(onClick = onBackToEmail, enabled = !busy) {
-                            Text("Ganti email")
+                    ) { emailStepValue ->
+                        if (emailStepValue) {
+                            OutlinedTextField(
+                                value = email,
+                                onValueChange = onEmailChange,
+                                label = { Text("Alamat email") },
+                                placeholder = { Text("nama@contoh.com") },
+                                leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+                                supportingText = {
+                                    Text(
+                                        if (emailInvalid) {
+                                            "Format email belum benar."
+                                        } else {
+                                            "Tautan login hanya dikirim ke alamat ini."
+                                        },
+                                    )
+                                },
+                                isError = emailInvalid,
+                                enabled = !busy,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Email,
+                                    imeAction = ImeAction.Send,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSend = { if (emailReady && !busy) onSend() },
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            PrimaryBusyButton(
+                                busy = busy,
+                                enabled = emailReady && !busy,
+                                label = "Kirim tautan login",
+                                busyLabel = "Mengirim tautan...",
+                                onClick = onSend,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = onGuest,
+                                enabled = !busy,
+                                shape = RoundedCornerShape(18.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                            ) {
+                                Icon(Icons.Filled.CloudQueue, contentDescription = null)
+                                Spacer(Modifier.width(10.dp))
+                                Text("Lanjut sebagai tamu")
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = "Sesi tamu bersifat sementara dan tidak menyimpan akun.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            OutlinedTextField(
+                                value = tokenInput,
+                                onValueChange = onTokenChange,
+                                label = { Text("Tautan atau token dari email") },
+                                placeholder = { Text("https://gofile.io/login/...") },
+                                leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null) },
+                                supportingText = { Text("Tempel tautan lengkap, bukan hanya kode.") },
+                                enabled = !busy,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(
+                                    onDone = { if (tokenInput.isNotBlank() && !busy) onLogin() },
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            PrimaryBusyButton(
+                                busy = busy,
+                                enabled = tokenInput.isNotBlank() && !busy,
+                                label = "Masuk",
+                                busyLabel = "Memeriksa tautan...",
+                                onClick = onLogin,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                TextButton(
+                                    onClick = onSend,
+                                    enabled = email.isNotBlank() && !busy,
+                                ) { Text("Kirim ulang") }
+                                TextButton(onClick = onBackToEmail, enabled = !busy) {
+                                    Text("Ganti email")
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = "Token disimpan lokal di perangkat ini. Tidak ada kata sandi yang dikirim.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -1233,12 +1660,22 @@ private fun PrimaryBusyButton(
     busyLabel: String,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 900f),
+        label = "primaryPress",
+    )
     Button(
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(18.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(54.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale },
     ) {
         if (busy) {
             CircularProgressIndicator(
@@ -1272,66 +1709,135 @@ private fun FolderList(
     }
     if (items.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Filled.Folder,
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "Folder ini kosong.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Column(
+                modifier = Modifier.padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.size(76.dp),
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Filled.Folder,
+                            contentDescription = null,
+                            modifier = Modifier.size(34.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onUpload) { Text("Unggah file pertama") }
+                Text("Folder ini kosong", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Unggah file pertama atau buat folder dari tab Beranda.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(18.dp))
+                Button(
+                    onClick = onUpload,
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(Icons.Filled.Upload, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Unggah file")
+                }
             }
         }
         return
     }
-    LazyColumn(modifier = modifier.padding(bottom = 96.dp)) {
-        itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
-            StaggerIn(index = index, reduceMotion = reduceMotion) {
-                ListItem(
-                    headlineContent = { Text(item.name, maxLines = 1) },
-                    supportingContent = {
-                        Text(if (item.isFolder) "Folder" else readableSize(item.size))
-                    },
-                    leadingContent = {
-                        Icon(
-                            if (item.isFolder) Icons.Filled.Folder else Icons.AutoMirrored.Filled.InsertDriveFile,
-                            contentDescription = null,
-                            tint = if (item.isFolder) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    },
-                    trailingContent = {
-                        Row {
-                            if (!item.isFolder && item.link.startsWith("http")) {
-                                IconButton(onClick = { onDownload(item) }) {
-                                    Icon(Icons.Filled.Download, contentDescription = "Unduh ${item.name}")
+
+    Column(modifier = modifier) {
+        if (busy) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(
+                start = 12.dp,
+                end = 12.dp,
+                top = 4.dp,
+                bottom = 104.dp,
+            ),
+        ) {
+            itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
+                StaggerIn(index = index, reduceMotion = reduceMotion) {
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = item.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                text = if (item.isFolder) "Folder" else readableSize(item.size),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        leadingContent = {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (item.isFolder) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                },
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (item.isFolder) {
+                                            Icons.Filled.Folder
+                                        } else {
+                                            Icons.AutoMirrored.Filled.InsertDriveFile
+                                        },
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = if (item.isFolder) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                    )
                                 }
                             }
-                            IconButton(onClick = { onDelete(item) }) {
-                                Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = "Hapus ${item.name}",
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
+                        },
+                        trailingContent = {
+                            Row {
+                                if (!item.isFolder && item.link.startsWith("http")) {
+                                    IconButton(onClick = { onDownload(item) }) {
+                                        Icon(
+                                            Icons.Filled.Download,
+                                            contentDescription = "Unduh ${item.name}",
+                                        )
+                                    }
+                                }
+                                IconButton(onClick = { onDelete(item) }) {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = "Hapus ${item.name}",
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
                             }
-                        }
-                    },
-                    modifier = Modifier.clickable { onOpen(item) },
-                )
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp, vertical = 3.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onOpen(item) },
+                    )
+                }
             }
         }
     }
-    if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
 }
 
 @Composable
@@ -1345,127 +1851,213 @@ private fun SettingsScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val themeOptions = listOf(
-        "system" to "Sistem",
-        "light" to "Terang",
-        "dark" to "Gelap",
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val entrance by animateFloatAsState(
+        targetValue = if (entered || reduceMotion) 1f else 0f,
+        animationSpec = tween(if (reduceMotion) 0 else 300, easing = EmphasizedDecelerate),
+        label = "settingsEntrance",
     )
+    val offset = with(LocalDensity.current) { (1f - entrance) * 12.dp.toPx() }
+
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .widthIn(max = 720.dp)
+                .graphicsLayer {
+                    alpha = entrance
+                    translationY = offset
+                }
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.CloudQueue,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                Column(Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(52.dp),
+                        ) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Filled.CloudQueue,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = session.email.ifBlank { "Akun tamu" },
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                            )
+                            Text(
+                                text = "Tier: ${session.tier.ifBlank { "Tamu" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
-                    Spacer(Modifier.width(14.dp))
-                    Column {
-                        Text(
-                            session.email.ifBlank { "Akun tamu" },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            "Tier: ${session.tier.ifBlank { "Tamu" }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = onLogout,
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Keluar dari akun")
                     }
                 }
             }
 
-            Spacer(Modifier.height(28.dp))
-            Text("Tampilan", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                themeOptions.forEach { (key, label) ->
-                    FilterChip(
-                        selected = themeMode == key,
-                        onClick = { onThemeChange(key) },
-                        label = { Text(label) },
-                        leadingIcon = if (themeMode == key) {
-                            { Icon(Icons.Filled.Check, contentDescription = null) }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Warna dinamis", style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = "Tampilan",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            )
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    Text("Tema", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(10.dp))
+                    ThemeSegmented(value = themeMode, onChange = onThemeChange)
+                    Spacer(Modifier.height(18.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Warna dinamis", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    "Mengikuti warna wallpaper perangkat."
+                                } else {
+                                    "Membutuhkan Android 12 atau lebih baru."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Switch(
+                            checked = dynamicColor,
+                            onCheckedChange = onDynamicChange,
+                            enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            "Mengikuti warna wallpaper perangkat."
+                        text = if (reduceMotion) {
+                            "Animasi diperkecil sesuai skala animator sistem."
                         } else {
-                            "Membutuhkan Android 12 atau lebih baru."
+                            "Transisi pendek dan mikro-interaksi mengikuti Material 3 Expressive."
                         },
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Spacer(Modifier.width(12.dp))
-                Switch(
-                    checked = dynamicColor,
-                    onCheckedChange = onDynamicChange,
-                    enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
-                )
             }
-
-            Spacer(Modifier.height(12.dp))
-            Text(
-                if (reduceMotion) {
-                    "Animasi diperkecil sesuai preferensi sistem."
-                } else {
-                    "Transisi dan mikro-interaksi mengikuti Materi 3."
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
 
             Spacer(Modifier.height(28.dp))
-            Text("Akun", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onLogout,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                Spacer(Modifier.width(10.dp))
-                Text("Keluar dari akun")
-            }
-
-            Spacer(Modifier.height(32.dp))
             Text(
-                "Gofile Expressive · native Kotlin",
+                text = "Gofile Expressive · native Kotlin",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ThemeSegmented(
+    value: String,
+    onChange: (String) -> Unit,
+) {
+    val options = listOf(
+        "system" to "Sistem",
+        "light" to "Terang",
+        "dark" to "Gelap",
+    )
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            options.forEach { (key, label) ->
+                val selected = value == key
+                val container by animateColorAsState(
+                    targetValue = if (selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        Color.Transparent
+                    },
+                    animationSpec = tween(220, easing = EmphasizedEasing),
+                    label = "themeContainer",
+                )
+                val contentColor by animateColorAsState(
+                    targetValue = if (selected) {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    animationSpec = tween(180, easing = EmphasizedDecelerate),
+                    label = "themeContent",
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(container)
+                        .selectable(
+                            selected = selected,
+                            onClick = { onChange(key) },
+                            role = Role.RadioButton,
+                        )
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        if (selected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = contentColor,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = contentColor,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1484,62 +2076,121 @@ private fun TransferPanel(
         enter = if (reduceMotion) {
             fadeIn(tween(120))
         } else {
-            slideInVertically(animationSpec = tween(220, easing = FastOutSlowInEasing)) {
-                it / 4
-            } + fadeIn(tween(160))
+            slideInVertically(
+                animationSpec = tween(240, easing = EmphasizedDecelerate),
+            ) { it / 4 } + fadeIn(tween(180))
         },
         exit = if (reduceMotion) {
             fadeOut(tween(100))
         } else {
-            slideOutVertically(animationSpec = tween(160, easing = FastOutSlowInEasing)) {
-                it / 4
-            } + fadeOut(tween(120))
+            slideOutVertically(
+                animationSpec = tween(160, easing = FastOutSlowInEasing),
+            ) { it / 4 } + fadeOut(tween(120))
         },
     ) {
-        Card(
+        Surface(
             modifier = modifier,
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            shape = RoundedCornerShape(26.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 2.dp,
+            shadowElevation = 6.dp,
         ) {
             Column(Modifier.padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.SwapVert, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Transfer GoFile", style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.weight(1f))
-                    Text("${recent.size}", style = MaterialTheme.typography.labelMedium)
-                }
-                Spacer(Modifier.height(8.dp))
-                recent.forEach { transfer ->
-                    val progress = transfer.progress
-                    val status = when (transfer.state) {
-                        "success" -> "${transfer.fileName} · selesai"
-                        "error" -> "${transfer.fileName} · ${transfer.message}"
-                        else -> transfer.message.ifBlank {
-                            if (progress < 0) "${transfer.fileName} · menyiapkan…"
-                            else "${transfer.fileName} · $progress%"
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Filled.SwapVert,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
                         }
                     }
+                    Spacer(Modifier.width(10.dp))
+                    Text("Transfer GoFile", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.weight(1f))
                     Text(
-                        text = status,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3,
+                        text = "${recent.size} item",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(Modifier.height(5.dp))
-                    if (progress < 0) {
-                        LinearProgressIndicator(Modifier.fillMaxWidth())
-                    } else {
-                        LinearProgressIndicator(
-                            progress = { progress.coerceIn(0, 100) / 100f },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                }
+                Spacer(Modifier.height(10.dp))
+                recent.forEachIndexed { index, transfer ->
+                    TransferRow(transfer = transfer, reduceMotion = reduceMotion)
+                    if (index != recent.lastIndex) {
+                        Spacer(Modifier.height(8.dp))
                     }
-                    Spacer(Modifier.height(8.dp))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TransferRow(transfer: TransferInfo, reduceMotion: Boolean) {
+    val progress = transfer.progress
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0, 100) / 100f,
+        animationSpec = tween(
+            durationMillis = if (reduceMotion) 0 else 320,
+            easing = EmphasizedDecelerate,
+        ),
+        label = "transferProgress",
+    )
+    val finished = transfer.state == "success"
+    val failed = transfer.state == "error"
+    val indicator = when {
+        finished -> "selesai"
+        failed -> transfer.message
+        progress < 0 -> "menyiapkan..."
+        else -> "$progress%"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = when {
+                    finished -> Icons.Filled.CheckCircle
+                    failed -> Icons.Filled.ErrorOutline
+                    else -> Icons.Filled.SwapVert
+                },
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = when {
+                    finished -> MaterialTheme.colorScheme.primary
+                    failed -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "${transfer.fileName} · $indicator",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        if (progress < 0 && !finished && !failed) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        } else {
+            LinearProgressIndicator(
+                progress = { if (finished) 1f else animatedProgress },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
