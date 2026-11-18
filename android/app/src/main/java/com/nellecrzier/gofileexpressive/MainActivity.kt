@@ -11,7 +11,10 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.OpenableColumns
 import android.provider.Settings
+import android.util.Log
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -24,11 +27,25 @@ class MainActivity : Activity() {
     private lateinit var webView: WebView
     private var pendingFolderId = ""
     private var pendingToken = ""
+    @Volatile
+    private var loadFailed = false
 
     companion object {
         private const val REQ_PICK_FILE = 1001
         private const val REQ_NOTIFICATIONS = 1002
         private const val REQ_BATTERY = 1003
+
+        private val UI_CHECK_JS = """
+            (function(){
+              function vis(id){
+                var el=document.getElementById(id);
+                if(!el || el.hidden) return false;
+                var s=getComputedStyle(el);
+                return s.display!=='none' && s.visibility!=='hidden';
+              }
+              return (vis('auth')||vis('manager')||vis('loading')) ? true : false;
+            })()
+        """.trimIndent()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,12 +62,50 @@ class MainActivity : Activity() {
             settings.loadWithOverviewMode = true
             settings.mediaPlaybackRequiresUserGesture = false
             webChromeClient = WebChromeClient()
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: WebResourceError?,
+                ) {
+                    super.onReceivedError(view, request, error)
+                    if (request?.isForMainFrame == true) {
+                        val detail = error?.description?.toString().orEmpty()
+                        Log.e("MainActivity", "Gagal memuat halaman: $detail")
+                        showLoadError(detail)
+                    }
+                }
+
+                override fun onReceivedHttpError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    errorResponse: android.webkit.WebResourceResponse?,
+                ) {
+                    super.onReceivedHttpError(view, request, errorResponse)
+                    if (request?.isForMainFrame == true) {
+                        val detail = "HTTP ${errorResponse?.statusCode ?: "unknown"}"
+                        Log.e("MainActivity", "Gagal memuat halaman: $detail")
+                        showLoadError(detail)
+                    }
+                }
+            }
             setBackgroundColor(Color.parseColor("#0E0B17"))
             addJavascriptInterface(GofileBridge(this@MainActivity), "AndroidBridge")
         }
         setContentView(webView)
         webView.loadUrl(BuildConfig.APP_URL)
+
+        // Kalau halaman termuat tapi JS/CSS gagal sehingga antarmuka kosong,
+        // tampilkan pesan + tombol muat ulang daripada membiarkan layar hitam.
+        webView.postDelayed({
+            if (loadFailed) return@postDelayed
+            webView.evaluateJavascript(UI_CHECK_JS) { result ->
+                if (!loadFailed && result != "true") {
+                    Log.e("MainActivity", "Antarmuka tidak tampil setelah 15 detik: $result")
+                    showLoadError("Halaman termuat tetapi antarmuka tidak tampil.")
+                }
+            }
+        }, 15_000)
 
         TransferStore.listener = { info -> postTransferToWeb(info) }
     }
@@ -215,6 +270,39 @@ class MainActivity : Activity() {
 
     private fun callJs(script: String) {
         webView.post { webView.evaluateJavascript(script, null) }
+    }
+
+    fun reloadPage() {
+        webView.post {
+            loadFailed = false
+            webView.clearCache(false)
+            webView.loadUrl(BuildConfig.APP_URL)
+        }
+    }
+
+    /** Fallback saat WebView gagal memuat, supaya layar tidak pernah kosong tanpa penjelasan. */
+    private fun showLoadError(detail: String) {
+        if (loadFailed) return
+        loadFailed = true
+        val safe = detail.replace("\\", "\\\\").replace("\"", "\\\"").take(240)
+        val html = """
+            <!doctype html><html lang="id"><head><meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <style>
+              *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;
+              background:#0E0B17;color:#E9E3F5;font-family:system-ui,sans-serif;padding:28px;text-align:center}
+              .card{max-width:420px}.badge{font-size:44px}.title{font-size:22px;font-weight:700;margin:12px 0 8px}
+              .detail{font-size:13px;opacity:.7;word-break:break-word;background:#1B1630;padding:12px;border-radius:12px;margin:16px 0}
+              button{border:0;border-radius:999px;padding:13px 26px;background:#D0BCFF;color:#1B1630;font-size:15px;font-weight:700;cursor:pointer}
+            </style></head><body><div class="card">
+              <div class="badge">&#9888;</div>
+              <div class="title">Gagal memuat aplikasi</div>
+              <div>Periksa koneksi internet, lalu coba lagi.</div>
+              <div class="detail">$safe</div>
+              <button onclick="AndroidBridge.reload()">Muat ulang</button>
+            </div></body></html>
+        """.trimIndent()
+        webView.loadDataWithBaseURL(BuildConfig.APP_URL, html, "text/html", "utf-8", null)
     }
 
     private fun postTransferToWeb(info: TransferInfo) {

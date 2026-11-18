@@ -52,4 +52,9 @@ class GofileBridge(private val activity: MainActivity) {
     fun toast(message: String) {
         activity.runOnUiThread { activity.toast(message) }
     }
+
+    @JavascriptInterface
+    fun reload() {
+        activity.runOnUiThread { activity.reloadPage() }
+    }
 }
