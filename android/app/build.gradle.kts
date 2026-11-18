@@ -12,8 +12,8 @@ android {
         applicationId = "com.nellecrzier.gofileexpressive"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "3.3"
+        versionCode = 10
+        versionName = "3.4"
     }
 
     buildTypes {

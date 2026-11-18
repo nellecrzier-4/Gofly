@@ -31,6 +31,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -57,6 +58,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -68,6 +70,7 @@ import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
@@ -106,8 +109,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -128,10 +129,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -482,27 +487,58 @@ fun GofileApp(activity: MainActivity) {
         Scaffold(
             topBar = {
                 if (loginStep == "ready") {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = topTitle,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                            )
-                        },
-                        navigationIcon = {
-                            if (currentTab == "folder" && stack.size > 1) {
+                    // Judul dan aksi masing-masing jadi pil sendiri, tanpa
+                    // bilah latar penuh lebar di belakangnya.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (currentTab == "folder" && stack.size > 1) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.size(44.dp),
+                            ) {
                                 IconButton(onClick = {
                                     stack = stack.dropLast(1)
                                     loadFolder(stack.last().id)
                                 }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Kembali",
+                                        modifier = Modifier.size(20.dp),
+                                    )
                                 }
                             }
-                        },
-                        actions = {
-                            when (currentTab) {
-                                "folder" -> {
+                        }
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier.weight(1f, fill = false),
+                        ) {
+                            Text(
+                                text = topTitle,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .widthIn(max = 220.dp)
+                                    .padding(horizontal = 18.dp, vertical = 9.dp),
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        when (currentTab) {
+                            "folder" -> {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier = Modifier.size(44.dp),
+                                ) {
                                     IconButton(
                                         onClick = {
                                             newFolderName = ""
@@ -510,22 +546,22 @@ fun GofileApp(activity: MainActivity) {
                                         },
                                         enabled = !busy,
                                     ) {
-                                        Icon(Icons.Filled.CreateNewFolder, contentDescription = "Folder baru")
-                                    }
-                                    RefreshAction(busy, reduceMotion) {
-                                        stack.lastOrNull()?.let { loadFolder(it.id) }
+                                        Icon(
+                                            Icons.Filled.CreateNewFolder,
+                                            contentDescription = "Folder baru",
+                                            modifier = Modifier.size(20.dp),
+                                        )
                                     }
                                 }
-                                "home" -> RefreshAction(busy, reduceMotion) {
+                                RefreshAction(busy, reduceMotion) {
                                     stack.lastOrNull()?.let { loadFolder(it.id) }
                                 }
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                    )
+                            "home" -> RefreshAction(busy, reduceMotion) {
+                                stack.lastOrNull()?.let { loadFolder(it.id) }
+                            }
+                        }
+                    }
                 }
             },
             bottomBar = {
@@ -842,18 +878,17 @@ private fun FloatingNavBar(
         }
     }
 
-    // Bar mengikuti isi: tab tidak terpilih hanya ikon, tab terpilih membuka
-    // labelnya di samping ikon. Lebar label dianimasikan, bukan diganti
-    // mendadak, jadi pil terasa membuka seperti satu benda.
+    // Tanpa bilah latar: hanya pil tab yang terlihat, sisanya transparan
+    // supaya halaman tetap terbaca sampai tepi bawah.
     Surface(
         shape = RoundedCornerShape(30.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 8.dp,
+        color = Color.Transparent,
+        shadowElevation = 0.dp,
         modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             APP_TABS.forEachIndexed { index, tab ->
@@ -891,7 +926,7 @@ private fun FloatingNavBar(
                     targetValue = if (selected) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        Color.Transparent
+                        MaterialTheme.colorScheme.surfaceContainerHigh
                     },
                     animationSpec = tween(220, easing = EmphasizedEasing),
                     label = "navContainer",
@@ -966,12 +1001,20 @@ private fun RefreshAction(
         animationSpec = tween(600, easing = FastOutSlowInEasing),
         label = "refreshRotation",
     )
-    IconButton(onClick = onClick, enabled = !busy) {
-        Icon(
-            Icons.Filled.Refresh,
-            contentDescription = "Muat ulang",
-            modifier = Modifier.graphicsLayer { rotationZ = rotation },
-        )
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.size(44.dp),
+    ) {
+        IconButton(onClick = onClick, enabled = !busy) {
+            Icon(
+                Icons.Filled.Refresh,
+                contentDescription = "Muat ulang",
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer { rotationZ = rotation },
+            )
+        }
     }
 }
 
@@ -2393,16 +2436,95 @@ private fun TransferPanel(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.width(4.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        IconButton(onClick = { TransferStore.dismissAll() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Tutup semua progres transfer",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "Geser baris ke kiri atau kanan untuk menghapusnya.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
                 recent.forEachIndexed { index, transfer ->
-                    TransferRow(transfer = transfer, reduceMotion = reduceMotion)
+                    SwipeToDismiss(onDismiss = { TransferStore.dismiss(transfer.id) }) {
+                        TransferRow(transfer = transfer, reduceMotion = reduceMotion)
+                    }
                     if (index != recent.lastIndex) {
                         Spacer(Modifier.height(8.dp))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SwipeToDismiss(
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val offsetX = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction("Hapus dari daftar transfer") {
+                        onDismiss()
+                        true
+                    },
+                )
+            }
+            .graphicsLayer {
+                translationX = offsetX.value
+                val limit = size.width.coerceAtLeast(1f)
+                alpha = (1f - kotlin.math.abs(offsetX.value) / limit).coerceIn(0.2f, 1f)
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        val threshold = size.width * 0.32f
+                        if (kotlin.math.abs(offsetX.value) > threshold) {
+                            val target = if (offsetX.value > 0) size.width * 1.4f else -size.width * 1.4f
+                            scope.launch {
+                                offsetX.animateTo(target, tween(180, easing = FastOutSlowInEasing))
+                                onDismiss()
+                            }
+                        } else {
+                            scope.launch {
+                                offsetX.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 520f),
+                                )
+                            }
+                        }
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        scope.launch {
+                            val limit = size.width * 1.4f
+                            offsetX.snapTo((offsetX.value + dragAmount).coerceIn(-limit, limit))
+                        }
+                    },
+                )
+            },
+    ) {
+        content()
     }
 }
 

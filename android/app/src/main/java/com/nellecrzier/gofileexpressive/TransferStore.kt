@@ -67,6 +67,21 @@ object TransferStore {
 
     fun get(id: String): TransferInfo? = synchronized(lock) { items[id] }
 
+    /** Menghapus satu transfer dari daftar, misal setelah baris digeser pengguna. */
+    fun dismiss(id: String) {
+        val removed = synchronized(lock) { items.remove(id) != null }
+        if (removed) publish()
+    }
+
+    fun dismissAll() {
+        val had = synchronized(lock) {
+            val any = items.isNotEmpty()
+            items.clear()
+            any
+        }
+        if (had) publish()
+    }
+
     fun all(): List<TransferInfo> = synchronized(lock) { items.values.toList() }
 
     fun toJson(): String = JSONArray(all().map { it.toJson() }).toString()

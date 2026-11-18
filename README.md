@@ -62,7 +62,7 @@ Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tid
 - **Foreground service** bertipe `dataSync` + *partial wake lock*: transfer tetap berjalan saat aplikasi ditutup, pindah ke home screen, atau layar mati.
 - **Notifikasi progres** (channel `gofile_transfers`) menampilkan persentase dan hasil akhir; notifikasi bisa diketuk untuk kembali ke aplikasi.
 - **Izin wajib**: `POST_NOTIFICATIONS` (Android 13+) diminta sebelum transfer, dan pengguna diarahkan untuk mengizinkan *Ignore battery optimizations* agar sistem tidak mematikan transfer di latar belakang.
-- **Panel transfer Compose**: progres upload/download diamati langsung dari `TransferStore` (StateFlow), termasuk keadaan indeterminate saat ukuran belum diketahui.
+- **Panel transfer Compose**: progres upload/download diamati langsung dari `TransferStore` (StateFlow), termasuk keadaan indeterminate saat ukuran belum diketahui. Setiap baris bisa digeser ke kiri atau kanan untuk dihapus, dan tombol tutup membersihkan seluruh daftar.
 - **Tanpa jembatan JavaScript**: tidak ada `AndroidBridge`, tidak ada `window.*`, dan tidak bergantung pada halaman GitHub Pages.
 
 ### Build APK
