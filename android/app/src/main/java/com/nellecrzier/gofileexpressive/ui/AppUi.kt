@@ -480,40 +480,48 @@ fun GofileApp(activity: MainActivity) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (currentTab == "folder" && stack.size > 1) {
-                            IconButton(onClick = {
-                                stack = stack.dropLast(1)
-                                loadFolder(stack.last().id)
-                            }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Kembali",
-                                    modifier = Modifier.size(22.dp),
-                                )
-                            }
-                            Spacer(Modifier.width(4.dp))
-                        }
-                        Text(
-                            text = topTitle,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        when (currentTab) {
-                            "folder" -> {
-                                IconButton(
-                                    onClick = {
-                                        newFolderName = ""
-                                        showCreateFolder = true
-                                    },
-                                    enabled = !busy,
-                                ) {
+                            FloatingPill {
+                                IconButton(onClick = {
+                                    stack = stack.dropLast(1)
+                                    loadFolder(stack.last().id)
+                                }) {
                                     Icon(
-                                        Icons.Filled.CreateNewFolder,
-                                        contentDescription = "Folder baru",
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Kembali",
                                         modifier = Modifier.size(22.dp),
                                     )
+                                }
+                            }
+                        }
+                        FloatingPill(modifier = Modifier.weight(1f, fill = false)) {
+                            Text(
+                                text = topTitle,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .widthIn(max = 240.dp)
+                                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        when (currentTab) {
+                            "folder" -> {
+                                FloatingPill {
+                                    IconButton(
+                                        onClick = {
+                                            newFolderName = ""
+                                            showCreateFolder = true
+                                        },
+                                        enabled = !busy,
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.CreateNewFolder,
+                                            contentDescription = "Folder baru",
+                                            modifier = Modifier.size(22.dp),
+                                        )
+                                    }
                                 }
                                 RefreshAction(busy, reduceMotion) {
                                     stack.lastOrNull()?.let { loadFolder(it.id) }
@@ -845,6 +853,26 @@ fun GofileApp(activity: MainActivity) {
 
 /* ------------------------------ komponen ------------------------------ */
 
+/**
+ * Pil mengambang tunggal: satu elemen, satu bentuk, satu bayangan. Tidak ada
+ * kotak pembungkus di belakangnya, jadi elemen benar-benar melayang di atas
+ * halaman, bukan duduk di dalam bilah.
+ */
+@Composable
+private fun FloatingPill(
+    modifier: Modifier = Modifier,
+    container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = container,
+        shadowElevation = 3.dp,
+        content = content,
+    )
+}
+
 @Composable
 private fun FloatingNavBar(
     currentTab: String,
@@ -859,79 +887,78 @@ private fun FloatingNavBar(
         }
     }
 
-    // Tanpa bilah latar: hanya pil tab yang terlihat, sisanya transparan
-    // supaya halaman tetap terbaca sampai tepi bawah.
-    Surface(
-        shape = RoundedCornerShape(30.dp),
-        color = Color.Transparent,
-        shadowElevation = 0.dp,
-        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+    // Tidak ada Surface pembungkus sama sekali: tiap tab adalah pilnya sendiri,
+    // jadi tidak ada kotak yang menempel di belakang deretan pil.
+    Row(
+        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            APP_TABS.forEachIndexed { index, tab ->
-                val selected = currentTab == tab.key
-                val interactionSource = remember { MutableInteractionSource() }
-                val pressed by interactionSource.collectIsPressedAsState()
+        APP_TABS.forEachIndexed { index, tab ->
+            val selected = currentTab == tab.key
+            val interactionSource = remember { MutableInteractionSource() }
+            val pressed by interactionSource.collectIsPressedAsState()
 
-                val openWidth by animateDpAsState(
-                    targetValue = if (selected) labelWidths[index] else 0.dp,
-                    animationSpec = spring(dampingRatio = 0.78f, stiffness = 420f),
-                    label = "navLabelWidth",
-                )
-                val labelAlpha by animateFloatAsState(
-                    targetValue = if (selected) 1f else 0f,
-                    animationSpec = tween(if (selected) 180 else 90, easing = EmphasizedDecelerate),
-                    label = "navLabelAlpha",
-                )
-                val pressScale by animateFloatAsState(
-                    targetValue = if (pressed) 0.95f else 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow,
-                    ),
-                    label = "navPressScale",
-                )
-                val selectionScale by animateFloatAsState(
-                    targetValue = if (selected) 1.10f else 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow,
-                    ),
-                    label = "navSelectionScale",
-                )
-                val container by animateColorAsState(
-                    targetValue = if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        Color.Transparent
-                    },
-                    animationSpec = tween(220, easing = EmphasizedEasing),
-                    label = "navContainer",
-                )
-                val contentColor by animateColorAsState(
-                    targetValue = if (selected) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    animationSpec = tween(200, easing = EmphasizedDecelerate),
-                    label = "navContent",
-                )
+            val openWidth by animateDpAsState(
+                targetValue = if (selected) labelWidths[index] else 0.dp,
+                animationSpec = spring(dampingRatio = 0.78f, stiffness = 420f),
+                label = "navLabelWidth",
+            )
+            val labelAlpha by animateFloatAsState(
+                targetValue = if (selected) 1f else 0f,
+                animationSpec = tween(if (selected) 180 else 90, easing = EmphasizedDecelerate),
+                label = "navLabelAlpha",
+            )
+            val pressScale by animateFloatAsState(
+                targetValue = if (pressed) 0.95f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                label = "navPressScale",
+            )
+            val selectionScale by animateFloatAsState(
+                targetValue = if (selected) 1.10f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                label = "navSelectionScale",
+            )
+            val container by animateColorAsState(
+                targetValue = if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+                animationSpec = tween(220, easing = EmphasizedEasing),
+                label = "navContainer",
+            )
+            val contentColor by animateColorAsState(
+                targetValue = if (selected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                animationSpec = tween(200, easing = EmphasizedDecelerate),
+                label = "navContent",
+            )
 
+            Surface(
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = pressScale * selectionScale
+                        scaleY = pressScale * selectionScale
+                    }
+                    .height(48.dp)
+                    .defaultMinSize(minWidth = 48.dp),
+                shape = CircleShape,
+                color = container,
+                shadowElevation = if (selected) 5.dp else 2.dp,
+            ) {
                 Row(
                     modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = pressScale * selectionScale
-                            scaleY = pressScale * selectionScale
-                        }
-                        .height(48.dp)
-                        .defaultMinSize(minWidth = 48.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(container)
+                        .fillMaxSize()
                         .selectable(
                             selected = selected,
                             interactionSource = interactionSource,
@@ -939,7 +966,7 @@ private fun FloatingNavBar(
                             role = Role.Tab,
                             onClick = { onSelect(tab.key) },
                         )
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
@@ -982,14 +1009,16 @@ private fun RefreshAction(
         animationSpec = tween(600, easing = FastOutSlowInEasing),
         label = "refreshRotation",
     )
-    IconButton(onClick = onClick, enabled = !busy) {
-        Icon(
-            Icons.Filled.Refresh,
-            contentDescription = "Muat ulang",
-            modifier = Modifier
-                .size(22.dp)
-                .graphicsLayer { rotationZ = rotation },
-        )
+    FloatingPill {
+        IconButton(onClick = onClick, enabled = !busy) {
+            Icon(
+                Icons.Filled.Refresh,
+                contentDescription = "Muat ulang",
+                modifier = Modifier
+                    .size(22.dp)
+                    .graphicsLayer { rotationZ = rotation },
+            )
+        }
     }
 }
 
