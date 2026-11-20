@@ -6,14 +6,15 @@ File manager GoFile berbasis web dengan **bahasa visual glass ala COUI** (terins
 
 1. Masukkan email GoFile → aplikasi memanggil `POST https://api.gofile.io/accounts` dengan body `{ "email": "..." }`.
 2. GoFile mengirim **login link** berbentuk `https://gofile.io/login/<token32>` ke email tersebut.
-3. Tempel link itu (atau langsung token 32 karakternya) ke kolom **Link** → aplikasi memanggil `GET /accounts/website` dengan `Authorization: Bearer <token>` untuk memverifikasi dan mengambil `rootFolder`.
-4. Berhasil masuk → tab utama menampilkan isi **root folder** akun GoFile kamu (live/sinkron dari API).
+3. **Android**: ketuk link di email → link dibuka **langsung oleh aplikasi** (App Link `gofile.io/login`), token ditangkap native, sesi dibuat otomatis — **tanpa membuka browser**. Boleh juga tempel link/token manual ke kolom **Link**.
+4. **Web**: tempel link itu (atau langsung token 32 karakternya) ke kolom **Link** → aplikasi memanggil `GET /accounts/website` dengan `Authorization: Bearer <token>` untuk memverifikasi dan mengambil `rootFolder`.
+5. Berhasil masuk → tab utama menampilkan isi **root folder** akun GoFile kamu (live/sinkron dari API).
 
-> Tombol *tempel dari clipboard* tersedia, dan token bisa juga diketik manual.
+> Tombol *tempel dari clipboard* tersedia, dan token bisa juga diketik manual. GoFile API tidak menyediakan endpoint kata sandi (`/accounts/tokens` tidak ada), jadi magic link adalah satu-satunya cara masuk akun ber-email.
 
 ## Fitur utama
 
-- **Tab utama = root folder**: breadcrumb navigasi, masuk ke folder bertingkat, buka file di tab baru.
+- **Tab utama = root folder**: breadcrumb navigasi, masuk ke folder bertingkat. Di Android, ketuk file = **unduh native** lewat foreground service — tanpa browser.
 - **Sinkron nyata**: tombol *Sinkron* memuat ulang isi folder langsung dari GoFile.
 - **Cari, urutkan, dan ganti tampilan** grid/list; folder selalu tampil lebih dulu.
 - **Statistik**: jumlah item, folder, file, dan total ukuran.
@@ -53,7 +54,7 @@ Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard
 
 Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`**: seluruh UI dan panggilan API berjalan native:
 
-- **Login native**: onboarding tiga halaman dengan latar radial yang bergerak, tipografi display tebal, indikator halaman, tombol Kembali/Lanjut, dan haptik ringan. Validasi email, aksi keyboard/IME, dan pesan kesalahan tetap terbaca. Bisa kirim magic link, tempel link/token, atau masuk sebagai tamu. Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
+- **Login native**: onboarding tiga halaman dengan latar radial yang bergerak, tipografi display tebal, indikator halaman, tombol Kembali/Lanjut, dan haptik ringan. Validasi email, aksi keyboard/IME, dan pesan kesalahan tetap terbaca. Bisa kirim magic link, tempel link/token, atau masuk sebagai tamu. **Link login dari email dibuka langsung oleh aplikasi (App Link), bukan browser.** Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
 - **Navigasi tiga tab mengambang**: tiap tab adalah pil sendiri dengan bayangan, tab tidak terpilih hanya ikon, tab terpilih membuka label di samping ikon dengan spring, skala tekan 0.95. Judul layar dan tombol refresh juga pil terpisah. Tidak ada kotak pembungkus di belakang pil mana pun.
 - **Animasi Material 3 Expressive**: transisi halaman setup memakai slide spring 300 dan fade 500ms dengan `SizeTransform(clip = false)`, entrance per halaman, transisi tab, indikator progres transfer, segmented control tema, stagger daftar, dan feedback tekan tombol. Semua durasi mengikuti skala animator sistem saat *reduce motion* aktif.
 - **Checklist izin**: notifikasi dan izin latar belakang ditampilkan sebagai satu kartu status dengan aksi langsung.

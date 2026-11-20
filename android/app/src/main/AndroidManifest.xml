@@ -23,10 +23,22 @@
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode|screenLayout"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Link login dari email dibuka langsung di aplikasi (native),
+                 bukan di browser. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="gofile.io"
+                    android:pathPrefix="/login"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
 

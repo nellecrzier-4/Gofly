@@ -451,6 +451,26 @@ fun GofileApp(activity: MainActivity) {
             }
         }
 
+        // Link login dari email dibuka langsung di aplikasi ini (App Link),
+        // bukan di browser. Token ditukar menjadi sesi secara native.
+        LaunchedEffect(Unit) {
+            activity.loginLinkFlow.collect { token ->
+                if (token.isNullOrBlank() || session.isLoggedIn || busy) return@collect
+                busy = true
+                notice = null
+                try {
+                    val account = withContext(Dispatchers.IO) { GofileApi.getAccount(token) }
+                    enter(account.copy(token = token))
+                    activity.loginLinkFlow.value = null
+                    showNotice("Masuk lewat link email berhasil.", error = false)
+                } catch (error: Exception) {
+                    report(error)
+                } finally {
+                    busy = false
+                }
+            }
+        }
+
         BackHandler(enabled = loginStep == "ready" && (currentTab != "home" || stack.size > 1)) {
             if (currentTab == "folder" && stack.size > 1) {
                 stack = stack.dropLast(1)
@@ -666,6 +686,9 @@ fun GofileApp(activity: MainActivity) {
                                         if (item.isFolder) {
                                             stack = stack + Crumb(item.id, item.name)
                                             loadFolder(item.id)
+                                        } else if (item.link.startsWith("http")) {
+                                            // Ketuk file = unduh native via foreground service.
+                                            activity.startDownload(item.link, item.name, session.token)
                                         }
                                     },
                                     onDownload = { item ->
@@ -1702,7 +1725,7 @@ private fun LoginScreen(
                                 )
                                 Spacer(Modifier.height(10.dp))
                                 Text(
-                                    text = "Kami kirim tautan login sekali pakai ke email kamu. Tidak perlu kata sandi.",
+                                    text = "Kami kirim tautan login sekali pakai ke email kamu. Ketuk linknya — langsung membuka aplikasi ini, tanpa browser.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
@@ -1773,7 +1796,7 @@ private fun LoginScreen(
                                 )
                                 Spacer(Modifier.height(10.dp))
                                 Text(
-                                    text = "Buka email dari GoFile, salin tautan login, lalu tempel di bawah.",
+                                    text = "Buka email dari GoFile, ketuk linknya untuk langsung masuk ke aplikasi — atau tempel di bawah.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
@@ -1788,7 +1811,7 @@ private fun LoginScreen(
                                         Icon(Icons.Filled.Key, contentDescription = null)
                                     },
                                     supportingText = {
-                                        Text("Tempel tautan lengkap, bukan hanya kode.")
+                                        Text("Link dari email otomatis membuka aplikasi ini. Boleh juga ditempel di sini.")
                                     },
                                     enabled = !busy,
                                     singleLine = true,

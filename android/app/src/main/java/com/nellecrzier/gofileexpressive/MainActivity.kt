@@ -30,6 +30,9 @@ class MainActivity : ComponentActivity() {
 
     val permissionRevision = MutableStateFlow(0)
 
+    /** Token dari link login `https://gofile.io/login/...` yang dibuka di aplikasi. */
+    val loginLinkFlow = MutableStateFlow<String?>(null)
+
     private var pendingFolderId = ""
     private var pendingToken = ""
 
@@ -70,7 +73,21 @@ class MainActivity : ComponentActivity() {
             }
 
         NotificationHelper.createChannel(this)
+        captureLoginLink(intent)
         setContent { GofileApp(this) }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        captureLoginLink(intent)
+    }
+
+    /** Tangkap token dari link login yang dibuka langsung di aplikasi (bukan browser). */
+    private fun captureLoginLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.host == "gofile.io" && data.path?.startsWith("/login") == true) {
+            GofileApi.extractToken(data.toString())?.let { loginLinkFlow.value = it }
+        }
     }
 
     /* ------------------------------- izin ------------------------------- */
