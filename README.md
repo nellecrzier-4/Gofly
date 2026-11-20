@@ -1,6 +1,6 @@
 # Gofile Expressive
 
-File manager GoFile berbasis web dengan **tema Material 3 Expressive**: warna aksen berani, bentuk membulat, ikon ekspresif, dan animasi spring. Tanpa build step: cukup HTML, CSS, dan JavaScript native.
+File manager GoFile berbasis web dengan **bahasa visual glass ala COUI** (terinspirasi CherryPick-Icons): permukaan monokrom, satu aksen biru, sudut membulat besar, baris berkelompok dengan garis rambut, dan chrome kaca. Tanpa build step: cukup HTML, CSS, dan JavaScript native.
 
 ## Alur login (magic link)
 
@@ -17,10 +17,11 @@ File manager GoFile berbasis web dengan **tema Material 3 Expressive**: warna ak
 - **Sinkron nyata**: tombol *Sinkron* memuat ulang isi folder langsung dari GoFile.
 - **Cari, urutkan, dan ganti tampilan** grid/list; folder selalu tampil lebih dulu.
 - **Statistik**: jumlah item, folder, file, dan total ukuran.
-- **Material Expressive**:
-  - token warna dinamis (ungu/violet + aksen pink), permukaan kaca, blob ambient;
+- **Desain COUI**:
+  - permukaan monokrom (hitam/putih) dengan satu aksen biru `#007AFF`; mode terang/gelap mengikuti sistem;
+  - kartu dan pil dengan sudut besar, garis rambut 1px, dan dock kaca mengambang untuk tampilan/urut/unggah;
   - Material Symbols Rounded dengan axis `FILL`, `wght`, `GRAD`, `opsz`: ikon bisa "berisi" saat aktif;
-  - animasi emphasized/spring, stagger card, ripple, ikon bergoyang, breadcrumb halus, skeleton shimmer, snackbar meluncur, dan View Transitions saat pindah folder.
+  - animasi berdurasi pendek dengan easing redam, stagger card, ripple, skeleton shimmer, snackbar meluncur, dan View Transitions saat pindah folder.
 - **Responsif** dan menghormati `prefers-reduced-motion`.
 
 ## Menjalankan
@@ -54,7 +55,7 @@ Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tid
 - **Navigasi tiga tab mengambang**: tiap tab adalah pil sendiri dengan bayangan, tab tidak terpilih hanya ikon, tab terpilih membuka label di samping ikon dengan spring, skala tekan 0.95. Judul layar dan tombol refresh juga pil terpisah. Tidak ada kotak pembungkus di belakang pil mana pun.
 - **Animasi Material 3 Expressive**: transisi halaman setup memakai slide spring 300 dan fade 500ms dengan `SizeTransform(clip = false)`, entrance per halaman, transisi tab, indikator progres transfer, segmented control tema, stagger daftar, dan feedback tekan tombol. Semua durasi mengikuti skala animator sistem saat *reduce motion* aktif.
 - **Checklist izin**: notifikasi dan izin latar belakang ditampilkan sebagai satu kartu status dengan aksi langsung.
-- **Tema Material 3**: dynamic color di Android 12+ dengan fallback terang/gelap lengkap, tipografi display extra bold, bentuk 20 sampai 30dp, edge-to-edge, serta latar gradien radial dekoratif di layar setup (permukaan form tetap solid).
+- **Tema COUI**: palet monokrom dengan aksen `#007AFF` (mode terang/gelap), dynamic color dinonaktifkan agar tampilan konsisten, bentuk 14–38dp, edge-to-edge, serta latar gradien radial dekoratif di layar setup (permukaan form tetap solid).
 - **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar, refresh, dan logout.
 - **Kelola folder**: buat folder baru (`POST /contents/createFolder`) dan hapus file/folder (`DELETE /contents`) langsung dari daftar.
 - **Unggah file** dari pemilih file Android → `POST https://upload.gofile.io/uploadfile` ke folder yang sedang dibuka (dengan token akun).

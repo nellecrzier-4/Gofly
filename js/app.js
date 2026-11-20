@@ -115,8 +115,9 @@ function setStep(step) {
     const n = Number(node.dataset.step);
     node.classList.toggle("is-active", n === step);
     node.classList.toggle("is-done", n < step);
-    node.querySelector("span").textContent = n < step ? "check" : String(n);
-    if (n < step) node.querySelector("span").classList.add("ms");
+    const bullet = node.querySelector("span");
+    bullet.textContent = n < step ? "check" : String(n);
+    bullet.classList.toggle("ms", n < step);
   });
   const showEmail = step === 1;
   els.formEmail.classList.toggle("is-visible", showEmail);

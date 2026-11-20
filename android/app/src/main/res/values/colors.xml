@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="surface">#0E0B17</color>
-    <color name="primary">#C6B6FF</color>
-    <color name="primary_strong">#7C5CFF</color>
-    <color name="ic_launcher_background">#7C5CFF</color>
+    <!-- COUI monochrome surfaces with one app-owned accent (CherryPick-Icons). -->
+    <color name="surface">#000000</color>
+    <color name="primary">#0A84FF</color>
+    <color name="primary_strong">#007AFF</color>
+    <color name="ic_launcher_background">#0A84FF</color>
 </resources>

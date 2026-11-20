@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "File manager GoFile dengan tema Material 3 Expressive — login via magic link",
+  "description": "File manager GoFile dengan bahasa visual glass ala COUI — login via magic link",
   "scripts": {
     "check": "node --check js/api.js && node --check js/app.js",
     "serve": "python3 serve.py"
