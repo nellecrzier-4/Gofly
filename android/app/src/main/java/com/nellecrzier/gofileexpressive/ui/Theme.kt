@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF007AFF),
+    primary = Color(0xFF242424),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFDEDEDE),
     onPrimaryContainer = Color(0xFF242424),
@@ -51,18 +51,18 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF0A84FF),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFF0A2A4A),
-    onPrimaryContainer = Color(0xFFD6E9FF),
+    primary = Color(0xFFE2E2E2),
+    onPrimary = Color(0xFF151515),
+    primaryContainer = Color(0xFF363636),
+    onPrimaryContainer = Color(0xFFE2E2E2),
     secondary = Color(0xFFA3A3A3),
     onSecondary = Color(0xFF151515),
     secondaryContainer = Color(0xFF333333),
     onSecondaryContainer = Color(0xFFE6E6E6),
-    tertiary = Color(0xFF0A84FF),
+    tertiary = Color(0xFF007AFF),
     onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFF333333),
-    onTertiaryContainer = Color(0xFFE6E6E6),
+    tertiaryContainer = Color(0xFFDEDEDE),
+    onTertiaryContainer = Color(0xFF242424),
     background = Color(0xFF000000),
     onBackground = Color(0xFFE6E6E6),
     surface = Color(0xFF000000),

@@ -6,32 +6,35 @@
    dividers, large continuous corners and glass chrome.
    ============================================================ */
 
+/* Tokens mirror CherryPick-Icons' COUI scheme: near-monochrome
+   surfaces, one app-owned #007AFF accent, hairline dividers, large
+   continuous corners, glass chrome. */
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
+  /* Surfaces — COUI dark scheme */
   --bg: #000000;
-  --surface: #0a0a0b;
-  --card: #171718;
-  --card-soft: #121213;
-  --raised: #242426;
-  --raised-2: #303033;
-  --glass: rgba(20, 20, 22, 0.72);
-  --glass-strong: rgba(14, 14, 16, 0.88);
+  --surface: #000000;
+  --card: #1a1a1a;
+  --card-soft: #111111;
+  --raised: #333333;
+  --raised-2: #3a3a3a;
+  --glass: rgba(26, 26, 26, 0.72);
+  --glass-strong: rgba(26, 26, 26, 0.9);
 
   /* Lines */
-  --hairline: rgba(255, 255, 255, 0.1);
-  --hairline-strong: rgba(255, 255, 255, 0.18);
+  --hairline: rgba(255, 255, 255, 0.2);
+  --hairline-strong: rgba(255, 255, 255, 0.4);
 
   /* Type */
-  --text: #e8e8ea;
-  --text-2: #a3a3a8;
-  --text-3: #6f6f76;
+  --text: #e6e6e6;
+  --text-2: #a3a3a3;
+  --text-3: #6b6b6b;
 
   /* Accent (app-owned, never derived from wallpaper) */
-  --accent: #0a84ff;
-  --accent-strong: #3395ff;
-  --accent-soft: rgba(10, 132, 255, 0.14);
+  --accent: #007aff;
+  --accent-strong: #0066d6;
+  --accent-soft: rgba(0, 122, 255, 0.16);
   --accent-ink: #ffffff;
   --danger: #ff453a;
   --danger-soft: rgba(255, 69, 58, 0.14);
@@ -53,11 +56,10 @@
   --dur: 220ms;
   --dur-slow: 320ms;
 
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 20px 44px -30px rgba(0, 0, 0, 0.9);
-  --shadow-float: 0 24px 60px -24px rgba(0, 0, 0, 0.85),
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 8px -4px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 12px 36px -12px rgba(0, 0, 0, 0.3),
     0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  --shadow-accent: 0 12px 30px -12px rgba(10, 132, 255, 0.6);
+  --shadow-accent: 0 0 0 2px rgba(0, 122, 255, 0.16);
 
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -67,17 +69,17 @@
   :root {
     color-scheme: light;
 
-    --bg: #ececed;
+    --bg: #f1f1f1;
     --surface: #f1f1f1;
     --card: #ffffff;
-    --card-soft: #f6f6f7;
-    --raised: #e7e7e9;
-    --raised-2: #dcdcdf;
-    --glass: rgba(248, 248, 249, 0.72);
-    --glass-strong: rgba(255, 255, 255, 0.9);
+    --card-soft: #fafafa;
+    --raised: #e6e6e6;
+    --raised-2: #dcdcdc;
+    --glass: rgba(255, 255, 255, 0.78);
+    --glass-strong: rgba(255, 255, 255, 0.96);
 
-    --hairline: rgba(0, 0, 0, 0.1);
-    --hairline-strong: rgba(0, 0, 0, 0.18);
+    --hairline: rgba(0, 0, 0, 0.2);
+    --hairline-strong: rgba(0, 0, 0, 0.35);
 
     --text: #191919;
     --text-2: #6b6b6b;
@@ -91,9 +93,10 @@
     --danger-soft: rgba(215, 0, 21, 0.08);
     --success: #1f9d45;
 
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 28px -22px rgba(0, 0, 0, 0.35);
-    --shadow-float: 0 18px 40px -18px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
-    --shadow-accent: 0 12px 26px -12px rgba(0, 122, 255, 0.45);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-float: 0 10px 30px -10px rgba(0, 0, 0, 0.16),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    --shadow-accent: 0 0 0 2px rgba(0, 122, 255, 0.16);
   }
 }
 
@@ -195,28 +198,29 @@ button {
   pointer-events: none;
   background: var(--bg);
 }
+/* Monochrome light wash; CherryPick's glass lives on surfaces, not palette */
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.5;
-  animation: drift 24s var(--ease) infinite alternate;
+  filter: blur(120px);
+  opacity: 0.35;
+  animation: drift 28s var(--ease) infinite alternate;
 }
 .blob-a {
   width: 52vw;
   height: 52vw;
   left: -18vw;
   top: -24vw;
-  background: #0a3d7a;
-  opacity: 0.4;
+  background: #4a4a4a;
+  opacity: 0.3;
 }
 .blob-b {
   width: 42vw;
   height: 42vw;
   right: -14vw;
   top: 6vh;
-  background: #123243;
-  opacity: 0.35;
+  background: #333333;
+  opacity: 0.25;
   animation-delay: -8s;
 }
 .blob-c {
@@ -224,22 +228,22 @@ button {
   height: 38vw;
   left: 24vw;
   bottom: -24vw;
-  background: #1d1d3a;
-  opacity: 0.35;
+  background: #404040;
+  opacity: 0.25;
   animation-delay: -14s;
 }
 @media (prefers-color-scheme: light) {
   .blob-a {
-    background: #a9ccff;
-    opacity: 0.55;
+    background: #d6d6d6;
+    opacity: 0.5;
   }
   .blob-b {
-    background: #cfe3ff;
-    opacity: 0.5;
+    background: #e6e6e6;
+    opacity: 0.45;
   }
   .blob-c {
-    background: #e2e2f4;
-    opacity: 0.5;
+    background: #d0d0d0;
+    opacity: 0.4;
   }
 }
 @keyframes drift {
@@ -247,7 +251,7 @@ button {
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
-    transform: translate3d(2.5vw, 3vh, 0) scale(1.06);
+    transform: translate3d(2vw, 2.5vh, 0) scale(1.04);
   }
 }
 
@@ -264,14 +268,12 @@ button {
 }
 
 .auth-card {
-  width: min(446px, 100%);
-  padding: 26px 26px 20px;
+  width: min(462px, 100%);
+  padding: 24px 24px 18px;
   border-radius: var(--shape-xl);
-  background: var(--glass);
+  background: var(--card);
   border: 1px solid var(--hairline);
-  box-shadow: var(--shadow-float);
-  backdrop-filter: blur(30px) saturate(140%);
-  -webkit-backdrop-filter: blur(30px) saturate(140%);
+  box-shadow: none;
   animation: card-in var(--dur-slow) var(--ease) both;
 }
 @keyframes card-in {
@@ -291,40 +293,21 @@ button {
 
 .brand-mark {
   position: relative;
-  width: 64px;
-  height: 64px;
-  margin: 0 0 18px;
+  width: 56px;
+  height: 56px;
+  margin: 0 0 16px;
   display: grid;
   place-items: center;
   border-radius: 20px;
-  background: var(--raised);
+  background: var(--card-soft);
   border: 1px solid var(--hairline);
   color: var(--text);
-  box-shadow: none;
   animation: none;
 }
 .brand-icon {
-  font-size: 34px;
+  font-size: 30px;
   color: var(--accent);
-  font-variation-settings: "FILL" 1, "wght" 500, "opsz" 40;
-}
-.brand-spark {
-  position: absolute;
-  right: -6px;
-  top: -6px;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  box-shadow: var(--shadow-accent);
-  animation: none;
-}
-.brand-spark .ms {
-  font-size: 14px;
-  font-variation-settings: "FILL" 1, "wght" 600, "opsz" 20;
+  font-variation-settings: "FILL" 1, "wght" 500, "opsz" 38;
 }
 
 .eyebrow {
@@ -337,16 +320,10 @@ button {
 }
 .auth-title {
   margin: 0;
-  font-size: clamp(27px, 6.6vw, 34px);
-  line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-.gradient-text {
-  background: none;
-  color: var(--text-2);
-  -webkit-background-clip: initial;
-  background-clip: initial;
+  font-size: clamp(28px, 7vw, 36px);
+  line-height: 1.05;
+  font-weight: 750;
+  letter-spacing: -0.04em;
 }
 .auth-subtitle {
   margin: 10px 0 0;
@@ -729,11 +706,21 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px clamp(16px, 3.4vw, 32px);
+  padding: 12px clamp(16px, 3.4vw, 32px);
   background: var(--glass-strong);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-bottom: 1px solid var(--hairline);
+  transition:
+    padding-top var(--dur-fast) ease,
+    padding-bottom var(--dur-fast) ease;
+}
+.topbar.is-condensed {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.topbar.is-condensed .topbar-brand p {
+  opacity: 0.5;
 }
 .topbar-brand {
   display: flex;
@@ -755,14 +742,15 @@ button {
 }
 .topbar-brand h2 {
   margin: 0;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 650;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 .topbar-brand p {
-  margin: 1px 0 0;
-  font-size: 11.5px;
+  margin: 2px 0 0;
+  font-size: 11px;
   color: var(--text-3);
+  transition: opacity var(--dur) ease;
 }
 
 .topbar-actions {
@@ -774,8 +762,8 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 13px;
+  height: 38px;
+  padding: 0 12px;
   border-radius: var(--shape-pill);
   background: var(--raised);
   border: 1px solid transparent;
@@ -792,21 +780,22 @@ button {
   color: var(--text-3);
 }
 .search-pill input {
-  width: 190px;
+  width: 170px;
   border: 0;
   outline: 0;
   background: none;
   color: var(--text);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 .search-pill input::placeholder {
   color: var(--text-3);
 }
 .search-pill kbd {
   font: 600 10px var(--font-ui);
-  color: var(--text-3);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
+  color: var(--text-2);
+  background: var(--card);
+  border: 1px solid var(--hairline-strong);
   border-radius: 6px;
   padding: 1px 6px;
 }
@@ -814,15 +803,15 @@ button {
 .account-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   padding: 3px 12px 3px 3px;
   border-radius: var(--shape-pill);
   background: var(--raised);
   border: 1px solid transparent;
 }
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -898,9 +887,9 @@ button {
 }
 .page-title {
   margin: 0;
-  font-size: clamp(26px, 4.4vw, 34px);
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-size: clamp(27px, 4.4vw, 30px);
+  font-weight: 620;
+  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 .page-sub {
@@ -908,26 +897,32 @@ button {
   color: var(--text-2);
   font-size: 12.5px;
 }
+/* Grouped stats card — one monochrome chip divided by hairlines */
 .stat-row {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 13px;
-  border-radius: var(--shape-md);
+  align-items: stretch;
+  border-radius: var(--shape-lg);
   background: var(--card);
   border: 1px solid var(--hairline);
-  backdrop-filter: none;
+}
+.stat-row > * {
   animation: pop-in var(--dur) var(--ease) both;
+}
+.stat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+}
+.stat + .stat {
+  border-left: 1px solid var(--hairline);
 }
 .stat .ms {
   font-size: 18px;
   color: var(--text-2);
-  font-variation-settings: "FILL" 1, "wght" 460, "opsz" 24;
+  font-variation-settings: "FILL" 1, "wght" 470, "opsz" 24;
 }
 .stat.folders .ms {
   color: var(--accent);
@@ -936,7 +931,7 @@ button {
   color: var(--text-2);
 }
 .stat b {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 650;
   display: block;
   line-height: 1.15;
@@ -944,10 +939,10 @@ button {
   font-variant-numeric: tabular-nums;
 }
 .stat small {
-  font-size: 9.5px;
+  font-size: 11px;
   color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
 }
 
 /* Floating glass dock (COUI navigation pill) */
@@ -989,27 +984,27 @@ button {
   border: 1px solid transparent;
 }
 .seg {
-  width: 36px;
-  height: 32px;
+  width: 40px;
+  height: 34px;
   display: grid;
   place-items: center;
   border: 0;
   border-radius: var(--shape-pill);
   background: transparent;
   color: var(--text-3);
-  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+  transition: background var(--dur) ease, color var(--dur) ease,
+    transform var(--dur) var(--ease-spring);
 }
 .seg .ms {
-  font-size: 18px;
+  font-size: 20px;
 }
-.seg:hover {
-  color: var(--text);
+.seg:hover:not(.is-active) {
+  color: var(--text-2);
 }
 .seg.is-active {
-  background: var(--accent);
-  color: var(--accent-ink);
-  box-shadow: none;
-  transform: none;
+  background: var(--raised-2);
+  color: var(--text);
+  transform: scale(1.07);
 }
 .toolbar .btn-tonal {
   height: 38px;
@@ -1068,9 +1063,7 @@ button {
   }
 }
 .file-card:hover {
-  transform: translateY(-2px);
   border-color: var(--hairline-strong);
-  background: var(--card-soft);
   box-shadow: var(--shadow-card);
 }
 .file-card:active {
@@ -1130,7 +1123,7 @@ button {
 }
 .file-name {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -1139,7 +1132,7 @@ button {
 }
 .file-detail {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 11px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
@@ -1147,7 +1140,7 @@ button {
 .file-arrow {
   color: var(--text-3);
   font-size: 18px;
-  opacity: 0;
+  opacity: 0.6;
   transform: translateX(-4px);
   transition: opacity var(--dur-fast) ease, transform var(--dur) var(--ease);
 }
@@ -1155,6 +1148,10 @@ button {
   opacity: 1;
   transform: none;
   color: var(--text-2);
+}
+.file-card:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
 }
 
 /* Grouped list rows */
@@ -1169,6 +1166,9 @@ button {
 }
 .file-grid.list-view .file-card:first-child {
   border-top: 0;
+}
+.file-grid.list-view .file-card + .file-card {
+  border-top-color: var(--hairline);
 }
 .file-grid.list-view .file-card:hover {
   background: var(--card-soft);

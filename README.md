@@ -17,10 +17,12 @@ File manager GoFile berbasis web dengan **bahasa visual glass ala COUI** (terins
 - **Sinkron nyata**: tombol *Sinkron* memuat ulang isi folder langsung dari GoFile.
 - **Cari, urutkan, dan ganti tampilan** grid/list; folder selalu tampil lebih dulu.
 - **Statistik**: jumlah item, folder, file, dan total ukuran.
-- **Desain COUI**:
-  - permukaan monokrom (hitam/putih) dengan satu aksen biru `#007AFF`; mode terang/gelap mengikuti sistem;
-  - kartu dan pil dengan sudut besar, garis rambut 1px, dan dock kaca mengambang untuk tampilan/urut/unggah;
+- **Desain COUI** (mirrors [CherryPick-Icons](https://github.com/immorgue/CherryPick-Icons), versi web):
+  - palet COUI ulang: dark `#000000`/`#1A1A1A`/`#333333` dengan teks `#E6E6E6`/`#A3A3A3`, mode terang `#F1F1F1`/`#FFFFFF`/`#E6E6E6`; satu aksen `#007AFF`;
+  - vignet monokrom subtle di atas; kartu status hubung dengan garis rambut 1px; kartu file datar rambut 1px tanpa shadow lift, untuk tampilan grid dan daftar (daftar = baris terasih di sebidang seperti pil);
+  - topbar menyusut saat discroll;
   - Material Symbols Rounded dengan axis `FILL`, `wght`, `GRAD`, `opsz`: ikon bisa "berisi" saat aktif;
+  - segmen tampilan membentuk pil frosted yang menerjap scale 1.07 saat aktif; tombol yang tidak aktif hanya ikon.
   - animasi berdurasi pendek dengan easing redam, stagger card, ripple, skeleton shimmer, snackbar meluncur, dan View Transitions saat pindah folder.
 - **Responsif** dan menghormati `prefers-reduced-motion`.
 
@@ -55,7 +57,7 @@ Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tid
 - **Navigasi tiga tab mengambang**: tiap tab adalah pil sendiri dengan bayangan, tab tidak terpilih hanya ikon, tab terpilih membuka label di samping ikon dengan spring, skala tekan 0.95. Judul layar dan tombol refresh juga pil terpisah. Tidak ada kotak pembungkus di belakang pil mana pun.
 - **Animasi Material 3 Expressive**: transisi halaman setup memakai slide spring 300 dan fade 500ms dengan `SizeTransform(clip = false)`, entrance per halaman, transisi tab, indikator progres transfer, segmented control tema, stagger daftar, dan feedback tekan tombol. Semua durasi mengikuti skala animator sistem saat *reduce motion* aktif.
 - **Checklist izin**: notifikasi dan izin latar belakang ditampilkan sebagai satu kartu status dengan aksi langsung.
-- **Tema COUI**: palet monokrom dengan aksen `#007AFF` (mode terang/gelap), dynamic color dinonaktifkan agar tampilan konsisten, bentuk 14–38dp, edge-to-edge, serta latar gradien radial dekoratif di layar setup (permukaan form tetap solid).
+- **Tema COUI**: palet monokrom dengan aksen `#007AFF` (mode terang/gelap) hampir identik dengan tema web — `coui_primary` text monokrom, `coui_card` `#1A1A1A`/`#FFFFFF`, `coui_raised` `#333333`/`#E6E6E6`, dynamic color dinonaktifkan agar tampilan konsisten, bentuk 14–38dp, edge-to-edge.
 - **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar, refresh, dan logout.
 - **Kelola folder**: buat folder baru (`POST /contents/createFolder`) dan hapus file/folder (`DELETE /contents`) langsung dari daftar.
 - **Unggah file** dari pemilih file Android → `POST https://upload.gofile.io/uploadfile` ke folder yang sedang dibuka (dengan token akun).

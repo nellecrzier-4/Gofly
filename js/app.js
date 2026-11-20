@@ -15,6 +15,8 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const els = {
   auth: $("#auth"),
   manager: $("#manager"),
+  topbar: $("#topbar"),
+  managerTitle: $("#manager-title"),
   formEmail: $("#form-email"),
   formLink: $("#form-link"),
   email: $("#email"),
@@ -115,6 +117,7 @@ function setStep(step) {
     const n = Number(node.dataset.step);
     node.classList.toggle("is-active", n === step);
     node.classList.toggle("is-done", n < step);
+    node.setAttribute("aria-current", n === step ? "step" : "false");
     const bullet = node.querySelector("span");
     bullet.textContent = n < step ? "check" : String(n);
     bullet.classList.toggle("ms", n < step);
@@ -261,6 +264,8 @@ async function loadFolder(id, name, push = true) {
   }
 
   renderBreadcrumbs();
+  els.managerTitle.textContent = name;
+  els.managerTitle.setAttribute("aria-label", `Folder ${name}`);
   els.folderTitle.textContent = name;
   els.folderSub.textContent = "Menyinkronkan isi folder…";
   els.fileGrid.hidden = true;
@@ -291,7 +296,8 @@ function renderBreadcrumbs() {
   els.breadcrumbs.innerHTML = state.path
     .map(
       (part, index) => `
-      <button class="crumb ${index === state.path.length - 1 ? "is-current" : ""}" data-index="${index}" type="button">
+      <button class="crumb ${index === state.path.length - 1 ? "is-current" : ""}" data-index="${index}" type="button"
+        aria-current="${index === state.path.length - 1 ? "page" : "false"}">
         ${icon(index === 0 ? "home" : "folder", { fill: index === 0 })}
         <span>${escapeHtml(part.name)}</span>
         ${index < state.path.length - 1 ? icon("chevron_right") : ""}
@@ -589,10 +595,17 @@ function init() {
   $$(".seg").forEach((button) =>
     button.addEventListener("click", () => {
       state.view = button.dataset.view;
-      $$(".seg").forEach((b) => b.classList.toggle("is-active", b === button));
+      $$(".seg").forEach((b) => {
+        b.classList.toggle("is-active", b === button);
+        b.setAttribute("aria-pressed", b === button);
+      });
       renderFiles();
     }),
   );
+
+  const onScroll = () => els.topbar?.classList.toggle("is-condensed", window.scrollY > 40);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 
   els.sortBtn.addEventListener("click", () => {
     state.sortIndex = (state.sortIndex + 1) % SORTS.length;
