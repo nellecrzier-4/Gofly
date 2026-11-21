@@ -1,6 +1,5 @@
 package com.nellecrzier.gofileexpressive.ui
 
-import android.os.Build
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -167,15 +166,8 @@ fun GofileApp(activity: MainActivity) {
     val context = LocalContext.current
     val reduceMotion = rememberReduceMotion()
 
-    var themeMode by rememberSaveable { mutableStateOf("system") }
-    var dynamicColor by rememberSaveable { mutableStateOf(true) }
-    // HyperSpring hanya punya satu palet gelap: tema sistem diabaikan.
-    val darkTheme = when (themeMode) {
-        "light" -> false
-        else -> true
-    }
-
-    GofileTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
+    // HyperSpring hanya punya satu palet gelap; tidak ada warna dinamis.
+    GofileTheme {
         val scope = rememberCoroutineScope()
         val permissionRevision by activity.permissionRevision.collectAsState()
 
@@ -430,11 +422,7 @@ fun GofileApp(activity: MainActivity) {
 
                             "settings" -> SettingsScreen(
                                 session = session,
-                                themeMode = themeMode,
-                                dynamicColor = dynamicColor,
                                 reduceMotion = reduceMotion,
-                                onThemeChange = { themeMode = it },
-                                onDynamicChange = { dynamicColor = it },
                                 onLogout = { logout() },
                             )
 
@@ -1236,11 +1224,7 @@ private fun SmallIconAction(
 @Composable
 private fun SettingsScreen(
     session: GSession,
-    themeMode: String,
-    dynamicColor: Boolean,
     reduceMotion: Boolean,
-    onThemeChange: (String) -> Unit,
-    onDynamicChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
 ) {
     val scroll = rememberScrollState()
@@ -1304,67 +1288,31 @@ private fun SettingsScreen(
 
         SectionLabel("Tampilan")
         HyperGroup {
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    "Tema",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Hyper.Text,
-                )
-                Spacer(Modifier.height(12.dp))
-                HyperSegmented(
-                    options = listOf(
-                        "system" to "Sistem",
-                        "light" to "Terang",
-                        "dark" to "Gelap",
-                    ),
-                    value = themeMode,
-                    onChange = onThemeChange,
-                )
-                if (themeMode == "light") {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "Palet HyperSpring hanya gelap. Pilihan terang tetap memakai hitam.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Hyper.Text3,
-                    )
-                }
-            }
             HyperRow(
-                title = "Warna dinamis",
-                subtitle = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    "Mengikuti warna wallpaper perangkat."
-                } else {
-                    "Membutuhkan Android 12 atau lebih baru."
-                },
+                title = "Tema",
+                subtitle = "Satu palet tetap: hitam murni, bukan warna dinamis.",
                 icon = Icons.Filled.Settings,
                 iconTint = Hyper.Text2,
-                trailing = {
-                    HyperToggle(
-                        checked = dynamicColor,
-                        onChange = onDynamicChange,
-                        enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
-                    )
-                },
+                value = "Gelap",
             )
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = Hyper.CardRaised,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = if (reduceMotion) {
-                            "Animasi diperkecil sesuai skala animator sistem."
-                        } else {
-                            "Transisi memakai spring HyperSpring: 0,4s response, easing expo-out, dan tekan karet."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Hyper.Text2,
-                        modifier = Modifier.padding(12.dp),
-                    )
-                }
-            }
+            HyperRow(
+                title = "Warna aksen",
+                subtitle = "Satu aksen koral untuk seluruh aplikasi.",
+                icon = Icons.Filled.Shield,
+                iconTint = Hyper.Accent,
+                value = "Koral",
+            )
+            HyperRow(
+                title = "Animasi",
+                subtitle = if (reduceMotion) {
+                    "Diperkecil mengikuti skala animator sistem."
+                } else {
+                    "Spring 0,4s response, kurva expo-out, tekan karet."
+                },
+                icon = Icons.Filled.Refresh,
+                iconTint = Hyper.Text2,
+                value = if (reduceMotion) "Minim" else "Aktif",
+            )
         }
 
         SectionLabel("Tentang")

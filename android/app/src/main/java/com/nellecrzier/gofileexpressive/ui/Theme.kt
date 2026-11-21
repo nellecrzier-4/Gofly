@@ -123,8 +123,6 @@ private val HyperShapes = Shapes(
 
 @Composable
 fun GofileTheme(
-    darkTheme: Boolean = true,
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
