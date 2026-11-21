@@ -2,6 +2,7 @@ package com.nellecrzier.gofileexpressive.ui
 
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
@@ -101,6 +102,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -329,12 +331,25 @@ fun GofileApp(activity: MainActivity) {
             }
         }
 
-        BackHandler(enabled = loginStep == "ready" && (currentTab != "home" || stack.size > 1)) {
+        val canGoBack = loginStep == "ready" && (currentTab != "home" || stack.size > 1)
+        var backProgress by remember { mutableFloatStateOf(0f) }
+
+        fun goBack() {
             if (currentTab == "folder" && stack.size > 1) {
                 stack = stack.dropLast(1)
                 loadFolder(stack.last().id)
             } else {
                 currentTab = "home"
+            }
+        }
+
+        // Gestur back prediktif: halaman mengikuti jari sebelum benar-benar keluar.
+        PredictiveBackHandler(enabled = canGoBack) { events ->
+            try {
+                events.collect { event -> backProgress = event.progress }
+                goBack()
+            } finally {
+                backProgress = 0f
             }
         }
 
@@ -360,91 +375,106 @@ fun GofileApp(activity: MainActivity) {
                         )
                     }
                 } else {
-                    AnimatedContent(
-                        targetState = currentTab,
-                        label = "tabContent",
-                        transitionSpec = {
-                            if (reduceMotion) {
-                                fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                            } else {
-                                val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
-                                (
-                                    fadeIn(tween(200, easing = HyperEase)) +
-                                        scaleIn(tween(260, easing = HyperExpoOut), initialScale = 0.97f) +
-                                        slideInHorizontally(tween(260, easing = HyperExpoOut)) { full ->
-                                            if (forward) full / 12 else -full / 12
+                    // Halaman bergeser mengikuti gestur back prediktif.
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                val p = backProgress
+                                if (p > 0f) {
+                                    translationX = 36.dp.toPx() * p
+                                    scaleX = 1f - 0.05f * p
+                                    scaleY = 1f - 0.05f * p
+                                    transformOrigin = TransformOrigin(1f, 0.5f)
+                                }
+                            },
+                    ) {
+                        AnimatedContent(
+                            targetState = currentTab,
+                            label = "tabContent",
+                            transitionSpec = {
+                                if (reduceMotion) {
+                                    fadeIn(tween(120)) togetherWith fadeOut(tween(120))
+                                } else {
+                                    val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
+                                    (
+                                        fadeIn(tween(200, easing = HyperEase)) +
+                                            scaleIn(tween(260, easing = HyperExpoOut), initialScale = 0.97f) +
+                                            slideInHorizontally(tween(260, easing = HyperExpoOut)) { full ->
+                                                if (forward) full / 12 else -full / 12
+                                            }
+                                        ) togetherWith (
+                                        fadeOut(tween(140, easing = HyperPower3Out)) +
+                                            scaleOut(tween(180, easing = HyperPower3Out), targetScale = 0.99f) +
+                                            slideOutHorizontally(tween(200, easing = HyperPower3Out)) { full ->
+                                                if (forward) -full / 16 else full / 16
+                                            }
+                                        )
+                                }
+                            },
+                        ) { tab ->
+                            when (tab) {
+                                "folder" -> FolderScreen(
+                                    items = items,
+                                    busy = busy,
+                                    stack = stack,
+                                    reduceMotion = reduceMotion,
+                                    onOpen = { item ->
+                                        if (item.isFolder) {
+                                            stack = stack + Crumb(item.id, item.name)
+                                            loadFolder(item.id)
+                                        } else if (item.link.startsWith("http")) {
+                                            activity.startDownload(item.link, item.name, session.token)
                                         }
-                                    ) togetherWith (
-                                    fadeOut(tween(140, easing = HyperPower3Out)) +
-                                        scaleOut(tween(180, easing = HyperPower3Out), targetScale = 0.99f) +
-                                        slideOutHorizontally(tween(200, easing = HyperPower3Out)) { full ->
-                                            if (forward) -full / 16 else full / 16
-                                        }
-                                    )
-                            }
-                        },
-                    ) { tab ->
-                        when (tab) {
-                            "folder" -> FolderScreen(
-                                items = items,
-                                busy = busy,
-                                stack = stack,
-                                reduceMotion = reduceMotion,
-                                onOpen = { item ->
-                                    if (item.isFolder) {
-                                        stack = stack + Crumb(item.id, item.name)
-                                        loadFolder(item.id)
-                                    } else if (item.link.startsWith("http")) {
+                                    },
+                                    onDownload = { item ->
                                         activity.startDownload(item.link, item.name, session.token)
-                                    }
-                                },
-                                onDownload = { item ->
-                                    activity.startDownload(item.link, item.name, session.token)
-                                },
-                                onDelete = { item -> pendingDelete = item },
-                                onUpload = {
-                                    stack.lastOrNull()?.let {
-                                        activity.pickFileForUpload(it.id, session.token)
-                                    }
-                                },
-                                onBack = {
-                                    if (stack.size > 1) {
-                                        stack = stack.dropLast(1)
-                                        loadFolder(stack.last().id)
-                                    }
-                                },
-                                onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
-                                onNewFolder = {
-                                    newFolderName = ""
-                                    showCreateFolder = true
-                                },
-                            )
+                                    },
+                                    onDelete = { item -> pendingDelete = item },
+                                    onUpload = {
+                                        stack.lastOrNull()?.let {
+                                            activity.pickFileForUpload(it.id, session.token)
+                                        }
+                                    },
+                                    onBack = {
+                                        if (stack.size > 1) {
+                                            stack = stack.dropLast(1)
+                                            loadFolder(stack.last().id)
+                                        }
+                                    },
+                                    onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
+                                    onNewFolder = {
+                                        newFolderName = ""
+                                        showCreateFolder = true
+                                    },
+                                )
 
-                            "settings" -> SettingsScreen(
-                                session = session,
-                                reduceMotion = reduceMotion,
-                                onLogout = { logout() },
-                            )
+                                "settings" -> SettingsScreen(
+                                    session = session,
+                                    reduceMotion = reduceMotion,
+                                    onLogout = { logout() },
+                                )
 
-                            else -> HomeScreen(
-                                session = session,
-                                items = items,
-                                busy = busy,
-                                reduceMotion = reduceMotion,
-                                activity = activity,
-                                permissionRevision = permissionRevision,
-                                onOpenFolder = { openFolderTab() },
-                                onUpload = {
-                                    stack.lastOrNull()?.let {
-                                        activity.pickFileForUpload(it.id, session.token)
-                                    }
-                                },
-                                onNewFolder = {
-                                    newFolderName = ""
-                                    showCreateFolder = true
-                                },
-                                onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
-                            )
+                                else -> HomeScreen(
+                                    session = session,
+                                    items = items,
+                                    busy = busy,
+                                    reduceMotion = reduceMotion,
+                                    activity = activity,
+                                    permissionRevision = permissionRevision,
+                                    onOpenFolder = { openFolderTab() },
+                                    onUpload = {
+                                        stack.lastOrNull()?.let {
+                                            activity.pickFileForUpload(it.id, session.token)
+                                        }
+                                    },
+                                    onNewFolder = {
+                                        newFolderName = ""
+                                        showCreateFolder = true
+                                    },
+                                    onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
+                                )
+                            }
                         }
                     }
 
