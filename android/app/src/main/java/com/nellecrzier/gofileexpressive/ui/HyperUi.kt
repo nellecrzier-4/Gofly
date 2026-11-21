@@ -86,12 +86,16 @@ import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -1219,6 +1223,8 @@ fun HyperNavBar(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
+    backdrop: GraphicsLayer? = null,
+    onBoundsChange: ((Offset, IntSize) -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
@@ -1236,7 +1242,15 @@ fun HyperNavBar(
     ) {
         Row(
             Modifier
+                .onGloballyPositioned { coordinates ->
+                    onBoundsChange?.invoke(coordinates.positionInRoot(), coordinates.size)
+                }
                 .clip(CircleShape)
+                // Snapshot konten di belakang kapsul, sudah diburamkan pemanggil.
+                .drawBehind {
+                    val layer = backdrop
+                    if (layer != null) drawLayer(layer)
+                }
                 .background(
                     Brush.verticalGradient(
                         listOf(
@@ -1247,7 +1261,9 @@ fun HyperNavBar(
                     ),
                 )
                 // Tint hitam supaya kapsul terbaca sebagai kaca di atas konten.
-                .drawBehind { drawRect(Color.Black.copy(alpha = 0.42f)) }
+                .drawBehind {
+                    drawRect(Color.Black.copy(alpha = if (backdrop != null) 0.18f else 0.42f))
+                }
                 .border(1.dp, Hyper.GlassEdge, CircleShape)
                 .drawBehind {
                     drawLine(

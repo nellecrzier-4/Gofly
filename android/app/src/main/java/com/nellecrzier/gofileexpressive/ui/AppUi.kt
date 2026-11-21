@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui
 
+import android.os.Build
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
@@ -100,10 +101,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -120,7 +125,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nellecrzier.gofileexpressive.BuildConfig
@@ -334,6 +341,14 @@ fun GofileApp(activity: MainActivity) {
         val canGoBack = loginStep == "ready" && (currentTab != "home" || stack.size > 1)
         var backProgress by remember { mutableFloatStateOf(0f) }
 
+        // Kaca hidup: snapshot konten di belakang bar navigasi, diburamkan di API 31+.
+        val blurEffect = remember {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) BlurEffect(40f, 40f) else null
+        }
+        val backdrop = rememberGraphicsLayer()
+        var navBarTopLeft by remember { mutableStateOf(Offset.Zero) }
+        var navBarSize by remember { mutableStateOf(IntSize.Zero) }
+
         fun goBack() {
             if (currentTab == "folder" && stack.size > 1) {
                 stack = stack.dropLast(1)
@@ -375,105 +390,123 @@ fun GofileApp(activity: MainActivity) {
                         )
                     }
                 } else {
-                    // Halaman bergeser mengikuti gestur back prediktif.
+                    // Perekam konten: hanya strip di belakang bar yang disimpan.
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .graphicsLayer {
-                                val p = backProgress
-                                if (p > 0f) {
-                                    translationX = 36.dp.toPx() * p
-                                    scaleX = 1f - 0.05f * p
-                                    scaleY = 1f - 0.05f * p
-                                    transformOrigin = TransformOrigin(1f, 0.5f)
+                            .drawWithContent {
+                                drawContent()
+                                val effect = blurEffect
+                                if (effect != null && navBarSize.width > 0 && navBarSize.height > 0) {
+                                    backdrop.record(this, layoutDirection, navBarSize) {
+                                        translate(-navBarTopLeft.x, -navBarTopLeft.y) {
+                                            this@drawWithContent.drawContent()
+                                        }
+                                    }
+                                    backdrop.renderEffect = effect
                                 }
                             },
                     ) {
-                        AnimatedContent(
-                            targetState = currentTab,
-                            label = "tabContent",
-                            transitionSpec = {
-                                if (reduceMotion) {
-                                    fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                                } else {
-                                    val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
-                                    (
-                                        fadeIn(tween(200, easing = HyperEase)) +
-                                            scaleIn(tween(260, easing = HyperExpoOut), initialScale = 0.97f) +
-                                            slideInHorizontally(tween(260, easing = HyperExpoOut)) { full ->
-                                                if (forward) full / 12 else -full / 12
+                        // Halaman bergeser mengikuti gestur back prediktif.
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val p = backProgress
+                                    if (p > 0f) {
+                                        translationX = 36.dp.toPx() * p
+                                        scaleX = 1f - 0.05f * p
+                                        scaleY = 1f - 0.05f * p
+                                        transformOrigin = TransformOrigin(1f, 0.5f)
+                                    }
+                                },
+                        ) {
+                            AnimatedContent(
+                                targetState = currentTab,
+                                label = "tabContent",
+                                transitionSpec = {
+                                    if (reduceMotion) {
+                                        fadeIn(tween(120)) togetherWith fadeOut(tween(120))
+                                    } else {
+                                        val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
+                                        (
+                                            fadeIn(tween(200, easing = HyperEase)) +
+                                                scaleIn(tween(260, easing = HyperExpoOut), initialScale = 0.97f) +
+                                                slideInHorizontally(tween(260, easing = HyperExpoOut)) { full ->
+                                                    if (forward) full / 12 else -full / 12
+                                                }
+                                            ) togetherWith (
+                                            fadeOut(tween(140, easing = HyperPower3Out)) +
+                                                scaleOut(tween(180, easing = HyperPower3Out), targetScale = 0.99f) +
+                                                slideOutHorizontally(tween(200, easing = HyperPower3Out)) { full ->
+                                                    if (forward) -full / 16 else full / 16
+                                                }
+                                            )
+                                    }
+                                },
+                            ) { tab ->
+                                when (tab) {
+                                    "folder" -> FolderScreen(
+                                        items = items,
+                                        busy = busy,
+                                        stack = stack,
+                                        reduceMotion = reduceMotion,
+                                        onOpen = { item ->
+                                            if (item.isFolder) {
+                                                stack = stack + Crumb(item.id, item.name)
+                                                loadFolder(item.id)
+                                            } else if (item.link.startsWith("http")) {
+                                                activity.startDownload(item.link, item.name, session.token)
                                             }
-                                        ) togetherWith (
-                                        fadeOut(tween(140, easing = HyperPower3Out)) +
-                                            scaleOut(tween(180, easing = HyperPower3Out), targetScale = 0.99f) +
-                                            slideOutHorizontally(tween(200, easing = HyperPower3Out)) { full ->
-                                                if (forward) -full / 16 else full / 16
-                                            }
-                                        )
-                                }
-                            },
-                        ) { tab ->
-                            when (tab) {
-                                "folder" -> FolderScreen(
-                                    items = items,
-                                    busy = busy,
-                                    stack = stack,
-                                    reduceMotion = reduceMotion,
-                                    onOpen = { item ->
-                                        if (item.isFolder) {
-                                            stack = stack + Crumb(item.id, item.name)
-                                            loadFolder(item.id)
-                                        } else if (item.link.startsWith("http")) {
+                                        },
+                                        onDownload = { item ->
                                             activity.startDownload(item.link, item.name, session.token)
-                                        }
-                                    },
-                                    onDownload = { item ->
-                                        activity.startDownload(item.link, item.name, session.token)
-                                    },
-                                    onDelete = { item -> pendingDelete = item },
-                                    onUpload = {
-                                        stack.lastOrNull()?.let {
-                                            activity.pickFileForUpload(it.id, session.token)
-                                        }
-                                    },
-                                    onBack = {
-                                        if (stack.size > 1) {
-                                            stack = stack.dropLast(1)
-                                            loadFolder(stack.last().id)
-                                        }
-                                    },
-                                    onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
-                                    onNewFolder = {
-                                        newFolderName = ""
-                                        showCreateFolder = true
-                                    },
-                                )
+                                        },
+                                        onDelete = { item -> pendingDelete = item },
+                                        onUpload = {
+                                            stack.lastOrNull()?.let {
+                                                activity.pickFileForUpload(it.id, session.token)
+                                            }
+                                        },
+                                        onBack = {
+                                            if (stack.size > 1) {
+                                                stack = stack.dropLast(1)
+                                                loadFolder(stack.last().id)
+                                            }
+                                        },
+                                        onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
+                                        onNewFolder = {
+                                            newFolderName = ""
+                                            showCreateFolder = true
+                                        },
+                                    )
 
-                                "settings" -> SettingsScreen(
-                                    session = session,
-                                    reduceMotion = reduceMotion,
-                                    onLogout = { logout() },
-                                )
+                                    "settings" -> SettingsScreen(
+                                        session = session,
+                                        reduceMotion = reduceMotion,
+                                        onLogout = { logout() },
+                                    )
 
-                                else -> HomeScreen(
-                                    session = session,
-                                    items = items,
-                                    busy = busy,
-                                    reduceMotion = reduceMotion,
-                                    activity = activity,
-                                    permissionRevision = permissionRevision,
-                                    onOpenFolder = { openFolderTab() },
-                                    onUpload = {
-                                        stack.lastOrNull()?.let {
-                                            activity.pickFileForUpload(it.id, session.token)
-                                        }
-                                    },
-                                    onNewFolder = {
-                                        newFolderName = ""
-                                        showCreateFolder = true
-                                    },
-                                    onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
-                                )
+                                    else -> HomeScreen(
+                                        session = session,
+                                        items = items,
+                                        busy = busy,
+                                        reduceMotion = reduceMotion,
+                                        activity = activity,
+                                        permissionRevision = permissionRevision,
+                                        onOpenFolder = { openFolderTab() },
+                                        onUpload = {
+                                            stack.lastOrNull()?.let {
+                                                activity.pickFileForUpload(it.id, session.token)
+                                            }
+                                        },
+                                        onNewFolder = {
+                                            newFolderName = ""
+                                            showCreateFolder = true
+                                        },
+                                        onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
+                                    )
+                                }
                             }
                         }
                     }
@@ -482,6 +515,11 @@ fun GofileApp(activity: MainActivity) {
                         tabs = APP_TABS,
                         current = currentTab,
                         reduceMotion = reduceMotion,
+                        backdrop = if (blurEffect != null) backdrop else null,
+                        onBoundsChange = { topLeft, size ->
+                            if (topLeft != navBarTopLeft) navBarTopLeft = topLeft
+                            if (size != navBarSize) navBarSize = size
+                        },
                         onSelect = { tab ->
                             currentTab = tab
                             if (tab == "folder") openFolderTab()
