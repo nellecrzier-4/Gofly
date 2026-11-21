@@ -1,0 +1,132 @@
+<resources>
+    <string name="app_name">Gofile Expressive</string>
+
+    <!-- notifikasi -->
+    <string name="channel_name">Transfer GoFile</string>
+    <string name="channel_description">Progres unggah dan unduh file GoFile</string>
+    <string name="notification_permission_title">Izin notifikasi</string>
+    <string name="notification_permission_message">Aktifkan notifikasi supaya kamu bisa melihat progres unggah/unduh, dan transfer tetap berjalan saat aplikasi ditutup atau pindah ke latar belakang.</string>
+
+    <!-- navigasi -->
+    <string name="tab_home">Beranda</string>
+    <string name="tab_folder">File</string>
+    <string name="tab_library">Pustaka</string>
+    <string name="tab_settings">Setelan</string>
+    <string name="root">Akar</string>
+
+    <!-- umum -->
+    <string name="session_preparing">Menyiapkan sesi</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_create">Buat</string>
+    <string name="action_save">Simpan</string>
+    <string name="action_retry">Coba lagi</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_download">Unduh</string>
+    <string name="action_upload">Unggah</string>
+    <string name="action_rename">Ganti nama</string>
+    <string name="action_move">Pindahkan</string>
+    <string name="action_copy">Salin</string>
+    <string name="action_share">Bagikan</string>
+    <string name="action_details">Detail</string>
+    <string name="action_undo">Urungkan</string>
+    <string name="action_open">Buka</string>
+    <string name="action_refresh">Segarkan</string>
+    <string name="error_generic">Terjadi kesalahan.</string>
+
+    <!-- layar folder -->
+    <string name="folder_search_hint">Cari di folder ini</string>
+    <string name="folder_search_close">Tutup pencarian</string>
+    <string name="folder_sort">Urutkan</string>
+    <string name="sort_name">Nama</string>
+    <string name="sort_size">Ukuran</string>
+    <string name="sort_created">Tanggal dibuat</string>
+    <string name="sort_modified">Tanggal diubah</string>
+    <string name="sort_type">Jenis</string>
+    <string name="sort_ascending">Menaik</string>
+    <string name="sort_descending">Menurun</string>
+    <string name="filter_all">Semua</string>
+    <string name="filter_images">Gambar</string>
+    <string name="filter_video">Video</string>
+    <string name="filter_audio">Audio</string>
+    <string name="filter_documents">Dokumen</string>
+    <string name="filter_archives">Arsip</string>
+    <string name="view_list">Tampilan daftar</string>
+    <string name="view_grid">Tampilan kisi</string>
+    <string name="folder_offline_banner">Menampilkan data tersimpan</string>
+    <string name="folder_offline_hint">Salinan terakhir. Tarik untuk menyegarkan saat online.</string>
+    <string name="folder_empty_title">Folder ini kosong</string>
+    <string name="folder_empty_body">Unggah file atau buat folder untuk memulai.</string>
+    <string name="folder_search_empty_title">Tidak ada hasil untuk “%1$s”</string>
+    <string name="folder_search_empty_body">Coba kata kunci lain atau hapus filter.</string>
+    <string name="folder_loading_more">Memuat lagi…</string>
+    <string name="folder_loaded_all">Semua %1$d item dimuat</string>
+    <string name="folder_item_count">%1$d item</string>
+    <string name="folder_new_folder">Folder baru</string>
+    <string name="folder_name_label">Nama folder</string>
+    <string name="folder_name_hint">mis. Proyek</string>
+    <string name="folder_rename_title">Ganti nama</string>
+    <string name="folder_rename_label">Nama baru</string>
+    <string name="folder_renamed">Nama diubah menjadi “%1$s”.</string>
+    <string name="folder_created">Folder “%1$s” dibuat.</string>
+    <string name="folder_delete_title">Hapus %1$s?</string>
+    <string name="folder_delete_body">“%1$s” akan dihapus permanen dari GoFile. GoFile tidak punya tempat sampah; penghapusan dikirim setelah jendela urungkan.</string>
+    <string name="folder_delete_hold">Tahan untuk hapus</string>
+    <string name="folder_delete_hint">Tahan 0,9 detik. Ketukan pendek ditolak.</string>
+    <string name="folder_deleted_one">“%1$s” dihapus.</string>
+    <string name="folder_deleted_many">%1$d item dihapus.</string>
+    <string name="folder_undo_available">%1$d item akan dihapus — urungkan sekarang</string>
+    <string name="folder_selected_count">%1$d dipilih</string>
+    <string name="folder_select_all">Pilih semua</string>
+    <string name="folder_invert_selection">Balik pilihan</string>
+    <string name="folder_selection_clear">Hapus pilihan</string>
+    <string name="folder_favorite_add">Tambahkan ke favorit</string>
+    <string name="folder_favorite_remove">Hapus dari favorit</string>
+    <string name="folder_open_folder">Buka folder</string>
+    <string name="folder_swipe_hint">Geser baris untuk aksi</string>
+    <string name="folder_error_title">Folder tidak bisa dimuat</string>
+
+    <!-- pemilih folder -->
+    <string name="picker_move_title">Pindahkan ke</string>
+    <string name="picker_copy_title">Salin ke</string>
+    <string name="picker_here">Pindahkan ke sini</string>
+    <string name="picker_here_copy">Salin ke sini</string>
+    <string name="picker_no_subfolders">Tidak ada subfolder di sini</string>
+    <string name="picker_moved">Dipindahkan ke “%1$s”.</string>
+    <string name="picker_copied">Disalin ke “%1$s”.</string>
+    <string name="picker_new_folder">Folder baru di sini</string>
+
+    <!-- detail -->
+    <string name="details_title">Detail</string>
+    <string name="details_size">Ukuran</string>
+    <string name="details_type">Jenis</string>
+    <string name="details_id">ID</string>
+    <string name="details_created">Diunggah</string>
+    <string name="details_modified">Diubah</string>
+    <string name="details_downloads">Unduhan</string>
+    <string name="details_md5">MD5</string>
+    <string name="details_link">Tautan</string>
+    <string name="details_items">Item</string>
+    <string name="details_folder">Folder</string>
+    <string name="details_file">File</string>
+    <string name="details_copy_link">Salin tautan</string>
+    <string name="details_link_copied">Tautan disalin.</string>
+    <string name="details_no_link">GoFile belum membuat tautan langsung untuk item ini.</string>
+
+    <!-- pustaka -->
+    <string name="library_title">Pustaka</string>
+    <string name="library_subtitle">Favorit, file terbaru, dan pencarian lokal</string>
+    <string name="library_favorites">Favorit</string>
+    <string name="library_recent">Terbaru</string>
+    <string name="library_search_hint">Cari folder yang pernah dibuka</string>
+    <string name="library_search_note">GoFile tidak punya endpoint pencarian global. Hasil berasal dari folder yang sudah pernah dibuka dan di-cache di perangkat ini.</string>
+    <string name="library_no_favorites">Belum ada favorit</string>
+    <string name="library_no_favorites_body">Buka menu item lalu pilih bintang untuk menyimpannya di sini.</string>
+    <string name="library_no_recent">Belum ada file terbaru</string>
+    <string name="library_no_recent_body">File yang kamu buka atau unduh akan muncul di sini.</string>
+    <string name="library_search_empty">Tidak ada cache yang cocok dengan “%1$s”</string>
+    <string name="library_clear">Bersihkan pustaka</string>
+
+    <!-- transfer -->
+    <string name="transfer_failed">Transfer gagal.</string>
+</resources>

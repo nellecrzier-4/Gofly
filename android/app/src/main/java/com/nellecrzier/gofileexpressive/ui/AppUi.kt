@@ -76,6 +76,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
@@ -102,9 +103,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
@@ -114,6 +116,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -125,37 +128,51 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nellecrzier.gofileexpressive.BuildConfig
+import com.nellecrzier.gofileexpressive.GItem
+import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.GoFileException
 import com.nellecrzier.gofileexpressive.GofileApi
-import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
+import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
+import com.nellecrzier.gofileexpressive.ui.home.HomeScreen
+import com.nellecrzier.gofileexpressive.ui.login.LoginScreen
+import com.nellecrzier.gofileexpressive.ui.settings.SettingsScreen
+import com.nellecrzier.gofileexpressive.ui.transfer.TransferPanel
+import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
+import com.nellecrzier.gofileexpressive.vm.SettingsViewModel
+import com.nellecrzier.gofileexpressive.vm.SessionViewModel
+import com.nellecrzier.gofileexpressive.vm.SessionEvent
+import com.nellecrzier.gofileexpressive.vm.FolderViewModel
+import com.nellecrzier.gofileexpressive.vm.FolderEvent
+import com.nellecrzier.gofileexpressive.ui.library.LibraryScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-private data class Crumb(val id: String, val name: String)
+data class Crumb(val id: String, val name: String)
 
 private val APP_TABS = listOf(
     HyperTab("home", "Beranda", Icons.Filled.Home),
-    HyperTab("folder", "Folder", Icons.Filled.Folder),
+    HyperTab("folder", "File", Icons.Filled.Folder),
+    HyperTab("library", "Pustaka", Icons.Filled.Star),
     HyperTab("settings", "Setelan", Icons.Filled.Settings),
 )
 
 private val TAB_ORDER = APP_TABS.map { it.key }
 
-private fun readableSize(bytes: Long): String {
+internal fun readableSize(bytes: Long): String {
     if (bytes <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     var value = bytes.toDouble()
@@ -177,23 +194,27 @@ fun GofileApp(activity: MainActivity) {
 
     // HyperSpring hanya punya satu palet gelap; tidak ada warna dinamis.
     GofileTheme {
-        val scope = rememberCoroutineScope()
         val permissionRevision by activity.permissionRevision.collectAsState()
 
-        var session by remember { mutableStateOf(SessionStore.load(context)) }
-        var stack by remember { mutableStateOf(listOf<Crumb>()) }
-        var items by remember { mutableStateOf(listOf<GItem>()) }
-        var busy by remember { mutableStateOf(false) }
+        val sessionVm: SessionViewModel = viewModel()
+        val folderVm: FolderViewModel = viewModel()
+        val settingsVm: SettingsViewModel = viewModel()
+        val sessionState by sessionVm.state.collectAsStateWithLifecycle()
+        val folderState by folderVm.state.collectAsStateWithLifecycle()
+        val prefs by settingsVm.state.collectAsStateWithLifecycle()
+
+        val session = sessionState.session
+        val loginStep = sessionState.step
+        val checkingSession = sessionState.checking
+        val busy = sessionState.busy || folderState.busy
+        val stack = folderState.crumbs
+        val items = folderState.items
+
         var notice by remember { mutableStateOf<String?>(null) }
         var noticeIsError by remember { mutableStateOf(true) }
         var showCreateFolder by remember { mutableStateOf(false) }
         var newFolderName by remember { mutableStateOf("") }
-        var pendingDelete by remember { mutableStateOf<GItem?>(null) }
-        var loginStep by rememberSaveable { mutableStateOf(if (session.isLoggedIn) "ready" else "email") }
-        var checkingSession by remember { mutableStateOf(session.isLoggedIn) }
         var currentTab by rememberSaveable { mutableStateOf("home") }
-        var email by rememberSaveable { mutableStateOf("") }
-        var tokenInput by rememberSaveable { mutableStateOf("") }
         val handledErrors = remember { mutableSetOf<String>() }
 
         fun showNotice(text: String, error: Boolean = true) {
@@ -201,106 +222,44 @@ fun GofileApp(activity: MainActivity) {
             noticeIsError = error
         }
 
-        fun report(error: Exception) {
-            showNotice((error as? GoFileException)?.message ?: error.message ?: "Terjadi kesalahan.")
-        }
-
-        fun loadFolder(id: String) {
-            scope.launch {
-                busy = true
-                notice = null
-                try {
-                    items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, id) }
-                } catch (error: Exception) {
-                    report(error)
-                } finally {
-                    busy = false
-                }
-            }
-        }
-
         fun createFolder() {
-            val parent = stack.lastOrNull()?.id ?: return
             val name = newFolderName.trim()
             if (name.isBlank()) return
-            scope.launch {
-                busy = true
-                notice = null
-                try {
-                    withContext(Dispatchers.IO) {
-                        GofileApi.createFolder(session.token, parent, name)
-                    }
-                    items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, parent) }
-                    showCreateFolder = false
-                    newFolderName = ""
-                    showNotice("Folder \"$name\" dibuat.", error = false)
-                } catch (error: Exception) {
-                    report(error)
-                } finally {
-                    busy = false
-                }
-            }
-        }
-
-        fun deleteItem(item: GItem) {
-            val parent = stack.lastOrNull()?.id ?: return
-            scope.launch {
-                busy = true
-                notice = null
-                try {
-                    withContext(Dispatchers.IO) { GofileApi.deleteContent(session.token, item.id) }
-                    items = withContext(Dispatchers.IO) { GofileApi.getFolder(session.token, parent) }
-                    pendingDelete = null
-                    showNotice("\"${item.name}\" dihapus.", error = false)
-                } catch (error: Exception) {
-                    report(error)
-                } finally {
-                    busy = false
-                }
-            }
-        }
-
-        fun enter(sessionValue: GSession) {
-            SessionStore.save(context, sessionValue)
-            session = sessionValue
-            val root = sessionValue.rootFolder.ifBlank { "root" }
-            stack = listOf(Crumb(root, "Root"))
-            currentTab = "home"
-            loginStep = "ready"
-            loadFolder(root)
-        }
-
-        fun logout() {
-            SessionStore.clear(context)
-            session = GSession()
-            stack = emptyList()
-            items = emptyList()
-            tokenInput = ""
-            notice = null
-            noticeIsError = true
+            folderVm.createFolder(session.token, name)
             showCreateFolder = false
             newFolderName = ""
-            pendingDelete = null
-            currentTab = "home"
-            loginStep = "email"
         }
 
         fun openFolderTab() {
             currentTab = "folder"
-            val root = stack.lastOrNull()?.id ?: session.rootFolder.ifBlank { "root" }
-            if (items.isEmpty()) loadFolder(root)
+            if (items.isEmpty()) folderVm.openRoot(session.token, session.rootFolder)
         }
 
         LaunchedEffect(Unit) {
-            if (session.isLoggedIn) {
-                try {
-                    val fresh = withContext(Dispatchers.IO) { GofileApi.getAccount(session.token) }
-                    enter(fresh.copy(token = session.token))
-                } catch (_: Exception) {
-                    logout()
+            sessionVm.events.collect { event ->
+                when (event) {
+                    is SessionEvent.Message -> showNotice(event.text, event.error)
+                    SessionEvent.LoggedIn -> {
+                        currentTab = "home"
+                        val current = sessionVm.state.value.session
+                        folderVm.openRoot(current.token, current.rootFolder)
+                    }
+                    SessionEvent.LoggedOut -> {
+                        currentTab = "home"
+                        showCreateFolder = false
+                        newFolderName = ""
+                    }
                 }
             }
-            checkingSession = false
+        }
+
+        LaunchedEffect(Unit) {
+            folderVm.events.collect { event ->
+                when (event) {
+                    is FolderEvent.Message -> showNotice(event.text, event.error)
+                    FolderEvent.SessionExpired -> sessionVm.logout(expired = true)
+                }
+            }
         }
 
         LaunchedEffect(Unit) {
@@ -314,19 +273,9 @@ fun GofileApp(activity: MainActivity) {
 
         LaunchedEffect(Unit) {
             activity.loginLinkFlow.collect { token ->
-                if (token.isNullOrBlank() || session.isLoggedIn || busy) return@collect
-                busy = true
-                notice = null
-                try {
-                    val account = withContext(Dispatchers.IO) { GofileApi.getAccount(token) }
-                    enter(account.copy(token = token))
-                    activity.loginLinkFlow.value = null
-                    showNotice("Masuk lewat link email berhasil.", error = false)
-                } catch (error: Exception) {
-                    report(error)
-                } finally {
-                    busy = false
-                }
+                if (token.isNullOrBlank()) return@collect
+                sessionVm.adoptLoginLink(token)
+                activity.loginLinkFlow.value = null
             }
         }
 
@@ -350,12 +299,8 @@ fun GofileApp(activity: MainActivity) {
         var navBarSize by remember { mutableStateOf(IntSize.Zero) }
 
         fun goBack() {
-            if (currentTab == "folder" && stack.size > 1) {
-                stack = stack.dropLast(1)
-                loadFolder(stack.last().id)
-            } else {
-                currentTab = "home"
-            }
+            if (currentTab == "folder" && folderVm.back(session.token)) return
+            currentTab = "home"
         }
 
         // Gestur back prediktif: halaman mengikuti jari sebelum benar-benar keluar.
@@ -384,7 +329,7 @@ fun GofileApp(activity: MainActivity) {
                         )
                         Spacer(Modifier.height(14.dp))
                         Text(
-                            "Menyiapkan sesi",
+                            stringResource(R.string.session_preparing),
                             style = MaterialTheme.typography.labelLarge,
                             color = Hyper.Text2,
                         )
@@ -447,44 +392,31 @@ fun GofileApp(activity: MainActivity) {
                             ) { tab ->
                                 when (tab) {
                                     "folder" -> FolderScreen(
-                                        items = items,
-                                        busy = busy,
-                                        stack = stack,
+                                        vm = folderVm,
+                                        state = folderState,
+                                        prefs = prefs,
+                                        token = session.token,
                                         reduceMotion = reduceMotion,
-                                        onOpen = { item ->
-                                            if (item.isFolder) {
-                                                stack = stack + Crumb(item.id, item.name)
-                                                loadFolder(item.id)
-                                            } else if (item.link.startsWith("http")) {
-                                                activity.startDownload(item.link, item.name, session.token)
-                                            }
-                                        },
-                                        onDownload = { item ->
-                                            activity.startDownload(item.link, item.name, session.token)
-                                        },
-                                        onDelete = { item -> pendingDelete = item },
-                                        onUpload = {
-                                            stack.lastOrNull()?.let {
-                                                activity.pickFileForUpload(it.id, session.token)
-                                            }
-                                        },
-                                        onBack = {
-                                            if (stack.size > 1) {
-                                                stack = stack.dropLast(1)
-                                                loadFolder(stack.last().id)
-                                            }
-                                        },
-                                        onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
+                                        activity = activity,
                                         onNewFolder = {
                                             newFolderName = ""
                                             showCreateFolder = true
                                         },
                                     )
 
+                                    "library" -> LibraryScreen(
+                                        vm = folderVm,
+                                        prefs = prefs,
+                                        token = session.token,
+                                        reduceMotion = reduceMotion,
+                                        activity = activity,
+                                        onOpenFolder = { currentTab = "folder" },
+                                    )
+
                                     "settings" -> SettingsScreen(
                                         session = session,
                                         reduceMotion = reduceMotion,
-                                        onLogout = { logout() },
+                                        onLogout = { sessionVm.logout() },
                                     )
 
                                     else -> HomeScreen(
@@ -504,7 +436,7 @@ fun GofileApp(activity: MainActivity) {
                                             newFolderName = ""
                                             showCreateFolder = true
                                         },
-                                        onRefresh = { stack.lastOrNull()?.let { loadFolder(it.id) } },
+                                        onRefresh = { folderVm.refresh(session.token) },
                                     )
                                 }
                             }
@@ -532,69 +464,19 @@ fun GofileApp(activity: MainActivity) {
             } else {
                 LoginScreen(
                     step = loginStep,
-                    email = email,
-                    tokenInput = tokenInput,
+                    email = sessionState.email,
+                    tokenInput = sessionState.tokenInput,
                     busy = busy,
                     reduceMotion = reduceMotion,
-                    onEmailChange = { email = it },
-                    onTokenChange = { tokenInput = it },
+                    onEmailChange = sessionVm::setEmail,
+                    onTokenChange = sessionVm::setTokenInput,
                     onBackToEmail = {
-                        loginStep = "email"
+                        sessionVm.backToEmail()
                         notice = null
                     },
-                    onSend = {
-                        scope.launch {
-                            busy = true
-                            notice = null
-                            try {
-                                withContext(Dispatchers.IO) { GofileApi.sendLoginLink(email.trim()) }
-                                loginStep = "token"
-                                showNotice(
-                                    "Link login terkirim. Cek email lalu tempel di sini.",
-                                    error = false,
-                                )
-                            } catch (error: Exception) {
-                                report(error)
-                            } finally {
-                                busy = false
-                            }
-                        }
-                    },
-                    onLogin = {
-                        val token = GofileApi.extractToken(tokenInput)
-                        if (token == null) {
-                            showNotice("Link atau token tidak dikenali. Tempel link lengkap dari email.")
-                        } else {
-                            scope.launch {
-                                busy = true
-                                notice = null
-                                try {
-                                    val account = withContext(Dispatchers.IO) {
-                                        GofileApi.getAccount(token)
-                                    }
-                                    enter(account.copy(token = token))
-                                } catch (error: Exception) {
-                                    report(error)
-                                } finally {
-                                    busy = false
-                                }
-                            }
-                        }
-                    },
-                    onGuest = {
-                        scope.launch {
-                            busy = true
-                            notice = null
-                            try {
-                                val guest = withContext(Dispatchers.IO) { GofileApi.createGuest() }
-                                enter(guest)
-                            } catch (error: Exception) {
-                                report(error)
-                            } finally {
-                                busy = false
-                            }
-                        }
-                    },
+                    onSend = { sessionVm.sendLoginLink(sessionState.email) },
+                    onLogin = { sessionVm.loginWithToken(sessionState.tokenInput) },
+                    onGuest = { sessionVm.loginAsGuest() },
                 )
             }
 
@@ -635,12 +517,12 @@ fun GofileApp(activity: MainActivity) {
                 onDismissRequest = { showCreateFolder = false },
                 containerColor = Hyper.Card,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("Folder baru", color = Hyper.Text) },
+                title = { Text(stringResource(R.string.folder_new_folder), color = Hyper.Text) },
                 text = {
                     HyperTextField(
                         value = newFolderName,
                         onValueChange = { newFolderName = it },
-                        label = "Nama folder",
+                        label = stringResource(R.string.folder_name_label),
                     )
                 },
                 confirmButton = {
@@ -648,52 +530,17 @@ fun GofileApp(activity: MainActivity) {
                         onClick = { createFolder() },
                         enabled = newFolderName.isNotBlank() && !busy,
                     ) {
-                        Text("Buat", color = Hyper.Accent)
+                        Text(stringResource(R.string.action_create), color = Hyper.Accent)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showCreateFolder = false }) {
-                        Text("Batal", color = Hyper.Text2)
+                        Text(stringResource(R.string.action_cancel), color = Hyper.Text2)
                     }
                 },
             )
         }
 
-        pendingDelete?.let { target ->
-            AlertDialog(
-                onDismissRequest = { pendingDelete = null },
-                containerColor = Hyper.Card,
-                shape = RoundedCornerShape(24.dp),
-                title = {
-                    Text(
-                        "Hapus ${if (target.isFolder) "folder" else "file"}?",
-                        color = Hyper.Text,
-                    )
-                },
-                text = {
-                    Column {
-                        Text(
-                            "\"${target.name}\" akan dihapus permanen dari GoFile. Tindakan ini tidak bisa dibatalkan.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Hyper.Text2,
-                        )
-                        Spacer(Modifier.height(18.dp))
-                        HoldToConfirm(
-                            label = "Tahan untuk hapus",
-                            hint = "Tahan 0,9 detik. Ketukan pendek ditolak.",
-                            enabled = !busy,
-                            onConfirm = { deleteItem(target) },
-                        )
-                    }
-                },
-                confirmButton = {},
-                dismissButton = {
-                    TextButton(onClick = { pendingDelete = null }) {
-                        Text("Batal", color = Hyper.Text2)
-                    }
-                },
-            )
-        }
     }
 }
 
@@ -727,1413 +574,6 @@ private fun HyperToast(text: String, error: Boolean, onDismiss: () -> Unit) {
                 color = Hyper.Text,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-/* ================================ beranda ================================= */
-
-@Composable
-private fun HomeScreen(
-    session: GSession,
-    items: List<GItem>,
-    busy: Boolean,
-    reduceMotion: Boolean,
-    activity: MainActivity,
-    permissionRevision: Int,
-    onOpenFolder: () -> Unit,
-    onUpload: () -> Unit,
-    onNewFolder: () -> Unit,
-    onRefresh: () -> Unit,
-) {
-    val scroll = rememberScrollState()
-    val folderCount = remember(items) { items.count { it.isFolder } }
-    val fileCount = remember(items) { items.size - folderCount }
-    val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
-    val entrance by animateFloatAsState(
-        targetValue = if (entered || reduceMotion) 1f else 0f,
-        animationSpec = tween(if (reduceMotion) 0 else 320, easing = HyperExpoOut),
-        label = "homeEntrance",
-    )
-    val density = LocalDensity.current
-    val shift = with(density) { (1f - entrance) * 14.dp.toPx() }
-
-    HyperPage(
-        title = "Beranda",
-        subtitle = "Isi root folder GoFile kamu, langsung dari perangkat.",
-        scroll = scroll,
-        reduceMotion = reduceMotion,
-        actions = {
-            HyperIconButton(
-                icon = Icons.Filled.Refresh,
-                description = "Muat ulang",
-                enabled = !busy,
-                onClick = onRefresh,
-            )
-        },
-    ) {
-        Column(
-            Modifier.graphicsLayer {
-                alpha = entrance
-                translationY = shift
-            },
-        ) {
-            PermissionSetup(activity = activity, revision = permissionRevision, reduceMotion = reduceMotion)
-
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusPill(
-                    text = "Sesi aktif",
-                    dotColor = Hyper.Ok,
-                    reduceMotion = reduceMotion,
-                )
-                StatusPill(
-                    text = "Tier ${session.tier.ifBlank { "Tamu" }}",
-                    dotColor = Hyper.Warn,
-                    pulse = false,
-                    reduceMotion = reduceMotion,
-                )
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            // Kartu akun: koral tipis dengan garis koral 40%.
-            HyperCard(
-                fill = Hyper.AccentSoft,
-                border = Hyper.AccentEdge,
-                shape = RoundedCornerShape(22.dp),
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Filled.CloudQueue,
-                            contentDescription = null,
-                            tint = Hyper.Accent,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(7.dp))
-                        Text(
-                            text = "GOFILE CLOUD",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 1.6.sp,
-                            color = Hyper.Accent,
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = session.email.ifBlank { "Akun tamu" },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Hyper.Text,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        MicroPill(session.tier.ifBlank { "Tamu" })
-                        MicroPill("Siap transfer")
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                StatTile(
-                    label = "Folder",
-                    value = folderCount.toString(),
-                    icon = Icons.Filled.Folder,
-                    modifier = Modifier.weight(1f),
-                )
-                StatTile(
-                    label = "File",
-                    value = fileCount.toString(),
-                    icon = Icons.AutoMirrored.Filled.InsertDriveFile,
-                    modifier = Modifier.weight(1f),
-                )
-                StatTile(
-                    label = "Ukuran",
-                    value = readableSize(totalSize),
-                    icon = Icons.Filled.SwapVert,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            SectionLabel("Aksi cepat")
-            HyperButton(
-                text = "Buka folder root",
-                icon = Icons.Filled.FolderOpen,
-                onClick = onOpenFolder,
-                height = 56.dp,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                FeatureTile(
-                    icon = Icons.Filled.Upload,
-                    title = "Unggah",
-                    state = "Pilih berkas",
-                    onClick = onUpload,
-                    modifier = Modifier.weight(1f),
-                )
-                FeatureTile(
-                    icon = Icons.Filled.CreateNewFolder,
-                    title = "Folder baru",
-                    state = "Di folder ini",
-                    onClick = onNewFolder,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-            if (busy) {
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ExpressiveLoader(size = 20.dp, reduceMotion = reduceMotion, color = Hyper.Accent)
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Menyinkronkan isi folder…",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Hyper.Text2,
-                    )
-                }
-            } else {
-                HyperButton(
-                    text = "Sinkronkan sekarang",
-                    icon = Icons.Filled.Refresh,
-                    primary = false,
-                    onClick = onRefresh,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            SectionLabel("Transfer terbaru")
-            TransferPanel(
-                limit = 2,
-                reduceMotion = reduceMotion,
-                showEmptyHint = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
-/** Pil kecil di dalam kartu akun. */
-@Composable
-private fun MicroPill(text: String) {
-    Surface(
-        shape = CircleShape,
-        color = Color.White.copy(alpha = 0.07f),
-        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.10f)),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Hyper.Text,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-        )
-    }
-}
-
-/** Kotak statistik: ikon kecil, angka tebal, label kapital. */
-@Composable
-private fun StatTile(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-) {
-    HyperCard(modifier = modifier, shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 11.dp)) {
-            IconChip(icon, size = 30.dp, tint = Hyper.Accent, iconSize = 16.dp)
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Hyper.Text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.1.sp,
-                color = Hyper.Text3,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-/** Ubin fitur: ikon, judul, dan status kapital di bawahnya. */
-@Composable
-private fun FeatureTile(
-    icon: ImageVector,
-    title: String,
-    state: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    active: Boolean = false,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = hyperSpring(0.3f, 0.6f),
-        label = "tilePress",
-    )
-    Surface(
-        onClick = onClick,
-        interactionSource = interaction,
-        shape = RoundedCornerShape(16.dp),
-        color = if (active) Hyper.AccentSoft else Hyper.Card,
-        border = BorderStroke(0.8.dp, if (active) Hyper.AccentEdge else Hyper.Hairline),
-        modifier = modifier
-            .heightIn(min = 92.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-    ) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 11.dp)) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (active) Hyper.Accent else Hyper.Text,
-                modifier = Modifier.size(22.dp),
-            )
-            Spacer(Modifier.height(9.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = Hyper.Text,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = state.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.1.sp,
-                color = if (active) Hyper.Accent else Hyper.Text3,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-/* ============================= izin transfer ============================== */
-
-@Composable
-private fun PermissionSetup(activity: MainActivity, revision: Int, reduceMotion: Boolean) {
-    if (revision < 0) return
-    val notificationsReady = activity.hasNotificationPermission()
-    val batteryReady = activity.isIgnoringBatteryOptimizations()
-    if (notificationsReady && batteryReady) return
-
-    HyperCard(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconChip(
-                    icon = Icons.Filled.NotificationsActive,
-                    size = 34.dp,
-                    tint = Hyper.Accent,
-                    fill = Hyper.AccentSoft,
-                    edge = Hyper.AccentEdge,
-                    iconSize = 18.dp,
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "Siapkan transfer latar belakang",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Hyper.Text,
-                    )
-                    Text(
-                        "Dua izin ini menjaga progres tetap berjalan.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Hyper.Text2,
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            PermissionRow(
-                ready = notificationsReady,
-                title = "Notifikasi progres",
-                supporting = "Progres unggah dan unduh tetap terlihat.",
-                actionLabel = "Aktifkan",
-                onAction = { activity.requestNotificationPermission() },
-            )
-            Spacer(Modifier.height(6.dp))
-            PermissionRow(
-                ready = batteryReady,
-                title = "Izin latar belakang",
-                supporting = "Transfer tidak terhenti saat aplikasi ditutup.",
-                actionLabel = "Atur",
-                onAction = { activity.requestIgnoreBatteryOptimizations() },
-            )
-        }
-    }
-}
-
-@Composable
-private fun PermissionRow(
-    ready: Boolean,
-    title: String,
-    supporting: String,
-    actionLabel: String,
-    onAction: () -> Unit,
-) {
-    val fill by animateColorAsState(
-        targetValue = if (ready) Hyper.AccentSoft else Hyper.CardRaised,
-        animationSpec = tween(240, easing = HyperEase),
-        label = "permissionFill",
-    )
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(fill)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = if (ready) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
-            contentDescription = null,
-            tint = if (ready) Hyper.Accent else Hyper.Text2,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = Hyper.Text,
-            )
-            Text(
-                text = supporting,
-                style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
-            )
-        }
-        if (ready) {
-            Text(
-                "SIAP",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.1.sp,
-                color = Hyper.Accent,
-            )
-        } else {
-            TextButton(onClick = onAction) {
-                Text(actionLabel, color = Hyper.Accent)
-            }
-        }
-    }
-}
-
-/* ================================= folder ================================= */
-
-@Composable
-private fun FolderScreen(
-    items: List<GItem>,
-    busy: Boolean,
-    stack: List<Crumb>,
-    reduceMotion: Boolean,
-    onOpen: (GItem) -> Unit,
-    onDownload: (GItem) -> Unit,
-    onDelete: (GItem) -> Unit,
-    onUpload: () -> Unit,
-    onBack: () -> Unit,
-    onRefresh: () -> Unit,
-    onNewFolder: () -> Unit,
-) {
-    val scroll = rememberScrollState()
-    val folders = remember(items) { items.count { it.isFolder } }
-    val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
-    val subtitle = when {
-        busy && items.isEmpty() -> "Memuat isi folder…"
-        items.isEmpty() -> "Belum ada isi di folder ini."
-        else -> "$folders folder · ${items.size - folders} file · ${readableSize(totalSize)}"
-    }
-
-    Box(Modifier.fillMaxSize()) {
-    HyperPage(
-        title = stack.lastOrNull()?.name ?: "Folder",
-        subtitle = subtitle,
-        scroll = scroll,
-        reduceMotion = reduceMotion,
-        actions = {
-            if (stack.size > 1) {
-                HyperIconButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    description = "Kembali",
-                    onClick = onBack,
-                )
-            }
-            HyperIconButton(
-                icon = Icons.Filled.CreateNewFolder,
-                description = "Folder baru",
-                enabled = !busy,
-                onClick = onNewFolder,
-            )
-            HyperIconButton(
-                icon = Icons.Filled.Refresh,
-                description = "Muat ulang",
-                enabled = !busy,
-                onClick = onRefresh,
-            )
-        },
-    ) {
-        when {
-            busy && items.isEmpty() -> {
-                Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
-                    ExpressiveLoader(size = 44.dp, reduceMotion = reduceMotion, color = Hyper.Accent)
-                }
-            }
-
-            items.isEmpty() -> {
-                Box(Modifier.fillMaxWidth().height(380.dp)) {
-                    EmptyState(
-                        icon = Icons.Filled.FolderOpen,
-                        title = "Folder ini kosong",
-                        body = "Unggah file pertama atau buat folder baru dari sini.",
-                        actionLabel = "Unggah file",
-                        onAction = onUpload,
-                    )
-                }
-            }
-
-            else -> {
-                HyperGroup {
-                    items.forEach { item ->
-                        HyperRow(
-                            title = item.name,
-                            subtitle = if (item.isFolder) "Folder" else readableSize(item.size),
-                            icon = if (item.isFolder) Icons.Filled.Folder else Icons.AutoMirrored.Filled.InsertDriveFile,
-                            iconTint = if (item.isFolder) Hyper.Accent else Hyper.Text2,
-                            iconFill = if (item.isFolder) Hyper.AccentSoft else Hyper.Chip,
-                            onClick = { onOpen(item) },
-                            trailing = {
-                                Row {
-                                    if (!item.isFolder && item.link.startsWith("http")) {
-                                        SmallIconAction(
-                                            icon = Icons.Filled.Download,
-                                            description = "Unduh ${item.name}",
-                                            onClick = { onDownload(item) },
-                                        )
-                                    }
-                                    SmallIconAction(
-                                        icon = Icons.Filled.Delete,
-                                        description = "Hapus ${item.name}",
-                                        tint = Hyper.Accent,
-                                        onClick = { onDelete(item) },
-                                    )
-                                }
-                            },
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                HyperButton(
-                    text = "Unggah ke folder ini",
-                    icon = Icons.Filled.Upload,
-                    onClick = onUpload,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
-
-    // Panel transfer mengambang di atas bar navigasi.
-    TransferPanel(
-        reduceMotion = reduceMotion,
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 88.dp),
-    )
-    }
-}
-
-/** Aksi ikon 36dp di ujung baris. */
-@Composable
-private fun SmallIconAction(
-    icon: ImageVector,
-    description: String,
-    onClick: () -> Unit,
-    tint: Color = Hyper.Text2,
-) {
-    Icon(
-        imageVector = icon,
-        contentDescription = description,
-        tint = tint,
-        modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
-            .clickable(onClick = onClick)
-            .padding(7.dp),
-    )
-}
-
-/* ================================ setelan ================================= */
-
-@Composable
-private fun SettingsScreen(
-    session: GSession,
-    reduceMotion: Boolean,
-    onLogout: () -> Unit,
-) {
-    val scroll = rememberScrollState()
-
-    HyperPage(
-        title = "Setelan",
-        subtitle = "Akun, tampilan, dan tentang aplikasi.",
-        scroll = scroll,
-        reduceMotion = reduceMotion,
-    ) {
-        HyperCard(
-            fill = Hyper.AccentSoft,
-            border = Hyper.AccentEdge,
-            shape = RoundedCornerShape(22.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.08f),
-                        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.12f)),
-                        modifier = Modifier.size(52.dp),
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.CloudQueue,
-                                contentDescription = null,
-                                tint = Hyper.Accent,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = session.email.ifBlank { "Akun tamu" },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Hyper.Text,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "Tier ${session.tier.ifBlank { "Tamu" }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Hyper.Text2,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                HyperButton(
-                    text = "Keluar dari akun",
-                    icon = Icons.AutoMirrored.Filled.Logout,
-                    primary = false,
-                    onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-
-        SectionLabel("Tampilan")
-        HyperGroup {
-            HyperRow(
-                title = "Tema",
-                subtitle = "Satu palet tetap: hitam murni, bukan warna dinamis.",
-                icon = Icons.Filled.Settings,
-                iconTint = Hyper.Text2,
-                value = "Gelap",
-            )
-            HyperRow(
-                title = "Warna aksen",
-                subtitle = "Satu aksen koral untuk seluruh aplikasi.",
-                icon = Icons.Filled.Shield,
-                iconTint = Hyper.Accent,
-                value = "Koral",
-            )
-            HyperRow(
-                title = "Animasi",
-                subtitle = if (reduceMotion) {
-                    "Diperkecil mengikuti skala animator sistem."
-                } else {
-                    "Spring 0,4s response, kurva expo-out, tekan karet."
-                },
-                icon = Icons.Filled.Refresh,
-                iconTint = Hyper.Text2,
-                value = if (reduceMotion) "Minim" else "Aktif",
-            )
-        }
-
-        SectionLabel("Tentang")
-        HyperGroup {
-            Column(Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "Gofile Expressive",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Hyper.Text,
-                        )
-                        Text(
-                            "Kotlin native dan Jetpack Compose",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Hyper.Text2,
-                        )
-                    }
-                    Surface(
-                        shape = CircleShape,
-                        color = Hyper.AccentSoft,
-                        border = BorderStroke(0.8.dp, Hyper.AccentEdge),
-                    ) {
-                        Text(
-                            text = "v${BuildConfig.VERSION_NAME}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = Hyper.Accent,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "Tanpa WebView. Unggah, unduh, folder, dan progres latar belakang berjalan di aplikasi ini.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
-                )
-            }
-            HyperRow(
-                title = "Bahasa visual",
-                subtitle = "HyperSpring: hitam murni, satu aksen koral, garis rambut.",
-                icon = Icons.Filled.Shield,
-                iconTint = Hyper.Text2,
-            )
-        }
-        Spacer(Modifier.height(8.dp))
-    }
-}
-
-/* ============================ masuk / setup =============================== */
-
-@OptIn(ExperimentalAnimationApi::class)
-@Composable
-private fun LoginScreen(
-    step: String,
-    email: String,
-    tokenInput: String,
-    busy: Boolean,
-    reduceMotion: Boolean,
-    onEmailChange: (String) -> Unit,
-    onTokenChange: (String) -> Unit,
-    onBackToEmail: () -> Unit,
-    onSend: () -> Unit,
-    onLogin: () -> Unit,
-    onGuest: () -> Unit,
-) {
-    val haptic = LocalHapticFeedback.current
-    var page by rememberSaveable { mutableStateOf(if (step == "token") 2 else 0) }
-    LaunchedEffect(step) {
-        if (step == "token" && page != 2) page = 2
-        if (step == "email" && page > 1) page = 1
-    }
-
-    BackHandler(enabled = page > 0 && !busy) {
-        if (page == 2) {
-            page = 1
-            onBackToEmail()
-        } else {
-            page = 0
-        }
-    }
-
-    val emailInvalid = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val emailReady = email.isNotBlank() && !emailInvalid
-
-    fun tap() {
-        if (!reduceMotion) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-    }
-
-    Box(Modifier.fillMaxSize()) {
-        DotGridBackground(
-            Modifier.fillMaxSize(),
-            hero = page == 0,
-            reduceMotion = reduceMotion,
-        )
-        TopScrim(Modifier.align(Alignment.TopCenter), height = 132.dp)
-        BottomVeil(Modifier.align(Alignment.BottomCenter), height = 236.dp)
-
-        // Pil lewati di kanan atas, seperti di onboarding HyperSpring.
-        Row(
-            Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(top = 10.dp, end = 14.dp),
-        ) {
-            Surface(
-                onClick = {
-                    if (busy) return@Surface
-                    tap()
-                    if (page == 0) page = 1
-                },
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White.copy(alpha = 0.07f),
-                border = BorderStroke(0.8.dp, Hyper.Hairline),
-            ) {
-                Text(
-                    text = if (page == 0) "Lewati" else "Masuk",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                )
-            }
-        }
-
-        Column(
-            Modifier
-                .fillMaxSize()
-                .imePadding(),
-        ) {
-            AnimatedContent(
-                targetState = page,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                label = "setupPage",
-                transitionSpec = {
-                    if (reduceMotion) {
-                        fadeIn(tween(140)) togetherWith fadeOut(tween(120))
-                    } else {
-                        val slide = spring<IntOffset>(dampingRatio = 0.84f, stiffness = 130f)
-                        val fade = tween<Float>(420)
-                        if (targetState > initialState) {
-                            ContentTransform(
-                                slideInHorizontally(slide) { full -> full } + fadeIn(fade),
-                                slideOutHorizontally(tween(340, easing = HyperEase)) { full -> -full / 4 } +
-                                    fadeOut(tween(340)),
-                                0f,
-                                SizeTransform(clip = false),
-                            )
-                        } else {
-                            ContentTransform(
-                                slideInHorizontally(slide) { full -> -full } + fadeIn(fade),
-                                slideOutHorizontally(tween(340, easing = HyperEase)) { full -> full / 4 } +
-                                    fadeOut(tween(340)),
-                                0f,
-                                SizeTransform(clip = false),
-                            )
-                        }
-                    }
-                },
-            ) { current ->
-                val entrance = remember { Animatable(0f) }
-                LaunchedEffect(Unit) {
-                    if (reduceMotion) {
-                        entrance.snapTo(1f)
-                    } else {
-                        entrance.animateTo(1f, hyperSpring(0.55f, 0.84f))
-                    }
-                }
-
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp)
-                        .graphicsLayer {
-                            alpha = entrance.value
-                            translationY = 40f * (1f - entrance.value)
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        Modifier
-                            .widthIn(max = 460.dp)
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        when (current) {
-                            0 -> WelcomePage(reduceMotion)
-                            1 -> EmailPage(
-                                email = email,
-                                emailInvalid = emailInvalid,
-                                busy = busy,
-                                onEmailChange = onEmailChange,
-                                onGuest = {
-                                    tap()
-                                    onGuest()
-                                },
-                                onSend = {
-                                    tap()
-                                    onSend()
-                                },
-                                emailReady = emailReady,
-                            )
-
-                            else -> TokenPage(
-                                tokenInput = tokenInput,
-                                email = email,
-                                busy = busy,
-                                onTokenChange = onTokenChange,
-                                onLogin = {
-                                    tap()
-                                    onLogin()
-                                },
-                                onResend = { onSend() },
-                                onChangeEmail = {
-                                    page = 1
-                                    onBackToEmail()
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                DropletPager(count = 3, index = page)
-            }
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (page > 0) {
-                    HyperButton(
-                        text = "Kembali",
-                        primary = false,
-                        squash = true,
-                        reduceMotion = reduceMotion,
-                        enabled = !busy,
-                        height = 56.dp,
-                        onClick = {
-                            tap()
-                            if (page == 2) {
-                                page = 1
-                                onBackToEmail()
-                            } else {
-                                page = 0
-                            }
-                        },
-                        modifier = Modifier.weight(0.8f),
-                    )
-                }
-                val nextEnabled = when (page) {
-                    0 -> !busy
-                    1 -> emailReady && !busy
-                    else -> tokenInput.isNotBlank() && !busy
-                }
-                HyperButton(
-                    text = when {
-                        busy && page == 1 -> "Mengirim…"
-                        busy && page == 2 -> "Memeriksa…"
-                        page == 2 -> "Masuk"
-                        page == 1 -> "Kirim tautan"
-                        else -> "Lanjut"
-                    },
-                    primary = true,
-                    squash = true,
-                    loading = busy,
-                    reduceMotion = reduceMotion,
-                    enabled = nextEnabled,
-                    height = 56.dp,
-                    onClick = {
-                        tap()
-                        when (page) {
-                            0 -> page = 1
-                            1 -> if (emailReady && !busy) onSend()
-                            else -> if (tokenInput.isNotBlank() && !busy) onLogin()
-                        }
-                    },
-                    modifier = Modifier.weight(1.2f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WelcomePage(reduceMotion: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "SELAMAT DATANG",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 3.2.sp,
-            color = Hyper.Accent,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(12.dp))
-        SplitTitle(
-            text = "GoFile",
-            style = MaterialTheme.typography.displayLarge,
-            reduceMotion = reduceMotion,
-        )
-        Spacer(Modifier.height(14.dp))
-        Text(
-            text = "Klien cloud native untuk mengunggah, mengunduh, dan merapikan folder tanpa WebView.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Hyper.Text2,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(30.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            WelcomeFeature(
-                icon = Icons.Filled.CloudQueue,
-                title = "Native dan ringan",
-                body = "Dibangun dengan Kotlin dan Jetpack Compose.",
-                delayIndex = 0,
-                reduceMotion = reduceMotion,
-            )
-            WelcomeFeature(
-                icon = Icons.Filled.Upload,
-                title = "Transfer latar belakang",
-                body = "Progres tetap berjalan lewat foreground service.",
-                delayIndex = 1,
-                reduceMotion = reduceMotion,
-            )
-            WelcomeFeature(
-                icon = Icons.Filled.Folder,
-                title = "Folder rapi",
-                body = "Buat, buka, dan hapus isi cloud langsung dari aplikasi.",
-                delayIndex = 2,
-                reduceMotion = reduceMotion,
-            )
-        }
-    }
-}
-
-/** Baris fitur onboarding: kaca tipis, ikon 48dp, muncul berurutan. */
-@Composable
-private fun WelcomeFeature(
-    icon: ImageVector,
-    title: String,
-    body: String,
-    delayIndex: Int,
-    reduceMotion: Boolean,
-) {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        if (reduceMotion) {
-            progress.snapTo(1f)
-        } else {
-            delay(120L + delayIndex * 90L)
-            progress.animateTo(1f, tween(760, easing = HyperPower4Out))
-        }
-    }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                alpha = progress.value
-                translationY = 22f * (1f - progress.value)
-            }
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.07f))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = Hyper.AccentSoft,
-            border = BorderStroke(0.8.dp, Hyper.AccentEdge),
-            modifier = Modifier.size(48.dp),
-        ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = Hyper.Accent, modifier = Modifier.size(22.dp))
-            }
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Hyper.Text,
-            )
-            Text(
-                body,
-                style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmailPage(
-    email: String,
-    emailInvalid: Boolean,
-    emailReady: Boolean,
-    busy: Boolean,
-    onEmailChange: (String) -> Unit,
-    onGuest: () -> Unit,
-    onSend: () -> Unit,
-) {
-    Text(
-        text = "Masuk ke GoFile",
-        style = MaterialTheme.typography.headlineLarge,
-        fontWeight = FontWeight.ExtraBold,
-        color = Hyper.Text,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(10.dp))
-    Text(
-        text = "Kami kirim tautan login sekali pakai ke email kamu. Ketuk linknya — langsung membuka aplikasi ini, tanpa browser.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = Hyper.Text2,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(26.dp))
-    HyperTextField(
-        value = email,
-        onValueChange = onEmailChange,
-        label = "Alamat email",
-        placeholder = "nama@contoh.com",
-        leadingIcon = Icons.Filled.Email,
-        supporting = if (emailInvalid) "Format email belum benar." else "Tautan login hanya dikirim ke alamat ini.",
-        isError = emailInvalid,
-        enabled = !busy,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Email,
-            imeAction = ImeAction.Send,
-        ),
-        keyboardActions = KeyboardActions(onSend = { if (emailReady && !busy) onSend() }),
-    )
-    Spacer(Modifier.height(14.dp))
-    HyperButton(
-        text = "Lanjut sebagai tamu",
-        icon = Icons.Filled.CloudQueue,
-        primary = false,
-        enabled = !busy,
-        onClick = onGuest,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Spacer(Modifier.height(12.dp))
-    Text(
-        text = "Token disimpan lokal di perangkat.",
-        style = MaterialTheme.typography.bodySmall,
-        color = Hyper.Text3,
-        textAlign = TextAlign.Center,
-    )
-}
-
-@Composable
-private fun TokenPage(
-    tokenInput: String,
-    email: String,
-    busy: Boolean,
-    onTokenChange: (String) -> Unit,
-    onLogin: () -> Unit,
-    onResend: () -> Unit,
-    onChangeEmail: () -> Unit,
-) {
-    Text(
-        text = "Cek email kamu",
-        style = MaterialTheme.typography.headlineLarge,
-        fontWeight = FontWeight.ExtraBold,
-        color = Hyper.Text,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(10.dp))
-    Text(
-        text = "Buka email dari GoFile, ketuk linknya untuk langsung masuk ke aplikasi — atau tempel di bawah.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = Hyper.Text2,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(26.dp))
-    HyperTextField(
-        value = tokenInput,
-        onValueChange = onTokenChange,
-        label = "Tautan atau token dari email",
-        placeholder = "https://gofile.io/login/...",
-        leadingIcon = Icons.Filled.Key,
-        trailing = {
-            Icon(
-                Icons.Filled.ContentPaste,
-                contentDescription = null,
-                tint = Hyper.Text2,
-                modifier = Modifier.size(20.dp),
-            )
-        },
-        supporting = "Link dari email otomatis membuka aplikasi ini.",
-        enabled = !busy,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(
-            onDone = { if (tokenInput.isNotBlank() && !busy) onLogin() },
-        ),
-    )
-    Spacer(Modifier.height(10.dp))
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        TextButton(onClick = onResend, enabled = email.isNotBlank() && !busy) {
-            Text("Kirim ulang", color = Hyper.Accent)
-        }
-        TextButton(onClick = onChangeEmail, enabled = !busy) {
-            Text("Ganti email", color = Hyper.Text2)
-        }
-    }
-}
-
-/* ============================== transfer ================================== */
-
-@OptIn(ExperimentalAnimationApi::class)
-@Composable
-private fun TransferPanel(
-    modifier: Modifier = Modifier,
-    limit: Int = 3,
-    reduceMotion: Boolean = false,
-    showEmptyHint: Boolean = false,
-) {
-    val transfers by TransferStore.transfers.collectAsState()
-    val recent = transfers.takeLast(limit).asReversed()
-    if (recent.isEmpty()) {
-        if (showEmptyHint) {
-            Text(
-                "Belum ada transfer. Unggah atau unduh file untuk melihat progresnya di sini.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
-            )
-        }
-        return
-    }
-    AnimatedVisibility(
-        visible = recent.isNotEmpty(),
-        enter = if (reduceMotion) {
-            fadeIn(tween(120))
-        } else {
-            slideInVertically(tween(240, easing = HyperExpoOut)) { it / 4 } + fadeIn(tween(180))
-        },
-        exit = if (reduceMotion) {
-            fadeOut(tween(100))
-        } else {
-            slideOutVertically(tween(160, easing = HyperPower3Out)) { it / 4 } + fadeOut(tween(120))
-        },
-    ) {
-        Surface(
-            modifier = modifier,
-            shape = RoundedCornerShape(22.dp),
-            color = Hyper.Card,
-            border = BorderStroke(0.8.dp, Hyper.Hairline),
-            shadowElevation = 6.dp,
-        ) {
-            Column(Modifier.padding(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconChip(
-                        icon = Icons.Filled.SwapVert,
-                        size = 30.dp,
-                        tint = Hyper.Accent,
-                        fill = Hyper.AccentSoft,
-                        edge = Hyper.AccentEdge,
-                        iconSize = 16.dp,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Transfer GoFile",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Hyper.Text,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text(
-                        text = "${recent.size} item",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Hyper.Text2,
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = "Tutup semua progres transfer",
-                        tint = Hyper.Text2,
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clip(CircleShape)
-                            .clickable { TransferStore.dismissAll() }
-                            .padding(7.dp),
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Geser baris ke kiri atau kanan untuk menghapusnya.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
-                )
-                Spacer(Modifier.height(8.dp))
-                recent.forEachIndexed { index, transfer ->
-                    SwipeToDismiss(onDismiss = { TransferStore.dismiss(transfer.id) }) {
-                        TransferRow(transfer = transfer, reduceMotion = reduceMotion)
-                    }
-                    if (index != recent.lastIndex) {
-                        Spacer(Modifier.height(8.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SwipeToDismiss(
-    onDismiss: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    var dismissed by remember { mutableStateOf(false) }
-    var widthPx by remember { mutableIntStateOf(0) }
-
-    val offset by animateFloatAsState(
-        targetValue = when {
-            dismissed -> if (dragOffset >= 0f) widthPx * 1.4f else -widthPx * 1.4f
-            else -> dragOffset
-        },
-        animationSpec = if (dismissed) {
-            tween(180, easing = HyperPower3Out)
-        } else {
-            hyperSpring(0.35f, 0.72f)
-        },
-        finishedListener = { if (dismissed) onDismiss() },
-        label = "swipeOffset",
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onSizeChanged { widthPx = it.width }
-            .semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction("Hapus dari daftar transfer") {
-                        onDismiss()
-                        true
-                    },
-                )
-            }
-            .graphicsLayer {
-                translationX = offset
-                val limit = widthPx.coerceAtLeast(1).toFloat()
-                alpha = (1f - abs(offset) / limit).coerceIn(0.2f, 1f)
-            }
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragEnd = {
-                        if (widthPx > 0 && abs(dragOffset) > widthPx * 0.32f) {
-                            dismissed = true
-                        } else {
-                            dragOffset = 0f
-                        }
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        dragOffset = (dragOffset + dragAmount)
-                            .coerceIn(-widthPx * 1.4f, widthPx * 1.4f)
-                    },
-                )
-            },
-    ) {
-        content()
-    }
-}
-
-@Composable
-private fun TransferRow(transfer: TransferInfo, reduceMotion: Boolean) {
-    val progress = transfer.progress
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0, 100) / 100f,
-        animationSpec = tween(if (reduceMotion) 0 else 320, easing = HyperExpoOut),
-        label = "transferProgress",
-    )
-    val finished = transfer.state == "success"
-    val failed = transfer.state == "error"
-    val indicator = when {
-        finished -> "selesai"
-        failed -> transfer.message
-        progress < 0 -> "menyiapkan…"
-        else -> "$progress%"
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Hyper.CardRaised)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = when {
-                    finished -> Icons.Filled.CheckCircle
-                    failed -> Icons.Filled.ErrorOutline
-                    else -> Icons.Filled.SwapVert
-                },
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = when {
-                    finished -> Hyper.Ok
-                    failed -> Hyper.Accent
-                    else -> Hyper.Text2
-                },
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "${transfer.fileName} · $indicator",
-                style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(Modifier.height(6.dp))
-        if (progress < 0 && !finished && !failed) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(18.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                ExpressiveLoader(
-                    size = 16.dp,
-                    color = Hyper.Accent,
-                    reduceMotion = reduceMotion,
-                )
-            }
-        } else {
-            LinearProgressIndicator(
-                progress = { if (finished) 1f else animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp),
-                color = if (failed) Hyper.Accent else Hyper.Text,
-                trackColor = Hyper.Track,
             )
         }
     }
