@@ -146,7 +146,9 @@ object GofileApi {
         }
         val totalPages = metadata?.optInt("totalPages") ?: 1
         return FolderPage(
-            items = items.sortedWith(compareBy({ !it.isFolder }, { it.name.lowercase(Locale.ROOT) })),
+            // Pertahankan urutan server (sortField/sortDirection); folder dulu,
+            // stable supaya urutan halaman tidak rusak saat digabung.
+            items = items.sortedBy { if (it.isFolder) 0 else 1 },
             page = metadata?.optInt("page") ?: page,
             pageSize = metadata?.optInt("pageSize") ?: pageSize,
             totalPages = totalPages.coerceAtLeast(1),
