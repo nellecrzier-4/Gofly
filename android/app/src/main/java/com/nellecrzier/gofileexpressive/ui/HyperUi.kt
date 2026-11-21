@@ -79,6 +79,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
@@ -540,11 +541,19 @@ fun HyperButton(
     loading: Boolean = false,
     squash: Boolean = false,
     reduceMotion: Boolean = false,
-    height: Dp = 52.dp,
+    height: Dp = 56.dp,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale = rememberRubberScale(pressed, squash && !reduceMotion)
+    val shine = remember { Animatable(0f) }
+
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            shine.animateTo(1f, tween(300, easing = HyperPower3Out))
+            shine.animateTo(0f, tween(220))
+        }
+    }
 
     val fill = when {
         primary -> Hyper.Accent
@@ -560,42 +569,68 @@ fun HyperButton(
         else -> Hyper.HairlineStrong
     }
 
-    Surface(
-        onClick = onClick,
-        enabled = enabled && !loading,
-        interactionSource = interaction,
-        shape = CircleShape,
-        color = if (enabled) fill else Hyper.Card,
-        border = androidx.compose.foundation.BorderStroke(0.8.dp, edge),
-        modifier = modifier
+    Box(
+        Modifier
             .height(height)
             .graphicsLayer {
                 scaleX = scale.first
                 scaleY = scale.second
             },
     ) {
-        Row(
-            Modifier.padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+        Surface(
+            onClick = onClick,
+            enabled = enabled && !loading,
+            interactionSource = interaction,
+            shape = CircleShape,
+            color = if (enabled) fill else Hyper.Card,
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, edge),
+            modifier = Modifier.fillMaxSize(),
         ) {
-            if (loading) {
-                ExpressiveLoader(
-                    size = 18.dp,
+            Row(
+                Modifier.padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (loading) {
+                    ExpressiveLoader(
+                        size = 18.dp,
+                        color = contentColor,
+                        reduceMotion = reduceMotion,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                } else if (icon != null) {
+                    Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(9.dp))
+                }
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = contentColor,
-                    reduceMotion = reduceMotion,
+                    maxLines = 1,
                 )
-                Spacer(Modifier.width(10.dp))
-            } else if (icon != null) {
-                Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(9.dp))
             }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = contentColor,
-                maxLines = 1,
+        }
+        ShineStripe(shine.value, Modifier.fillMaxSize())
+    }
+}
+
+/** Kilau sendok putih yang meluncur ke kanan saat ditekan. */
+@Composable
+private fun ShineStripe(alpha: Float, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        if (alpha > 0.02f) {
+            val w = size.width
+            val h = size.height
+            val seg = 0.36f * (w + h)
+            val cx = -seg + (w + 2f * seg) * alpha
+            val op = sin(alpha.toDouble() * PI).toFloat().coerceIn(0f, 1f)
+            drawRoundRect(
+                color = Color.White.copy(alpha = 0.55f * op),
+                topLeft = Offset(cx - seg, 0f),
+                size = Size(seg, h),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 2f),
+                blendMode = BlendMode.Plus,
             )
         }
     }
@@ -1116,21 +1151,33 @@ fun HyperPage(
     val collapse = with(density) { 130.dp.toPx() }
     val y = scroll.value.coerceAtLeast(0)
     val f = (y / collapse).coerceIn(0f, 1f)
-    val miniAlpha = ((y - with(density) { 44.dp.toPx() }) / with(density) { 60.dp.toPx() }).coerceIn(0f, 1f)
-    val stripAlpha = ((y - 0.55f * collapse) / (0.35f * collapse)).coerceIn(0f, 1f)
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     Box(modifier.fillMaxSize().background(Hyper.Bg)) {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            Spacer(Modifier.height(topInset + 52.dp))
+            Spacer(Modifier.height(topInset + 10.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 44.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(Modifier.weight(1f))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = actions,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
             Column(
                 Modifier
                     .graphicsLayer {
                         alpha = 1f - f
                         translationY = y * 0.45f
-                        scaleX = 1f - 0.12f * f
-                        scaleY = 1f - 0.12f * f
+                        rotationX = 18f * (1f - f)
                         transformOrigin = TransformOrigin(0f, 0f)
                     }
                     .padding(horizontal = 16.dp),
@@ -1152,44 +1199,6 @@ fun HyperPage(
                     .padding(horizontal = 16.dp)
                     .padding(top = 8.dp, bottom = bottomInset + 108.dp),
                 content = content,
-            )
-        }
-
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .height(52.dp)
-                .drawBehind {
-                    if (stripAlpha > 0.01f) {
-                        drawRect(Hyper.Bg.copy(alpha = stripAlpha))
-                        drawLine(
-                            color = Hyper.Hairline,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1f,
-                        )
-                    }
-                }
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Hyper.Text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .graphicsLayer { alpha = miniAlpha },
-            )
-            Spacer(Modifier.weight(1f))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                content = actions,
             )
         }
     }
@@ -1237,6 +1246,8 @@ fun HyperNavBar(
                         ),
                     ),
                 )
+                // Tint hitam supaya kapsul terbaca sebagai kaca di atas konten.
+                .drawBehind { drawRect(Color.Black.copy(alpha = 0.42f)) }
                 .border(1.dp, Hyper.GlassEdge, CircleShape)
                 .drawBehind {
                     drawLine(
