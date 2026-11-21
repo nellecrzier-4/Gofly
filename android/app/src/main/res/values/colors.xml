@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- COUI monochrome surfaces with one app-owned accent (CherryPick-Icons). -->
+    <!-- Palet HyperSpring: hitam murni, satu aksen koral. -->
     <color name="surface">#000000</color>
-    <color name="primary">#0A84FF</color>
-    <color name="primary_strong">#007AFF</color>
-    <color name="ic_launcher_background">#0A84FF</color>
+    <color name="card">#0E0E10</color>
+    <color name="primary">#FF5F45</color>
+    <color name="primary_strong">#FF5F45</color>
+    <color name="on_primary">#000000</color>
+    <color name="ic_launcher_background">#FF5F45</color>
 </resources>
