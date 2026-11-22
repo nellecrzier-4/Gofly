@@ -36,8 +36,24 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Runner GitHub sudah membawa Android SDK. Jangan pakai
+      # android-actions/setup-android: aksinya memanggil
+      # `sdkmanager "tools"`, dan paket `tools` sudah tidak ada di repositori
+      # SDK, sehingga langkah itu gagal sebelum Gradle pernah berjalan.
+      # Di sini hanya platform + build-tools yang dipastikan ada.
       - name: Siapkan Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          set -eu
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          MANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$MANAGER" ]; then
+            MANAGER=$(find "$SDK/cmdline-tools" -maxdepth 3 -name sdkmanager -type f 2>/dev/null | sort -r | head -1)
+          fi
+          yes | "$MANAGER" --licenses > /dev/null 2>&1 || true
+          "$MANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "sdk.dir=$SDK" > android/local.properties
 
       # Cache Gradle (wrapper + cache dependensi) antar-jalan.
       - name: Cache Gradle

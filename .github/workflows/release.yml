@@ -39,8 +39,21 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Sama seperti android.yml: jangan pakai android-actions/setup-android
+      # (meminta paket `tools` yang sudah tidak ada). Runner sudah punya SDK.
       - name: Siapkan Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          set -eu
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          MANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$MANAGER" ]; then
+            MANAGER=$(find "$SDK/cmdline-tools" -maxdepth 3 -name sdkmanager -type f 2>/dev/null | sort -r | head -1)
+          fi
+          yes | "$MANAGER" --licenses > /dev/null 2>&1 || true
+          "$MANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "sdk.dir=$SDK" > android/local.properties
 
       - name: Cache Gradle
         uses: gradle/actions/setup-gradle@v4
