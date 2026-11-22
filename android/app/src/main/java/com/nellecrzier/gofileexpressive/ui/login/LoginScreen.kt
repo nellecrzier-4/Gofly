@@ -483,32 +483,22 @@ private fun ActionBar(
         PAGE_EMAIL -> emailReady && !busy
         else -> tokenLooksValid && !busy
     }
-    Row(
+    // Satu tombol aksi selebar layar; "Kembali" jadi aksi tenang di bawahnya.
+    // Tidak memakai weight di dalam Row: pada skala teks besar isi tombol bisa
+    // melebihi lebar yang dialokasikan dan kapsul tergambar keluar layar.
+    Column(
         Modifier
             .zIndex(2f)
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color.Transparent, Hyper.Bg.copy(alpha = 0.92f)),
+                    listOf(Color.Transparent, Hyper.Bg.copy(alpha = 0.94f)),
                 ),
             )
             .navigationBarsPadding()
-            .padding(horizontal = 22.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 22.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (page > PAGE_WELCOME) {
-            HyperButton(
-                text = "Kembali",
-                primary = false,
-                squash = true,
-                reduceMotion = reduceMotion,
-                enabled = !busy,
-                height = 56.dp,
-                onClick = onBack,
-                modifier = Modifier.weight(0.78f),
-            )
-        }
         HyperButton(
             text = when {
                 busy && page == PAGE_EMAIL -> "Mengirim…"
@@ -524,8 +514,22 @@ private fun ActionBar(
             enabled = nextEnabled,
             height = 56.dp,
             onClick = onNext,
-            modifier = Modifier.weight(1.22f),
+            modifier = Modifier.fillMaxWidth(),
         )
+        if (page > PAGE_WELCOME) {
+            Spacer(Modifier.height(6.dp))
+            TextButton(
+                onClick = onBack,
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    "Kembali",
+                    color = Hyper.Text2,
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+        }
     }
 }
 
