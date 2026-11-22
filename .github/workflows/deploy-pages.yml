@@ -27,9 +27,10 @@ jobs:
 
       - name: Siapkan artefak situs
         run: |
-          mkdir -p site/js
-          cp index.html styles.css site/
-          cp js/api.js js/app.js site/js/
+          mkdir -p site/js site/icons
+          cp index.html styles.css manifest.webmanifest sw.js offline.html site/
+          cp js/api.js js/app.js js/qr.js site/js/
+          cp icons/icon.svg icons/icon-maskable.svg icons/icon-192.png icons/icon-512.png icons/icon-maskable-512.png site/icons/
           touch site/.nojekyll
 
       - name: Konfigurasi Pages

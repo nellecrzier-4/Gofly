@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Offline — Gofile Expressive</title>
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000000;
+        --card: #0e0e10;
+        --raised: #16161a;
+        --line: rgba(255, 255, 255, 0.09);
+        --text: #f5f5f7;
+        --text-2: #8e8e96;
+        --text-3: #5c5c66;
+        --accent: #ff5f45;
+        --accent-ink: #0b0b0c;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          color-scheme: light;
+          --bg: #f2f1ef;
+          --card: #ffffff;
+          --raised: #e9e7e3;
+          --line: rgba(0, 0, 0, 0.1);
+          --text: #151516;
+          --text-2: #6b6b70;
+          --text-3: #8a8a90;
+          --accent: #d64328;
+          --accent-ink: #ffffff;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      }
+      main {
+        width: min(430px, 100%);
+        padding: 28px 24px 24px;
+        border-radius: 24px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        text-align: left;
+      }
+      .mark {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: var(--raised);
+        margin-bottom: 18px;
+      }
+      .mark img {
+        width: 34px;
+        height: 34px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-2);
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.1;
+        letter-spacing: -0.035em;
+      }
+      p {
+        margin: 12px 0 0;
+        color: var(--text-2);
+        font-size: 13.5px;
+        line-height: 1.6;
+      }
+      strong {
+        color: var(--text);
+      }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 22px;
+      }
+      .primary,
+      button {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 48px;
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-size: 13.5px;
+        font-weight: 650;
+      }
+      button {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--text-2);
+        font: 600 12.5px inherit;
+      }
+      .primary:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .hint {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        color: var(--text-3);
+        font-size: 11.5px;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        main {
+          animation: rise 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes rise {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: none;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true"><img src="./icons/icon.svg" alt="" /></div>
+      <p class="eyebrow">GOFILE · OFFLINE</p>
+      <h1>Kamu sedang offline.</h1>
+      <p>
+        Halaman ini belum tersimpan di perangkat ini. Kalau folder terakhir sudah pernah dibuka,
+        <strong>buka aplikasinya</strong> — isi folder itu tetap bisa dilihat dari salinan offline.
+      </p>
+      <div class="actions">
+        <a class="primary" href="./">Buka aplikasi</a>
+        <button type="button" onclick="location.reload()">Coba lagi</button>
+      </div>
+      <p class="hint">Unggah, hapus, dan sinkron akan aktif lagi begitu koneksi kembali.</p>
+    </main>
+  </body>
+</html>

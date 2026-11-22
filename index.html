@@ -2,10 +2,21 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
     <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Gofile Expressive — file manager GoFile dengan bahasa visual HyperSpring dan permukaan kaca COUI. Login tanpa kata sandi lewat magic link."
+    />
     <title>Gofile Expressive — File manager bergaya glass</title>
+
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Gofile" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,13 +24,16 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=4" />
+    <link rel="stylesheet" href="./styles.css" />
 
-    <!-- Generator website-token resmi GoFile. Dipakai untuk request /contents/* -->
-    <script src="https://gofile.io/js/wt.obf.js"></script>
-    <script type="module" src="./js/app.js?v=4"></script>
+    <!-- Generator website-token resmi GoFile. Bila gagal dimuat, api.js
+         menghitung token lokal dengan SHA-256 (Web Crypto). -->
+    <script src="https://gofile.io/js/wt.obf.js" defer></script>
+    <script type="module" src="./js/app.js"></script>
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Lewati ke isi folder</a>
+
     <div class="ambient" aria-hidden="true">
       <span class="blob blob-a"></span>
       <span class="blob blob-b"></span>
@@ -34,7 +48,7 @@
             <div class="brand-mark" aria-hidden="true">
               <span class="ms brand-icon" data-fill="1">cloud</span>
             </div>
-            <p class="eyebrow">GOFILE · GLASS UI</p>
+            <p class="eyebrow">GOFILE · HYPERSPRING GLASS</p>
             <h1 id="auth-title" class="auth-title">File kamu,<br />penuh karakter.</h1>
             <p class="auth-subtitle">Masuk pakai link yang dikirim ke email. Tanpa kata sandi, tanpa ribet.</p>
           </div>
@@ -52,7 +66,9 @@
               <span class="ms field-icon" aria-hidden="true">mail</span>
               <input id="email" name="email" type="email" autocomplete="email" placeholder="nama@email.com" required />
             </div>
-            <p class="field-hint"><span class="ms hint-icon" aria-hidden="true">bolt</span> Kami akan mengirim login link ke email ini.</p>
+            <p class="field-hint">
+              <span class="ms hint-icon" aria-hidden="true">bolt</span> Kami akan mengirim login link ke email ini.
+            </p>
             <button class="btn btn-primary btn-block" type="submit">
               <span class="ms" aria-hidden="true">send</span>
               <span>Kirim login link</span>
@@ -73,14 +89,28 @@
             <label class="field-label" for="login-link">Tempel login link dari email</label>
             <div class="field field-link">
               <span class="ms field-icon" aria-hidden="true">link</span>
-              <input id="login-link" name="loginLink" type="text" autocomplete="off" spellcheck="false"
-                placeholder="https://gofile.io/login/..." required />
-              <button type="button" id="paste-btn" class="icon-btn field-action" title="Tempel dari clipboard"
-                aria-label="Tempel dari clipboard">
+              <input
+                id="login-link"
+                name="loginLink"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://gofile.io/login/..."
+                required
+              />
+              <button
+                type="button"
+                id="paste-btn"
+                class="icon-btn field-action"
+                title="Tempel dari clipboard"
+                aria-label="Tempel dari clipboard"
+              >
                 <span class="ms" aria-hidden="true">content_paste</span>
               </button>
             </div>
-            <p class="field-hint"><span class="ms hint-icon" aria-hidden="true">key</span> Boleh juga tempel langsung token 32 karakternya.</p>
+            <p class="field-hint">
+              <span class="ms hint-icon" aria-hidden="true">key</span> Boleh juga tempel langsung token 32 karakternya.
+            </p>
 
             <button class="btn btn-primary btn-block" type="submit">
               <span class="ms" aria-hidden="true">login</span>
@@ -88,8 +118,12 @@
               <span class="ms btn-trail" aria-hidden="true">arrow_forward</span>
             </button>
             <div class="auth-links">
-              <button type="button" id="resend-btn" class="text-btn" aria-label="Kirim ulang"><span class="ms" aria-hidden="true">refresh</span> Kirim ulang</button>
-              <button type="button" id="change-email-btn" class="text-btn" aria-label="Ubah email"><span class="ms" aria-hidden="true">edit</span> Ubah email</button>
+              <button type="button" id="resend-btn" class="text-btn" aria-label="Kirim ulang">
+                <span class="ms" aria-hidden="true">refresh</span> Kirim ulang
+              </button>
+              <button type="button" id="change-email-btn" class="text-btn" aria-label="Ubah email">
+                <span class="ms" aria-hidden="true">edit</span> Ubah email
+              </button>
             </div>
           </form>
 
@@ -97,7 +131,7 @@
 
           <div class="auth-foot" role="status">
             <span class="ms" aria-hidden="true">shield</span>
-            Token hanya disimpan di browser ini. Keluar kapan saja.
+            Token hanya disimpan di browser ini. Di komputer bersama, keluar setelah selesai.
           </div>
         </div>
       </section>
@@ -109,17 +143,23 @@
             <span class="ms brand-mini" data-fill="1" aria-hidden="true">cloud</span>
             <div>
               <h2 id="manager-title">Ruangku</h2>
-              <p>GoFile · tersinkron</p>
+              <p id="sync-status">GoFile · tersinkron</p>
             </div>
           </div>
 
           <div class="topbar-actions">
+            <span id="net-status" class="net-status" role="status" hidden>
+              <span class="ms" aria-hidden="true">cloud_off</span><span>Offline</span>
+            </span>
             <div class="search-pill" aria-label="Pencarian">
               <span class="ms" aria-hidden="true">search</span>
-              <input id="search" type="search" placeholder="Cari di folder ini…" aria-label="Cari" />
+              <input id="search" type="search" placeholder="Cari di folder ini…" aria-label="Cari di folder ini" />
               <kbd aria-hidden="true">/</kbd>
             </div>
-            <button id="sync-btn" class="btn btn-tonal" type="button" title="Sinkron ulang">
+            <button id="install-btn" class="icon-btn" type="button" title="Pasang aplikasi" aria-label="Pasang aplikasi" hidden>
+              <span class="ms" aria-hidden="true">install_desktop</span>
+            </button>
+            <button id="sync-btn" class="btn btn-tonal" type="button" title="Sinkron ulang" aria-label="Sinkron ulang">
               <span class="ms sync-icon" aria-hidden="true">sync</span><span class="btn-label">Sinkron</span>
             </button>
             <div class="account-chip" id="account-chip" title="Akun aktif">
@@ -132,21 +172,7 @@
           </div>
         </header>
 
-        <div id="android-notice" class="android-notice" hidden>
-          <span class="ms notice-icon" data-fill="1">notifications_active</span>
-          <div class="notice-copy">
-            <strong>Izin notifikasi &amp; latar belakang</strong>
-            <span>Aktifkan notifikasi dan izinkan aplikasi berjalan di latar belakang supaya unggah/unduh tidak terhenti saat kamu keluar aplikasi.</span>
-          </div>
-          <button id="grant-notif" class="btn btn-tonal btn-sm" type="button">
-            <span class="ms">notifications</span><span>Notifikasi</span>
-          </button>
-          <button id="grant-bg" class="btn btn-tonal btn-sm" type="button">
-            <span class="ms">bolt</span><span>Latar belakang</span>
-          </button>
-        </div>
-
-        <main class="content">
+        <main id="main-content" class="content" tabindex="-1">
           <nav class="breadcrumbs" id="breadcrumbs" aria-label="Lokasi folder"></nav>
 
           <div class="hero-row">
@@ -158,33 +184,126 @@
             <div class="stat-row" id="stats"></div>
           </div>
 
-          <div class="toolbar">
-            <button id="upload-btn" class="btn btn-primary btn-sm" type="button" hidden>
-              <span class="ms" aria-hidden="true">upload</span><span>Unggah file</span>
+          <div class="toolbar" role="toolbar" aria-label="Aksi folder">
+            <button id="upload-btn" class="btn btn-primary btn-sm" type="button" aria-label="Unggah file">
+              <span class="ms" aria-hidden="true">upload</span><span class="btn-label">Unggah</span>
+            </button>
+            <button id="newfolder-btn" class="btn btn-tonal btn-sm" type="button" title="Folder baru" aria-label="Folder baru">
+              <span class="ms" aria-hidden="true">create_new_folder</span><span class="btn-label">Folder</span>
             </button>
             <div class="segmented" role="group" aria-label="Tampilan">
-              <button class="seg is-active" data-view="grid" type="button" aria-pressed="true" title="Grid" aria-label="Grid"><span class="ms" aria-hidden="true">grid_view</span></button>
-              <button class="seg" data-view="list" type="button" aria-pressed="false" title="Daftar" aria-label="Daftar"><span class="ms" aria-hidden="true">list</span></button>
+              <button class="seg is-active" data-view="grid" type="button" aria-pressed="true" title="Grid" aria-label="Tampilan grid">
+                <span class="ms" aria-hidden="true">grid_view</span>
+              </button>
+              <button class="seg" data-view="list" type="button" aria-pressed="false" title="Daftar" aria-label="Tampilan daftar">
+                <span class="ms" aria-hidden="true">list</span>
+              </button>
             </div>
-            <button id="sort-btn" class="btn btn-tonal btn-sm" type="button" aria-haspopup="listbox" aria-label="Urutkan">
-              <span class="ms" aria-hidden="true">sort</span><span id="sort-label">Nama A–Z</span><span class="ms">expand_more</span>
+            <button id="sort-btn" class="btn btn-tonal btn-sm" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Urutkan, saat ini Nama A–Z">
+              <span class="ms" aria-hidden="true">sort</span><span id="sort-label">Nama A–Z</span><span class="ms" aria-hidden="true">expand_more</span>
+            </button>
+            <button id="filter-btn" class="btn btn-tonal btn-sm" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Saring jenis file">
+              <span class="ms" aria-hidden="true">filter_list</span><span class="btn-label" id="filter-label">Semua</span>
+              <span id="filter-dot" class="filter-dot" hidden aria-hidden="true"></span>
             </button>
           </div>
 
-          <div id="loading" class="skeleton-grid" hidden></div>
-          <div id="file-grid" class="file-grid" hidden></div>
+          <div id="loading" class="skeleton-grid" hidden aria-hidden="true"></div>
+          <div id="file-grid" class="file-grid" hidden aria-label="Isi folder"></div>
 
           <div id="empty" class="empty-state" hidden>
             <span class="ms empty-icon" data-fill="1">folder_off</span>
             <h3 id="empty-title">Folder ini kosong</h3>
             <p id="empty-text">Belum ada file atau folder di sini.</p>
+            <button id="empty-retry" class="btn btn-tonal btn-sm" type="button" hidden>
+              <span class="ms" aria-hidden="true">refresh</span><span>Coba lagi</span>
+            </button>
           </div>
         </main>
       </section>
 
+      <input id="file-input" type="file" multiple hidden aria-label="Pilih file untuk diunggah" />
+
+      <!-- Bar pilihan (multi-select) -->
+      <div id="selection-bar" class="selection-bar" role="toolbar" aria-label="Aksi item terpilih" hidden>
+        <span class="selection-count" id="selection-count" aria-live="polite">0 dipilih</span>
+        <div class="selection-actions">
+          <button id="sel-download" class="sel-btn" type="button" title="Unduh" aria-label="Unduh file terpilih">
+            <span class="ms" aria-hidden="true">download</span><span class="sel-label">Unduh</span>
+          </button>
+          <button id="sel-move" class="sel-btn" type="button" title="Pindahkan" aria-label="Pindahkan item terpilih">
+            <span class="ms" aria-hidden="true">drive_file_move</span><span class="sel-label">Pindah</span>
+          </button>
+          <button id="sel-copy" class="sel-btn" type="button" title="Salin" aria-label="Salin item terpilih">
+            <span class="ms" aria-hidden="true">content_copy</span><span class="sel-label">Salin</span>
+          </button>
+          <button id="sel-delete" class="sel-btn sel-danger" type="button" title="Hapus" aria-label="Hapus item terpilih">
+            <span class="ms" aria-hidden="true">delete</span><span class="sel-label">Hapus</span>
+          </button>
+          <button id="sel-clear" class="icon-btn sel-close" type="button" title="Batalkan pilihan" aria-label="Batalkan pilihan">
+            <span class="ms" aria-hidden="true">close</span>
+          </button>
+        </div>
+      </div>
+
       <div id="transfer-panel" class="transfer-panel" hidden aria-live="polite"></div>
+
+      <!-- Menu konteks / popover urutkan & saring -->
+      <div id="menu" class="menu" role="menu" tabindex="-1" hidden></div>
+
+      <!-- Panel detail -->
+      <aside id="details" class="details" aria-labelledby="details-title" hidden>
+        <header class="details-head">
+          <div>
+            <p class="eyebrow">DETAIL ITEM</p>
+            <h2 id="details-title">Detail</h2>
+          </div>
+          <button id="details-close" class="icon-btn" type="button" title="Tutup detail" aria-label="Tutup detail">
+            <span class="ms" aria-hidden="true">close</span>
+          </button>
+        </header>
+        <div id="details-body" class="details-body"></div>
+      </aside>
+
+      <!-- Pratinjau file -->
+      <div id="preview" class="preview" role="dialog" aria-modal="true" aria-labelledby="preview-title" hidden>
+        <div class="preview-card">
+          <header class="preview-head">
+            <div class="preview-copy">
+              <h2 id="preview-title">Pratinjau</h2>
+              <p id="preview-sub">—</p>
+            </div>
+            <button id="preview-close" class="icon-btn" type="button" title="Tutup pratinjau" aria-label="Tutup pratinjau">
+              <span class="ms" aria-hidden="true">close</span>
+            </button>
+          </header>
+          <div id="preview-body" class="preview-body"></div>
+          <footer id="preview-actions" class="preview-actions"></footer>
+        </div>
+      </div>
+
+      <!-- Dialog generik (konfirmasi, rename, folder baru, pilih folder, bagikan) -->
+      <dialog id="modal" class="modal" aria-labelledby="modal-title"></dialog>
+
+      <!-- Overlay unggah drag-and-drop -->
+      <div id="drop-overlay" class="drop-overlay" aria-hidden="true" hidden>
+        <div class="drop-card">
+          <span class="ms drop-icon" data-fill="1">upload_file</span>
+          <strong>Lepas untuk mengunggah</strong>
+          <span>ke <b id="drop-folder">folder ini</b></span>
+          <small id="drop-hint">Beberapa file sekaligus didukung.</small>
+        </div>
+      </div>
+
       <div id="snackbar" class="snackbar" role="status" aria-live="polite"></div>
-      <div id="busy" class="busy-overlay" hidden><span class="ms">progress_activity</span></div>
+      <div id="busy" class="busy-overlay" hidden>
+        <span class="ms" aria-hidden="true">progress_activity</span>
+        <span class="sr-only">Memproses…</span>
+      </div>
     </div>
+
+    <noscript>
+      <p class="noscript">Gofile Expressive membutuhkan JavaScript untuk bekerja.</p>
+    </noscript>
   </body>
 </html>

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "File manager GoFile dengan bahasa visual glass ala COUI — login via magic link",
   "scripts": {
-    "check": "node --check js/api.js && node --check js/app.js",
+    "check": "node --check js/api.js && node --check js/app.js && node --check js/qr.js && node --check sw.js",
     "serve": "python3 serve.py"
   }
 }
