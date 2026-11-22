@@ -388,7 +388,7 @@ fun GofileApp(activity: MainActivity) {
 
         // Kaca hidup: snapshot konten di belakang bar navigasi, diburamkan di API 31+.
         val blurEffect = remember {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) BlurEffect(40f, 40f) else null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) BlurEffect(26f, 26f) else null
         }
         val backdrop = rememberGraphicsLayer()
         var navBarTopLeft by remember { mutableStateOf(Offset.Zero) }

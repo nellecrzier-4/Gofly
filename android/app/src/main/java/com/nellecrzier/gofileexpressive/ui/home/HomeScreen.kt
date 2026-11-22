@@ -168,6 +168,10 @@ internal fun HomeScreen(
     val folderCount = remember(items) { items.count { it.isFolder } }
     val fileCount = remember(items) { items.size - folderCount }
     val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
+    // Angka bergulir dengan spring saat isi folder berubah.
+    val shownFolders = animatedCount(folderCount, reduceMotion)
+    val shownFiles = animatedCount(fileCount, reduceMotion)
+    val shownSize = animatedSize(totalSize.toFloat(), reduceMotion).toLong()
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     val entrance by animateFloatAsState(
@@ -262,19 +266,19 @@ internal fun HomeScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 StatTile(
                     label = "Folder",
-                    value = folderCount.toString(),
+                    value = shownFolders.toString(),
                     icon = Icons.Filled.Folder,
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
                     label = "File",
-                    value = fileCount.toString(),
+                    value = shownFiles.toString(),
                     icon = Icons.AutoMirrored.Filled.InsertDriveFile,
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
                     label = "Ukuran",
-                    value = readableSize(totalSize),
+                    value = readableSize(shownSize),
                     icon = Icons.Filled.SwapVert,
                     modifier = Modifier.weight(1f),
                 )

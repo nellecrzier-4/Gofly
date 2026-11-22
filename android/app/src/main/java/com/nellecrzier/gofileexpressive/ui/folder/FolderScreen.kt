@@ -10,6 +10,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -143,6 +145,8 @@ import com.nellecrzier.gofileexpressive.ui.EmptyState
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import com.nellecrzier.gofileexpressive.ui.HoldToConfirm
 import com.nellecrzier.gofileexpressive.ui.Hyper
+import com.nellecrzier.gofileexpressive.ui.hyperSpring
+import com.nellecrzier.gofileexpressive.ui.HyperPower3Out
 import com.nellecrzier.gofileexpressive.ui.HyperIconButton
 import com.nellecrzier.gofileexpressive.ui.HyperRow
 import com.nellecrzier.gofileexpressive.ui.HyperTextField
@@ -413,8 +417,10 @@ fun FolderScreen(
         // Bar aksi seleksi: kapsul kaca di atas bar navigasi.
         AnimatedVisibility(
             visible = state.selectionMode,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 3 },
+            enter = fadeIn(tween(160)) +
+                slideInVertically(hyperSpring(0.46f, 0.74f)) { it },
+            exit = fadeOut(tween(120)) +
+                slideOutVertically(tween(180, easing = HyperPower3Out)) { it / 3 },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -447,12 +453,18 @@ fun FolderScreen(
         // Pil Undo untuk penghapusan yang ditunda.
         AnimatedVisibility(
             visible = state.undo != null,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 3 },
+            enter = fadeIn(tween(160)) +
+                slideInVertically(hyperSpring(0.46f, 0.74f)) { it },
+            exit = fadeOut(tween(120)) +
+                slideOutVertically(tween(180, easing = HyperPower3Out)) { it / 3 },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = if (state.selectionMode) 148.dp else 86.dp),
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = if (state.selectionMode) 148.dp else 86.dp,
+                ),
         ) {
             UndoBar(
                 count = state.undoCount,
@@ -468,7 +480,14 @@ fun FolderScreen(
                 .navigationBarsPadding()
                 .padding(end = 18.dp, bottom = if (state.selectionMode) 158.dp else 96.dp),
         ) {
-            AnimatedVisibility(visible = fabOpen, enter = fadeIn(), exit = fadeOut()) {
+            AnimatedVisibility(
+                visible = fabOpen,
+                enter = fadeIn(tween(140)) + scaleIn(
+                    animationSpec = hyperSpring(0.4f, 0.62f),
+                    initialScale = 0.86f,
+                ),
+                exit = fadeOut(tween(120)) + scaleOut(tween(150), targetScale = 0.9f),
+            ) {
                 Column(horizontalAlignment = Alignment.End) {
                     MiniAction(
                         icon = Icons.Filled.CreateNewFolder,
@@ -985,12 +1004,13 @@ private fun FileList(
         modifier = Modifier.fillMaxSize(),
     ) {
         items(items, key = { it.id }) { item ->
-            SwipeableRow(
-                key = item.id,
-                enabled = !selectionMode,
-                onShare = { onSwipeShare(item) },
-                onDelete = { onSwipeDelete(item) },
-            ) {
+            Box(Modifier.animateItem()) {
+                SwipeableRow(
+                    key = item.id,
+                    enabled = !selectionMode,
+                    onShare = { onSwipeShare(item) },
+                    onDelete = { onSwipeDelete(item) },
+                ) {
                 FileRow(
                     density = density,
                     item = item,
@@ -1002,6 +1022,7 @@ private fun FileList(
                     onLongPress = { onLongPress(item) },
                     onMenu = { onMenu(item) },
                 )
+                }
             }
         }
         if (loadingMore) {
@@ -1183,6 +1204,7 @@ private fun FileGrid(
     ) {
         gridItems(items, key = { it.id }) { item ->
             GridCard(
+                modifier = Modifier.animateItem(),
                 item = item,
                 selected = item.id in selectedIds,
                 selectionMode = selectionMode,
@@ -1207,6 +1229,7 @@ private fun FileGrid(
 
 @Composable
 private fun GridCard(
+    modifier: Modifier = Modifier,
     item: GItem,
     selected: Boolean,
     selectionMode: Boolean,
@@ -1231,7 +1254,7 @@ private fun GridCard(
             if (selected) 1.dp else 0.8.dp,
             if (selected) Hyper.Accent else Hyper.Hairline,
         ),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
     ) {

@@ -9,6 +9,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -137,6 +138,55 @@ fun <T> hyperSpring(response: Float = 0.4f, damping: Float = 0.8f) = spring<T>(
     dampingRatio = damping,
     stiffness = (2f * PI.toFloat() / response).pow(2),
 )
+
+/**
+ * Skala tekan yang memantul. Dipakai kartu/baris yang tidak memakai `Surface`
+ * ber-ripple, supaya sentuhan terasa "kenyal" seperti HyperSpring.
+ */
+@Composable
+fun Modifier.springPress(
+    interactionSource: MutableInteractionSource,
+    reduceMotion: Boolean,
+    pressedScale: Float = 0.965f,
+): Modifier {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && !reduceMotion) pressedScale else 1f,
+        animationSpec = hyperSpring(0.32f, 0.55f),
+        label = "springPress",
+    )
+    return this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
+
+/**
+ * Angka yang bergulir ke nilai baru dengan spring — untuk jumlah item, ukuran,
+ * dan hitungan lain yang berubah saat folder dimuat ulang.
+ */
+@Composable
+fun animatedCount(target: Int, reduceMotion: Boolean): Int {
+    if (reduceMotion) return target
+    val value by animateIntAsState(
+        targetValue = target,
+        animationSpec = hyperSpring(0.62f, 0.9f),
+        label = "animatedCount",
+    )
+    return value
+}
+
+/** Versi pecahan dari [animatedCount], untuk ukuran berkas. */
+@Composable
+fun animatedSize(target: Float, reduceMotion: Boolean): Float {
+    if (reduceMotion) return target
+    val value by animateFloatAsState(
+        targetValue = target,
+        animationSpec = hyperSpring(0.62f, 0.9f),
+        label = "animatedSize",
+    )
+    return value
+}
 
 /** Menghormati skala animator sistem Android. */
 @Composable
@@ -1166,57 +1216,51 @@ fun HyperPage(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val density = LocalDensity.current
-    val collapse = with(density) { 130.dp.toPx() }
-    val y = scroll.value.coerceAtLeast(0)
-    val f = (y / collapse).coerceIn(0f, 1f)
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     Box(modifier.fillMaxSize().background(Hyper.Bg)) {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            Spacer(Modifier.height(topInset + 10.dp))
+            // Header rapat: inset status bar, satu baris judul + aksi, lalu
+            // subjudul. Tidak ada ruang kosong yang dulu muncul karena judul
+            // memakai SplitTitle yang diputar dan bisa tak terlihat.
+            Spacer(Modifier.height(topInset + 6.dp))
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 44.dp)
-                    .padding(horizontal = 16.dp),
+                    .heightIn(min = 52.dp)
+                    .padding(start = 18.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Spacer(Modifier.weight(1f))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Hyper.Text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     content = actions,
                 )
             }
-            Spacer(Modifier.height(4.dp))
-            Column(
-                Modifier
-                    .graphicsLayer {
-                        alpha = 1f - f
-                        translationY = y * 0.45f
-                        rotationX = 18f * (1f - f)
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    }
-                    .padding(horizontal = 16.dp),
-            ) {
-                SplitTitle(title, reduceMotion = reduceMotion)
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Hyper.Text2,
-                        lineHeight = 18.sp,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Hyper.Text2,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 0.dp, bottom = 2.dp),
+                )
             }
+            Spacer(Modifier.height(8.dp))
             Column(
                 Modifier
                     .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp, bottom = bottomInset + 108.dp),
+                    .padding(top = 4.dp, bottom = bottomInset + 124.dp),
                 content = content,
             )
         }
@@ -1261,23 +1305,33 @@ fun HyperNavBar(
                     onBoundsChange?.invoke(coordinates.positionInRoot(), coordinates.size)
                 }
                 .clip(CircleShape)
-                // Snapshot konten di belakang kapsul, sudah diburamkan pemanggil.
-                .drawBehind {
-                    val layer = backdrop
-                    if (layer != null) drawLayer(layer)
-                }
+                // Isi kapsul: tipis saja, karena snapshot yang diburamkan
+                // digambar di atasnya (BlurEffect dari pemanggil).
                 .background(
                     Brush.verticalGradient(
                         listOf(
                             Color.White.copy(alpha = 0.10f),
-                            Hyper.GlassFill,
-                            Hyper.GlassFill,
+                            Hyper.GlassFill.copy(alpha = 0.35f),
+                            Hyper.GlassFill.copy(alpha = 0.35f),
                         ),
                     ),
                 )
-                // Tint hitam supaya kapsul terbaca sebagai kaca di atas konten.
+                // Snapshot konten di belakang kapsul — urutan modifier penting:
+                // drawBehind terakhir digambar paling atas, jadi layer ini harus
+                // berada setelah background agar tidak tertutup.
                 .drawBehind {
-                    drawRect(Color.Black.copy(alpha = if (backdrop != null) 0.18f else 0.42f))
+                    val layer = backdrop
+                    if (layer != null) drawLayer(layer)
+                }
+                // Tint tipis supaya teks tetap terbaca di atas blur.
+                .drawBehind {
+                    drawRect(
+                        if (backdrop != null) {
+                            Color.Black.copy(alpha = 0.10f)
+                        } else {
+                            Color.Black.copy(alpha = 0.42f)
+                        },
+                    )
                 }
                 .border(1.dp, Hyper.GlassEdge, CircleShape)
                 .drawBehind {
@@ -1316,6 +1370,18 @@ fun HyperNavBar(
                     animationSpec = tween(200, easing = HyperEase),
                     label = "navContent",
                 )
+                // Ikon terpilih sedikit terangkat dan membesar: spring pendek,
+                // bukan tween, jadi terasa "hidup" saat tab berganti.
+                val iconPop by animateFloatAsState(
+                    targetValue = if (selected) 1.06f else 1f,
+                    animationSpec = hyperSpring(0.3f, 0.5f),
+                    label = "navIconPop",
+                )
+                val iconLift by animateDpAsState(
+                    targetValue = if (selected) (-1.5).dp else 0.dp,
+                    animationSpec = hyperSpring(0.36f, 0.62f),
+                    label = "navIconLift",
+                )
 
                 Box(
                     Modifier
@@ -1342,7 +1408,13 @@ fun HyperNavBar(
                             imageVector = tab.icon,
                             contentDescription = tab.label,
                             tint = content,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier
+                                .offset(y = iconLift)
+                                .graphicsLayer {
+                                    scaleX = iconPop
+                                    scaleY = iconPop
+                                }
+                                .size(24.dp),
                         )
                         Box(Modifier.width(openWidth).clipToBounds()) {
                             Text(

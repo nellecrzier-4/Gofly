@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -138,6 +139,7 @@ fun LibraryScreen(
                 }
             } else {
                 items(state.globalResults, key = { "g-${it.id}" }) { item ->
+                Box(Modifier.animateItem()) {
                     LibraryRow(
                         item = item,
                         favorite = prefs.favorites.any { it.id == item.id },
@@ -153,6 +155,7 @@ fun LibraryScreen(
                         },
                         onFavorite = { vm.toggleFavorite(item) },
                     )
+                    }
                 }
             }
             return@LazyColumn
