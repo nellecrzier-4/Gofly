@@ -33,7 +33,7 @@ data class PrefsState(
     val favorites: List<GItem> = emptyList(),
     val recent: List<GItem> = emptyList(),
     // Tampilan
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentChoice = AccentChoice.CORAL,
     val dynamicColor: Boolean = false,
     val fontScale: Float = 1f,
@@ -76,7 +76,7 @@ class AppPrefs(context: Context) {
             sortAscending = prefs[SORT_ASCENDING] ?: true,
             favorites = GItemJson.decodeList(prefs[FAVORITES]),
             recent = GItemJson.decodeList(prefs[RECENT]),
-            themeMode = enumOr(prefs[THEME_MODE], ThemeMode.SYSTEM),
+            themeMode = enumOr(prefs[THEME_MODE], ThemeMode.DARK),
             accent = enumOr(prefs[ACCENT], AccentChoice.CORAL),
             dynamicColor = prefs[DYNAMIC_COLOR] ?: false,
             fontScale = (prefs[FONT_SCALE] ?: 1f).coerceIn(0.85f, 1.3f),

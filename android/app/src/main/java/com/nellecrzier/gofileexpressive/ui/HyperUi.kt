@@ -153,8 +153,8 @@ val HyperEdgeBrush: Brush
     get() = Brush.linearGradient(
         colors = listOf(
             Color.White.copy(alpha = 0.60f),
-            Color.White.copy(alpha = 0.22f),
-            Color.White.copy(alpha = 0.30f),
+            Color.White.copy(alpha = 0.40f),
+            Color.White.copy(alpha = 0.44f),
         ),
         start = Offset.Zero,
         end = Offset(900f, 1400f),
@@ -1285,6 +1285,14 @@ fun HyperPage(
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     Box(modifier.fillMaxSize().background(Hyper.Bg)) {
+        // Latar jaringan titik yang bergerak pelan: ciri layar Setelan
+        // HyperSpring. Non-interaktif supaya tidak mencuri gestur gulir.
+        DotGridBackground(
+            Modifier.fillMaxSize(),
+            hero = false,
+            reduceMotion = reduceMotion,
+            interactive = false,
+        )
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
             // Header rapat: inset status bar, satu baris judul + aksi, lalu
             // subjudul. Tidak ada ruang kosong yang dulu muncul karena judul
@@ -1388,15 +1396,11 @@ fun HyperNavBar(
                     val layer = backdrop
                     if (layer != null) drawLayer(layer)
                 }
-                // Tint tipis supaya teks tetap terbaca di atas blur.
+                // Spesifikasi HyperSpring: di atas blur ada selubung hitam 22%
+                // ditambah veil putih 3% supaya kapsul terbaca sebagai kaca.
                 .drawBehind {
-                    drawRect(
-                        if (backdrop != null) {
-                            Color.Black.copy(alpha = 0.10f)
-                        } else {
-                            Color.Black.copy(alpha = 0.42f)
-                        },
-                    )
+                    drawRect(Color.Black.copy(alpha = if (backdrop != null) 0.22f else 0.42f))
+                    drawRect(Color.White.copy(alpha = 0.03f))
                 }
                 .border(0.8.dp, HyperEdgeBrush, CircleShape)
                 .drawBehind {
