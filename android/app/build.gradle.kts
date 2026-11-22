@@ -1,12 +1,12 @@
 plugins {
-    id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "com.nellecrzier.gofileexpressive"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.nellecrzier.gofileexpressive"
@@ -103,8 +103,12 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.10.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    // material3 1.5.0 menarik Compose 1.12 yang menuntut compileSdk 37;
+    // AGP 9.1 hanya mendukung 36. Jadi versi dari BOM (1.4.0) yang dipakai.
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    // Bentuk M3 Expressive (RoundedPolygon/Morph) untuk sudut bersambung.
+    implementation("androidx.graphics:graphics-shapes:1.0.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

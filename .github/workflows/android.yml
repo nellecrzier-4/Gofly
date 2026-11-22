@@ -52,7 +52,7 @@ jobs:
             MANAGER=$(find "$SDK/cmdline-tools" -maxdepth 3 -name sdkmanager -type f 2>/dev/null | sort -r | head -1)
           fi
           yes | "$MANAGER" --licenses > /dev/null 2>&1 || true
-          "$MANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          "$MANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0" > /dev/null
           echo "sdk.dir=$SDK" > android/local.properties
 
       # Cache Gradle (wrapper + cache dependensi) antar-jalan.
