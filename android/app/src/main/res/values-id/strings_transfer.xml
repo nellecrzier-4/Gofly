@@ -1,0 +1,124 @@
+<resources>
+    <!-- Mesin transfer: notifikasi, status, kesalahan, dan panel transfer. -->
+
+    <!-- kanal dan judul notifikasi -->
+    <string name="transfer_channel_alerts_name">Hasil transfer</string>
+    <string name="transfer_channel_alerts_description">Bunyi dan getar saat transfer selesai</string>
+    <string name="transfer_notification_title">Transfer</string>
+    <string name="transfer_notification_summary">%1$d berjalan · %2$d antre</string>
+    <string name="transfer_notification_summary_idle">Menyiapkan transfer…</string>
+    <string name="transfer_notification_summary_paused">%1$d dijeda</string>
+    <string name="transfer_notification_percent">%1$d%%</string>
+    <string name="transfer_notification_speed">%1$s/detik</string>
+    <string name="transfer_notification_preparing">Menyiapkan…</string>
+    <string name="transfer_notification_queued">Menunggu giliran</string>
+    <string name="transfer_notification_paused">Dijeda</string>
+    <string name="transfer_notification_retrying">Mencoba lagi (%1$d/%2$d)</string>
+    <string name="transfer_notification_done">Selesai</string>
+    <string name="transfer_notification_failed">Gagal</string>
+
+    <!-- aksi notifikasi dan baris -->
+    <string name="transfer_action_pause">Jeda</string>
+    <string name="transfer_action_resume">Lanjutkan</string>
+    <string name="transfer_action_cancel">Batal</string>
+    <string name="transfer_action_open">Buka</string>
+    <string name="transfer_action_share">Bagikan</string>
+
+    <!-- label arah -->
+    <string name="transfer_type_upload">Unggah</string>
+    <string name="transfer_type_download">Unduh</string>
+    <string name="transfer_type_folder">Unggah folder</string>
+
+    <!-- status -->
+    <string name="transfer_state_queued">Antre</string>
+    <string name="transfer_state_running">Mentransfer</string>
+    <string name="transfer_state_paused">Dijeda</string>
+    <string name="transfer_state_retrying">Mencoba lagi (%1$d/%2$d)…</string>
+    <string name="transfer_state_success">Selesai</string>
+    <string name="transfer_state_error">Gagal</string>
+    <string name="transfer_state_cancelled">Dibatalkan</string>
+    <string name="transfer_state_paused_message">Dijeda. Data sementara disimpan supaya bisa dilanjutkan.</string>
+    <string name="transfer_state_waiting_wifi">Menunggu Wi-Fi (mode hanya Wi-Fi aktif).</string>
+
+    <!-- pesan progres -->
+    <string name="transfer_message_preparing">Menyiapkan %1$s</string>
+    <string name="transfer_message_uploading">Mengunggah %1$s</string>
+    <string name="transfer_message_downloading">Mengunduh %1$s</string>
+    <string name="transfer_message_resume_from">Melanjutkan dari %1$s…</string>
+    <string name="transfer_message_restart_zero">Server tidak bisa melanjutkan berkas ini. Mengunduh ulang dari awal.</string>
+    <string name="transfer_message_upload_restart">Unggahan tidak bisa dilanjutkan. Memulai dari awal.</string>
+    <string name="transfer_message_uploading_item">Mengunggah %1$d dari %2$d: %3$s</string>
+    <string name="transfer_message_creating_folder">Membuat folder %1$s di GoFile…</string>
+    <string name="transfer_message_verifying">Memeriksa checksum MD5…</string>
+    <string name="transfer_message_done_upload">%1$s selesai diunggah (%2$s)</string>
+    <string name="transfer_message_done_download">%1$s tersimpan di %2$s (%3$s)</string>
+    <string name="transfer_message_done_folder">%1$s selesai diunggah (%2$d berkas, %3$s)</string>
+    <string name="transfer_message_cancelled">Dibatalkan. Data sementara sudah dihapus.</string>
+    <string name="transfer_message_retrying">Percobaan %1$d dari %2$d gagal. Mencoba lagi dalam %3$d detik…</string>
+
+    <!-- kecepatan dan perkiraan waktu -->
+    <string name="transfer_eta_seconds">%1$d dtk</string>
+    <string name="transfer_eta_minutes">%1$d mnt %2$d dtk</string>
+    <string name="transfer_eta_hours">%1$d jam %2$d mnt</string>
+
+    <!-- kesalahan yang ramah: tidak ada kode mentah yang sampai ke pengguna -->
+    <string name="transfer_error_quota">Penyimpanan GoFile sudah penuh. Hapus beberapa berkas lalu coba lagi.</string>
+    <string name="transfer_error_too_big">Berkas ini terlalu besar untuk paket GoFile kamu.</string>
+    <string name="transfer_error_storage_full">Penyimpanan ponsel penuh. Kosongkan ruang lalu coba lagi.</string>
+    <string name="transfer_error_network">Tidak ada koneksi internet. Periksa jaringan lalu coba lagi.</string>
+    <string name="transfer_error_expired">Sesi kamu berakhir. Masuk lagi untuk melanjutkan.</string>
+    <string name="transfer_error_not_premium">Fitur ini butuh akun GoFile Premium.</string>
+    <string name="transfer_error_rate_limited">Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.</string>
+    <string name="transfer_error_not_found">Berkas ini sudah tidak ada di GoFile.</string>
+    <string name="transfer_error_permission">Kamu tidak punya izin untuk mengubah berkas ini.</string>
+    <string name="transfer_error_empty_file">Berkas kosong atau tidak bisa dibaca.</string>
+    <string name="transfer_error_uri">Berkas tidak bisa dibaca. Pilih ulang dari Files.</string>
+    <string name="transfer_error_invalid_url">Tautan unduh ini tidak valid.</string>
+    <string name="transfer_error_folder_create">Gagal membuat folder di GoFile.</string>
+    <string name="transfer_error_size_mismatch">Ukuran unduhan tidak cocok dengan server. Coba lagi.</string>
+    <string name="transfer_error_server">Server GoFile sedang bermasalah. Coba lagi sebentar lagi.</string>
+    <string name="transfer_error_checksum">Checksum tidak cocok. Berkas rusak dan sudah dihapus.</string>
+    <string name="transfer_error_upload_rejected">GoFile menolak unggahan ini. Periksa berkasnya lalu coba lagi.</string>
+    <string name="transfer_error_file_changed">Berkas berubah saat dibaca. Pilih ulang berkasnya.</string>
+    <string name="transfer_error_no_destination">Tidak ada folder yang bisa ditulis untuk unduhan ini.</string>
+    <string name="transfer_error_unknown">Ada yang salah saat transfer. Coba lagi.</string>
+
+    <!-- panel transfer -->
+    <string name="transfer_panel_title">Transfer</string>
+    <string name="transfer_panel_active">Aktif</string>
+    <string name="transfer_panel_history">Riwayat</string>
+    <string name="transfer_panel_filter_all">Semua</string>
+    <string name="transfer_panel_filter_upload">Unggahan</string>
+    <string name="transfer_panel_filter_download">Unduhan</string>
+    <string name="transfer_panel_filter_done">Selesai</string>
+    <string name="transfer_panel_filter_failed">Gagal</string>
+    <string name="transfer_panel_filter_cancelled">Dibatalkan</string>
+    <string name="transfer_panel_empty_active">Tidak ada transfer yang berjalan.</string>
+    <string name="transfer_panel_empty_history">Transfer yang selesai akan muncul di sini.</string>
+    <string name="transfer_panel_empty_hint">Unggah atau unduh berkas untuk melihat progresnya di sini.</string>
+    <string name="transfer_panel_swipe_hint">Geser baris yang sudah selesai untuk menghapusnya.</string>
+    <string name="transfer_panel_active_count">%1$d aktif</string>
+    <string name="transfer_panel_history_count">%1$d di riwayat</string>
+    <string name="transfer_panel_clear">Bersihkan</string>
+    <string name="transfer_panel_clear_hold">Tahan untuk membersihkan riwayat</string>
+    <string name="transfer_panel_clear_hint">Tahan tombol sebentar. Transfer yang sedang berjalan tidak terpengaruh.</string>
+    <string name="transfer_panel_clear_title">Bersihkan riwayat transfer?</string>
+    <string name="transfer_panel_clear_body">%1$d entri akan dihapus. Transfer yang sedang berjalan tidak terpengaruh.</string>
+    <string name="transfer_panel_close">Tutup</string>
+    <string name="transfer_panel_dismiss">Hapus dari daftar</string>
+    <string name="transfer_panel_details_title">Detail transfer</string>
+    <string name="transfer_panel_field_state">Status</string>
+    <string name="transfer_panel_field_size">Ukuran</string>
+    <string name="transfer_panel_field_speed">Kecepatan</string>
+    <string name="transfer_panel_field_eta">Sisa waktu</string>
+    <string name="transfer_panel_field_saved">Tersimpan sebagai</string>
+    <string name="transfer_panel_field_message">Pesan</string>
+    <string name="transfer_panel_field_direction">Arah</string>
+    <string name="transfer_panel_field_md5">MD5</string>
+    <string name="transfer_panel_field_started">Mulai</string>
+    <string name="transfer_panel_field_finished">Selesai</string>
+    <string name="transfer_panel_of">%1$s dari %2$s</string>
+    <string name="transfer_panel_percent">%1$d%%</string>
+    <string name="transfer_panel_speed_value">%1$s/detik</string>
+    <string name="transfer_panel_unknown">—</string>
+</resources>

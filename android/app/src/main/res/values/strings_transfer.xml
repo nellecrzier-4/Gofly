@@ -1,0 +1,125 @@
+<resources>
+    <!-- Transfer engine: notifications, states, errors, and the transfer panel.
+         English is the default; values-id holds the Indonesian translation. -->
+
+    <!-- notification channels and titles -->
+    <string name="transfer_channel_alerts_name">Transfer results</string>
+    <string name="transfer_channel_alerts_description">Sound and vibration when a transfer finishes</string>
+    <string name="transfer_notification_title">Transfers</string>
+    <string name="transfer_notification_summary">%1$d active · %2$d queued</string>
+    <string name="transfer_notification_summary_idle">Preparing transfers…</string>
+    <string name="transfer_notification_summary_paused">%1$d paused</string>
+    <string name="transfer_notification_percent">%1$d%%</string>
+    <string name="transfer_notification_speed">%1$s/s</string>
+    <string name="transfer_notification_preparing">Preparing…</string>
+    <string name="transfer_notification_queued">Waiting for a slot</string>
+    <string name="transfer_notification_paused">Paused</string>
+    <string name="transfer_notification_retrying">Retrying (%1$d/%2$d)</string>
+    <string name="transfer_notification_done">Completed</string>
+    <string name="transfer_notification_failed">Failed</string>
+
+    <!-- notification and row actions -->
+    <string name="transfer_action_pause">Pause</string>
+    <string name="transfer_action_resume">Resume</string>
+    <string name="transfer_action_cancel">Cancel</string>
+    <string name="transfer_action_open">Open</string>
+    <string name="transfer_action_share">Share</string>
+
+    <!-- direction labels -->
+    <string name="transfer_type_upload">Upload</string>
+    <string name="transfer_type_download">Download</string>
+    <string name="transfer_type_folder">Folder upload</string>
+
+    <!-- states -->
+    <string name="transfer_state_queued">Queued</string>
+    <string name="transfer_state_running">Transferring</string>
+    <string name="transfer_state_paused">Paused</string>
+    <string name="transfer_state_retrying">Retrying (%1$d/%2$d)…</string>
+    <string name="transfer_state_success">Completed</string>
+    <string name="transfer_state_error">Failed</string>
+    <string name="transfer_state_cancelled">Cancelled</string>
+    <string name="transfer_state_paused_message">Paused. Partial data is kept so it can resume.</string>
+    <string name="transfer_state_waiting_wifi">Waiting for Wi-Fi (Wi-Fi only is on).</string>
+
+    <!-- progress messages -->
+    <string name="transfer_message_preparing">Preparing %1$s</string>
+    <string name="transfer_message_uploading">Uploading %1$s</string>
+    <string name="transfer_message_downloading">Downloading %1$s</string>
+    <string name="transfer_message_resume_from">Resuming from %1$s…</string>
+    <string name="transfer_message_restart_zero">The server cannot resume this file. Restarting from the beginning.</string>
+    <string name="transfer_message_upload_restart">Uploads cannot resume. Starting over.</string>
+    <string name="transfer_message_uploading_item">Uploading %1$d of %2$d: %3$s</string>
+    <string name="transfer_message_creating_folder">Creating folder %1$s on GoFile…</string>
+    <string name="transfer_message_verifying">Checking the MD5 checksum…</string>
+    <string name="transfer_message_done_upload">%1$s uploaded (%2$s)</string>
+    <string name="transfer_message_done_download">%1$s saved to %2$s (%3$s)</string>
+    <string name="transfer_message_done_folder">%1$s uploaded (%2$d files, %3$s)</string>
+    <string name="transfer_message_cancelled">Cancelled. Partial data was removed.</string>
+    <string name="transfer_message_retrying">Attempt %1$d of %2$d failed. Retrying in %3$d s…</string>
+
+    <!-- speed and ETA -->
+    <string name="transfer_eta_seconds">%1$ds</string>
+    <string name="transfer_eta_minutes">%1$dm %2$ds</string>
+    <string name="transfer_eta_hours">%1$dh %2$dm</string>
+
+    <!-- friendly errors: no raw server codes reach the user -->
+    <string name="transfer_error_quota">GoFile storage is full. Delete some files, then try again.</string>
+    <string name="transfer_error_too_big">This file is too large for your GoFile plan.</string>
+    <string name="transfer_error_storage_full">Phone storage is full. Free up space, then try again.</string>
+    <string name="transfer_error_network">No internet connection. Check your network and try again.</string>
+    <string name="transfer_error_expired">Your session expired. Sign in again to continue.</string>
+    <string name="transfer_error_not_premium">This needs a GoFile Premium account.</string>
+    <string name="transfer_error_rate_limited">Too many requests. Wait a moment, then try again.</string>
+    <string name="transfer_error_not_found">This file is no longer on GoFile.</string>
+    <string name="transfer_error_permission">You do not have permission to change this file.</string>
+    <string name="transfer_error_empty_file">The file is empty or cannot be read.</string>
+    <string name="transfer_error_uri">The file cannot be read. Pick it again from Files.</string>
+    <string name="transfer_error_invalid_url">This download link is not valid.</string>
+    <string name="transfer_error_folder_create">Could not create the folder on GoFile.</string>
+    <string name="transfer_error_size_mismatch">The downloaded size does not match the server. Try again.</string>
+    <string name="transfer_error_server">GoFile is having problems right now. Try again shortly.</string>
+    <string name="transfer_error_checksum">Checksum mismatch. The file was corrupted, so it was removed.</string>
+    <string name="transfer_error_upload_rejected">GoFile rejected the upload. Check the file and try again.</string>
+    <string name="transfer_error_file_changed">The file changed while it was read. Pick it again.</string>
+    <string name="transfer_error_no_destination">No writable folder was found for this download.</string>
+    <string name="transfer_error_unknown">Something went wrong during the transfer. Try again.</string>
+
+    <!-- transfer panel -->
+    <string name="transfer_panel_title">Transfers</string>
+    <string name="transfer_panel_active">Active</string>
+    <string name="transfer_panel_history">History</string>
+    <string name="transfer_panel_filter_all">All</string>
+    <string name="transfer_panel_filter_upload">Uploads</string>
+    <string name="transfer_panel_filter_download">Downloads</string>
+    <string name="transfer_panel_filter_done">Done</string>
+    <string name="transfer_panel_filter_failed">Failed</string>
+    <string name="transfer_panel_filter_cancelled">Cancelled</string>
+    <string name="transfer_panel_empty_active">No transfers running.</string>
+    <string name="transfer_panel_empty_history">Finished transfers show up here.</string>
+    <string name="transfer_panel_empty_hint">Upload or download a file to follow its progress here.</string>
+    <string name="transfer_panel_swipe_hint">Swipe a finished row to dismiss it.</string>
+    <string name="transfer_panel_active_count">%1$d active</string>
+    <string name="transfer_panel_history_count">%1$d in history</string>
+    <string name="transfer_panel_clear">Clear</string>
+    <string name="transfer_panel_clear_hold">Hold to clear history</string>
+    <string name="transfer_panel_clear_hint">Hold the button for a moment. Active transfers are not affected.</string>
+    <string name="transfer_panel_clear_title">Clear transfer history?</string>
+    <string name="transfer_panel_clear_body">%1$d entries will be removed. Active transfers are not affected.</string>
+    <string name="transfer_panel_close">Close</string>
+    <string name="transfer_panel_dismiss">Remove from list</string>
+    <string name="transfer_panel_details_title">Transfer details</string>
+    <string name="transfer_panel_field_state">State</string>
+    <string name="transfer_panel_field_size">Size</string>
+    <string name="transfer_panel_field_speed">Speed</string>
+    <string name="transfer_panel_field_eta">Time left</string>
+    <string name="transfer_panel_field_saved">Saved as</string>
+    <string name="transfer_panel_field_message">Message</string>
+    <string name="transfer_panel_field_direction">Direction</string>
+    <string name="transfer_panel_field_md5">MD5</string>
+    <string name="transfer_panel_field_started">Started</string>
+    <string name="transfer_panel_field_finished">Finished</string>
+    <string name="transfer_panel_of">%1$s of %2$s</string>
+    <string name="transfer_panel_percent">%1$d%%</string>
+    <string name="transfer_panel_speed_value">%1$s/s</string>
+    <string name="transfer_panel_unknown">—</string>
+</resources>
