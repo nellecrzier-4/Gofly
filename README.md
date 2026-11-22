@@ -1,105 +1,87 @@
 # Gofile Expressive
 
-File manager GoFile berbasis web dengan **bahasa visual glass ala COUI** (terinspirasi CherryPick-Icons): permukaan monokrom, satu aksen biru, sudut membulat besar, baris berkelompok dengan garis rambut, dan chrome kaca. Tanpa build step: cukup HTML, CSS, dan JavaScript native.
+Klien GoFile dua sisi: **aplikasi Android native 100% Compose** (tanpa WebView) dan **klien web statis** (HTML/CSS/JS, tanpa build step) yang bisa dipasang sebagai PWA.
 
-## Alur login (magic link)
+Bahasa visualnya HyperSpring: latar hitam, kartu `#0E0E10` yang dibedakan garis rambut 0,8dp, satu aksen koral `#FF5F45`, sudut 18dp, dan gerak spring (`hyperSpring(0.4f, 0.85f)`). Sejak 4.0 ada juga palet terang dan warna dinamis Material You.
 
-1. Masukkan email GoFile → aplikasi memanggil `POST https://api.gofile.io/accounts` dengan body `{ "email": "..." }`.
-2. GoFile mengirim **login link** berbentuk `https://gofile.io/login/<token32>` ke email tersebut.
-3. **Android**: ketuk link di email → link dibuka **langsung oleh aplikasi** (App Link `gofile.io/login`), token ditangkap native, sesi dibuat otomatis — **tanpa membuka browser**. Boleh juga tempel link/token manual ke kolom **Link**.
-4. **Web**: tempel link itu (atau langsung token 32 karakternya) ke kolom **Link** → aplikasi memanggil `GET /accounts/website` dengan `Authorization: Bearer <token>` untuk memverifikasi dan mengambil `rootFolder`.
-5. Berhasil masuk → tab utama menampilkan isi **root folder** akun GoFile kamu (live/sinkron dari API).
+## Login
 
-> Tombol *tempel dari clipboard* tersedia, dan token bisa juga diketik manual. GoFile API tidak menyediakan endpoint kata sandi (`/accounts/tokens` tidak ada), jadi magic link adalah satu-satunya cara masuk akun ber-email.
+1. Masukkan email GoFile → `POST /accounts` mengirim magic link.
+2. **Android**: ketuk link `gofile.io/login/<token>` di email → App Link membuka aplikasi dan membuat sesi (tanpa browser). Bisa juga menempel link/token manual.
+3. **Web**: tempel link/token → `GET /accounts/website` menukar token menjadi profil + `rootFolder`.
+4. Tamu tetap bisa masuk lewat `POST /accounts` tanpa email.
 
-## Fitur utama
+GoFile tidak menyediakan login kata sandi; magic link adalah satu-satunya jalan untuk akun ber-email.
 
-- **Tab utama = root folder**: breadcrumb navigasi, masuk ke folder bertingkat. Di Android, ketuk file = **unduh native** lewat foreground service — tanpa browser.
-- **Sinkron nyata**: tombol *Sinkron* memuat ulang isi folder langsung dari GoFile.
-- **Cari, urutkan, dan ganti tampilan** grid/list; folder selalu tampil lebih dulu.
-- **Statistik**: jumlah item, folder, file, dan total ukuran.
-- **Desain COUI** (mirrors [CherryPick-Icons](https://github.com/immorgue/CherryPick-Icons), versi web):
-  - palet COUI ulang: dark `#000000`/`#1A1A1A`/`#333333` dengan teks `#E6E6E6`/`#A3A3A3`, mode terang `#F1F1F1`/`#FFFFFF`/`#E6E6E6`; satu aksen `#007AFF`;
-  - vignet monokrom subtle di atas; kartu status hubung dengan garis rambut 1px; kartu file datar rambut 1px tanpa shadow lift, untuk tampilan grid dan daftar (daftar = baris terasih di sebidang seperti pil);
-  - topbar menyusut saat discroll;
-  - Material Symbols Rounded dengan axis `FILL`, `wght`, `GRAD`, `opsz`: ikon bisa "berisi" saat aktif;
-  - segmen tampilan membentuk pil frosted yang menerjap scale 1.07 saat aktif; tombol yang tidak aktif hanya ikon.
-  - animasi berdurasi pendek dengan easing redam, stagger card, ripple, skeleton shimmer, snackbar meluncur, dan View Transitions saat pindah folder.
-- **Responsif** dan menghormati `prefers-reduced-motion`.
+## Aplikasi Android
 
-## Menjalankan
+Seluruh UI Jetpack Compose, seluruh jaringan lewat `GofileApi` (OkHttp). Tidak ada `WebView`, `androidx.webkit`, Custom Tabs, atau jembatan JavaScript — CI menggagalkan PR bila muncul pemakaian nyata.
 
-Butuh Python 3. Tidak perlu Node/npm.
+**Penjelajah berkas**: paginasi otomatis, pencarian dalam folder dengan sorotan, urut nama/ukuran/tanggal/tipe, filter tipe, tampilan daftar dan grid dengan thumbnail (Coil), breadcrumb, pull-to-refresh, skeleton, cache folder untuk mode offline, favorit, terbaru, pencarian lintas folder yang pernah dibuka, multi-pilih dengan bilah aksi kaca, rename/move/copy, detail item, dan hapus dengan jendela **Undo** (API GoFile tidak punya recycle bin — lihat "Batas API").
+
+**Pratinjau native**: gambar (zoom, geser, galeri, slideshow), video/audio (Media3 ExoPlayer dengan header CDN), teks/kode/Markdown (Compose `AnnotatedString`, tanpa HTML), PDF (`PdfRenderer`), dan "Buka dengan" lewat chooser sistem + FileProvider.
+
+**Berbagi**: lembar bagikan dengan pratinjau tautan, salin, `ACTION_SEND`, kode QR (ZXing digambar di Compose), dan pengaturan konten (publik, kata sandi, kedaluwarsa, deskripsi, tag) lewat `PUT /contents/{id}/update`.
+
+**Transfer**: antrean di foreground service dengan batas paralel, jeda/lanjutkan, unduh ulang dengan `Range` + validasi `ETag`/`Last-Modified`, coba ulang dengan backoff, kecepatan + ETA, riwayat persisten, hanya-Wi-Fi, folder unduhan SAF, verifikasi MD5 bila tersedia, serta notifikasi dengan aksi buka/bagikan.
+
+**Integrasi sistem**: terima `ACTION_SEND`/`SEND_MULTIPLE`, pintasan aplikasi, Splash Screen API, kunci aplikasi biometrik/PIN, tautan `gofile.io/d/<id>` dibuka native.
+
+**Setelan**: tema Sistem/Gelap/Terang, lima aksen, warna dinamis, bahasa per-aplikasi (Indonesia/Inggris), ukuran teks, kerapatan daftar, tampilan dan urutan bawaan, mode konfirmasi hapus, jendela Undo, jaringan, lokasi unduhan, kunci aplikasi, bersihkan cache/pustaka, ekspor log, dan halaman Akun (tier, kuota, rincian penyimpanan bila dikirim API).
+
+## Klien web
+
+`index.html` + `js/` bekerja penuh di browser: unggah (pilih berkas dan seret-lepas), buat folder, hapus, unduh, rename, pindah/salin, bagikan, pencarian, urutan, filter, multi-pilih, menu klik kanan, pintasan papan tombol, pratinjau, dan detail. `manifest.webmanifest` + `sw.js` membuatnya bisa dipasang dan tetap terbuka offline untuk folder terakhir. Semua referensi `window.AndroidBridge` sudah dihapus; web dan Android tidak saling bergantung.
+
+`X-Website-Token` dihitung lokal dengan Web Crypto (`crypto.subtle.digest`), dengan fallback ke skrip resmi `wt.obf.js`.
 
 ```bash
-cd gofile-expressive
-python3 serve.py --port 5173
+python3 serve.py --port 5173   # buka http://localhost:5173
+npm run check                   # validasi sintaks js
 ```
 
-Buka <http://localhost:5173>.
-
-Atau langsung buka `index.html` di browser (beberapa browser membatasi clipboard API di `file://`, jadi server lokal lebih disarankan).
-
-## Catatan teknis
-
-- Endpoint mengikuti apa yang dipakai situs resmi `gofile.io`:
-  - `POST /accounts`: kirim login link (membuat akun jika belum ada),
-  - `GET /accounts/website`: tukar token jadi profil + `rootFolder`,
-  - `GET /contents/{id}`: children folder dengan header `X-Website-Token` dan `X-BL`.
-- `X-Website-Token` dihasilkan oleh skrip resmi GoFile `https://gofile.io/js/wt.obf.js` yang dimuat dari CDN di `index.html`. Skrip ini dapat dirotasi oleh GoFile; aplikasi memuatnya segar setiap halaman dibuka.
-- Token disimpan di `localStorage` browser (`gofile-expressive-session`) hanya untuk sesi ini. Tombol **Keluar** menghapusnya. Jangan pakai di komputer bersama tanpa membersihkan sesi.
-- Permintaan langsung dari browser ke `api.gofile.io` diizinkan (CORS). Jika GoFile mengubah kebijakan CORS atau proteksi website-token, aplikasi perlu disesuaikan.
-
-## Aplikasi Android (native Kotlin)
-
-Folder `android/` berisi proyek Android native (Kotlin + Jetpack Compose). **Tidak ada `WebView`**: seluruh UI dan panggilan API berjalan native:
-
-- **Login native**: setup tiga halaman (selamat datang → email → token) di atas latar titik yang bergerak pelan dengan dua sumber cahaya koral, judul besar yang muncul huruf per huruf, pil *Lewati*, indikator halaman berbentuk tetesan, dan tombol 56dp. Validasi email, aksi keyboard/IME, dan pesan kesalahan tetap terbaca. Bisa kirim magic link, tempel link/token, atau masuk sebagai tamu. **Link login dari email dibuka langsung oleh aplikasi (App Link), bukan browser.** Token website dihitung langsung dengan SHA-256 memakai rumus resmi GoFile.
-- **Bar navigasi kaca**: satu kapsul melayang 10dp dari tepi dengan garis tepi putih 12%, kilau atas, dan pil aktif putih 16%. Tab terpilih membuka labelnya dengan spring `response 0,4 / damping 0,85`; ikon dan label aktif berwarna koral. Konten yang lewat di belakangnya **diburamkan langsung** (`RenderEffect` pada `GraphicsLayer`, Android 12+) lalu ditimpa tint tipis, jadi kapsul benar-benar tembus pandang; di Android 11 ke bawah dipakai tint 42% sebagai gantinya.
-- **Gerak ala HyperSpring**: spring dinyatakan sebagai *response + damping* (`hyperSpring(0.4f, 0.85f)`), kurva `expo-out`/`power3-out` untuk reveal, judul layar 40sp yang miring ke belakang (`rotationX`) dan memudar saat digulir, baris daftar masuk berurutan, dan tombol dengan tekan karet 1,05×0,88 lalu memantul kosinus teredam. Semua animasi berhenti saat skala animator sistem 0.
-- **Checklist izin**: notifikasi dan izin latar belakang ditampilkan sebagai satu kartu status dengan aksi langsung.
-- **Bahasa visual HyperSpring** (diport dari [olilio3/HyperSpring](https://github.com/olilio3/HyperSpring)): latar `#000000`, kartu `#0E0E10` yang dibedakan oleh garis rambut 0,8dp `#17FFFFFF` alih-alih bayangan, satu aksen koral `#FF5F45`, teks `#F5F5F7`/`#8E8E96`/`#5C5C66`, judul 40sp dengan jarak huruf negatif, label bagian 11,5sp kapital berjarak lebar, sudut 18dp, dan tanpa mode terang maupun warna dinamis.
-- **Browser folder native**: daftar folder/file dari `GET /contents/{id}`, navigasi masuk/keluar, refresh, dan logout.
-- **Back prediktif**: gestur back menggeser halaman mengikuti jari (geser 36dp + skala 5%) sebelum menutup tab atau folder; `enableOnBackInvokedCallback` aktif sehingga animasi sistem ikut berjalan di Android 14+.
-- **Kelola folder**: buat folder baru (`POST /contents/createFolder`) dan hapus file/folder (`DELETE /contents`) langsung dari daftar.
-- **Unggah file** dari pemilih file Android → `POST https://upload.gofile.io/uploadfile` ke folder yang sedang dibuka (dengan token akun).
-- **Unduh file** ke folder *Downloads* perangkat (MediaStore di Android 10+, folder `Gofile Expressive/Downloads` di Android 9 ke bawah). Fallback otomatis mencoba ulang tanpa header akun jika node CDN menolak header tersebut.
-- **Foreground service** bertipe `dataSync` + *partial wake lock*: transfer tetap berjalan saat aplikasi ditutup, pindah ke home screen, atau layar mati.
-- **Notifikasi progres** (channel `gofile_transfers`) menampilkan persentase dan hasil akhir; notifikasi bisa diketuk untuk kembali ke aplikasi.
-- **Izin wajib**: `POST_NOTIFICATIONS` (Android 13+) diminta sebelum transfer, dan pengguna diarahkan untuk mengizinkan *Ignore battery optimizations* agar sistem tidak mematikan transfer di latar belakang.
-- **Panel transfer Compose**: progres upload/download diamati langsung dari `TransferStore` (StateFlow) di dalam panelnya sendiri, termasuk keadaan indeterminate saat ukuran belum diketahui. Setiap baris bisa digeser ke kiri atau kanan untuk dihapus, dan tombol tutup membersihkan seluruh daftar.
-- **Indikator loading ekspresif**: `ExpressiveLoader` menggambar satu blob berdenyut yang berputar, dipakai di tombol, sinkronisasi, dan keadaan kosong, menggantikan spinner cincin biasa.
-- **Aksi merusak tanpa merah**: hapus file memakai baris *tahan untuk konfirmasi* 900ms dengan isi koral yang mengalir; ketukan pendek ditolak dengan getar dan goyangan kecil.
-- **Tanpa jembatan JavaScript**: tidak ada `AndroidBridge`, tidak ada `window.*`, dan tidak bergantung pada halaman GitHub Pages.
-
-### Build APK
+## Build Android
 
 ```bash
 cd android
 export ANDROID_HOME=/path/ke/Android/Sdk
 export ANDROID_SDK_ROOT=$ANDROID_HOME
-./gradlew :app:assembleDebug
-# APK: android/app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleDebug      # APK: android/app/build/outputs/apk/debug/
+./gradlew :app:testDebugUnitTest  # 45 unit test
+./gradlew :app:lintDebug
 ```
 
-Min SDK 26, target/compile SDK 35, JDK 17, AGP 8.6.1, Kotlin 2.0.20. Workflow `.github/workflows/android.yml` mem-build APK otomatis di GitHub Actions dan menyimpannya sebagai artefak `gofile-expressive-apk` setiap push ke `main`.
+Min SDK 26, compile/target SDK 35, JDK 17, AGP 8.6.1, Kotlin 2.0.20.
 
-> Aplikasi Android berdiri sendiri dan tidak memuat URL web apa pun. Versi web di GitHub Pages tetap tersedia untuk browser/desktop.
+Rilis: `./gradlew :app:assembleRelease` memakai `signingConfig` dari variabel lingkungan `RELEASE_KEYSTORE_PATH`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. CI memetakannya dari secret `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, lalu membuat GitHub Release pada tag `v*`.
+
+## Batas API GoFile
+
+Fitur berikut **tidak** disediakan API, jadi tidak dibuat palsu; UI menyatakannya:
+
+- **Tidak ada recycle bin / tempat sampah.** Hapus ditunda beberapa detik di balik snackbar Undo, lalu `DELETE` dikirim.
+- **Tidak ada pencarian global.** Pencarian lintas folder hanya mencakup folder yang pernah dibuka dan di-cache.
+- **Tidak ada daftar tautan berbagi, statistik, atau cabut tautan.**
+- **Tidak ada endpoint ZIP.** Folder tidak bisa diunduh sebagai satu arsip.
+- **Tidak ada nilai "publik" saat dibaca.** Toggle publik dimulai sebagai "tidak diubah" dan hanya dikirim bila disentuh.
+- Endpoint pindah/salin membutuhkan akun Premium (`error-notPremium` dipetakan ke pesan yang jelas).
+- Nilai untuk menghapus tanggal kedaluwarsa belum dipastikan dokumentasi; dikirim sebagai string kosong.
 
 ## Struktur
 
 ```
 .
-├── index.html      # shell UI + loader ikon & wt.obf.js
-├── styles.css      # design tokens + animasi Material Expressive + UI transfer
-├── js/
-│   ├── api.js      # klien API, sesi, parser token
-│   └── app.js      # state, alur login, file manager, jembatan Android
-├── android/        # proyek native Kotlin + Compose (tanpa WebView) + foreground service
-├── .github/workflows/
-│   ├── ci.yml              # validasi sumber
-│   ├── deploy-pages.yml    # deploy web ke GitHub Pages
-│   └── android.yml         # build APK
-├── serve.py        # server statis lokal
+├── index.html, styles.css, js/       # klien web + PWA (sw.js, manifest.webmanifest)
+├── android/                          # aplikasi native Kotlin + Compose
+│   └── app/src/main/java/com/nellecrzier/gofileexpressive/
+│       ├── GofileApi.kt, GofileParsing.kt, GofileRepository.kt, GofileConfig.kt
+│       ├── TransferService.kt, TransferStore.kt, transfer/
+│       ├── ui/ (folder, home, library, login, settings, transfer, preview, share, security, account)
+│       └── vm/ (Folder, Session, Settings, Transfers)
+├── .github/workflows/                # ci.yml, android.yml, release.yml, deploy-pages.yml
+├── serve.py
+├── CHANGELOG.md, CONTRIBUTING.md, LICENSE
 └── README.md
 ```
+
+Lisensi Apache-2.0. Lihat `CHANGELOG.md` untuk riwayat versi dan `CONTRIBUTING.md` sebelum mengirim perubahan.

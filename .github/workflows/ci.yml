@@ -1,9 +1,14 @@
 name: CI
 
+# Validasi cepat untuk sumber web (HTML/CSS/JS + server statis). Pemeriksaan
+# Android (lint, unit test, build APK, dan penjagaan larangan WebView) ada di
+# android.yml — jangan diduplikasi di sini supaya tidak ada dua jalur Gradle
+# yang berlomba.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

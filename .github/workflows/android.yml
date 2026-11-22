@@ -1,22 +1,30 @@
-name: Build APK Android
+name: Android CI
 
+# Lint + unit test + build debug untuk setiap PR dan setiap push ke main yang
+# menyentuh proyek Android. Artefak laporan diunggah walau langkah sebelumnya
+# gagal supaya kegagalan bisa didiagnosis dari tab Actions.
 on:
   push:
     branches: [main]
     paths:
       - "android/**"
-      - "index.html"
-      - "styles.css"
-      - "js/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    name: Build APK (debug)
+    name: Lint, unit test, build debug
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,23 +36,66 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # ubuntu-latest sudah menyediakan Android SDK + lisensi yang diterima.
+      - name: Siapkan Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Cache Gradle (wrapper + cache dependensi) antar-jalan.
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Pastikan gradlew bisa dieksekusi
         run: chmod +x android/gradlew
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
+      # Aturan keras proyek: tidak boleh ada WebView / Custom Tabs / jembatan JS.
+      # Semua UI dibangun dengan Jetpack Compose dan jaringan lewat OkHttp.
+      #
+      # Komentar dan teks yang hanya MENYEBUT "WebView" (mis. "no WebView")
+      # diizinkan; yang ditolak adalah pemakaian nyata. Baris komentar disaring,
+      # lalu baris yang secara eksplisit menyatakan larangan juga disaring.
+      - name: Tolak penggunaan WebView
+        run: |
+          set -eu
+          raw=$(grep -rniE --include="*.kt" --include="*.java" --include="*.xml" "webview|addJavascriptInterface|androidx\.webkit|customtabs" android/app/src/main || true)
+          if [ -z "$raw" ]; then
+            echo "Tidak ada rujukan WebView."
+            exit 0
+          fi
+          bad=$(printf '%s\n' "$raw" \
+            | grep -viE "no webview|tanpa webview|tidak ada webview|without webview|bukan webview|webview usage is forbidden" \
+            | grep -vE "^[^:]+:[0-9]+:[[:space:]]*(//|/?\*|<!--)" || true)
+          if [ -n "$bad" ]; then
+            echo "Pemakaian WebView terdeteksi:"
+            printf '%s\n' "$bad"
+            exit 1
+          fi
+          echo "Hanya komentar yang menyebut WebView — tidak ada pemakaian."
 
-      - name: Build APK
+      - name: Lint, unit test, dan build debug
         working-directory: android
-        run: ./gradlew :app:assembleDebug --no-daemon
+        run: ./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --no-daemon -Dorg.gradle.jvmargs=-Xmx3g
+
+      - name: Unggah laporan lint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: |
+            android/app/build/reports/lint-results-debug.html
+            android/app/build/reports/lint-results-debug.xml
+            android/app/build/reports/lint-results-debug.sarif
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Unggah laporan unit test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest/
+            android/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Unggah artefak APK
         uses: actions/upload-artifact@v4

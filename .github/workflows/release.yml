@@ -1,0 +1,105 @@
+name: Release
+
+# Menerbitkan APK + AAB setiap kali tag versi (v*) di-push.
+#
+# Kontrak penandatanganan (lihat signingConfig di android/app/build.gradle.kts):
+# blok itu hanya menandatangani bila variabel lingkungan berikut tersedia —
+#   RELEASE_KEYSTORE_PATH, RELEASE_KEYSTORE_PASSWORD,
+#   RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
+# Workflow ini mengisinya dari secret repository. Tanpa secret, build rilis
+# tetap jalan (APK unsigned) dan workflow jatuh ke build debug, jadi tidak
+# pernah gagal hanya karena penandatanganan belum disiapkan.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build dan terbitkan rilis
+    runs-on: ubuntu-latest
+    env:
+      # Flag dipakai di `if:` karena konteks secrets tidak bisa dipakai langsung.
+      HAS_SIGNING: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Siapkan JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Siapkan Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Pastikan gradlew bisa dieksekusi
+        run: chmod +x android/gradlew
+
+      # Keystore ditulis ke runner saja (tidak pernah masuk repo) dan diteruskan
+      # ke Gradle lewat variabel lingkungan yang dibaca build.gradle.kts.
+      - name: Siapkan keystore penandatanganan
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/keystore"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/keystore/release.keystore"
+          test -s "$RUNNER_TEMP/keystore/release.keystore"
+          {
+            echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/keystore/release.keystore"
+            echo "RELEASE_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS"
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "Keystore siap ($(du -h "$RUNNER_TEMP/keystore/release.keystore" | cut -f1))."
+
+      - name: Build release (bertanda tangan)
+        if: env.HAS_SIGNING == 'true'
+        working-directory: android
+        run: ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon -Dorg.gradle.jvmargs=-Xmx3g
+
+      - name: Build debug (cadangan tanpa secret)
+        if: env.HAS_SIGNING != 'true'
+        working-directory: android
+        run: |
+          echo "::warning::Secret penandatanganan belum diisi — hanya APK debug yang dibangun."
+          ./gradlew :app:assembleDebug --no-daemon -Dorg.gradle.jvmargs=-Xmx3g
+
+      - name: Hapus keystore sementara
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keystore"
+
+      - name: Unggah artefak rilis
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Terbitkan GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: GoFile Expressive ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/debug/*.apk
