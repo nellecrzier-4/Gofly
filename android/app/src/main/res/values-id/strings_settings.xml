@@ -1,0 +1,182 @@
+<resources>
+    <!-- layar setelan -->
+    <string name="settings_title">Setelan</string>
+    <string name="settings_app_name">Gofile Expressive</string>
+    <string name="settings_subtitle">Akun, tampilan, dan semua yang diingat aplikasi.</string>
+
+    <string name="settings_section_appearance">Tampilan</string>
+    <string name="settings_section_files">Berkas</string>
+    <string name="settings_section_network">Jaringan &amp; transfer</string>
+    <string name="settings_section_security">Keamanan</string>
+    <string name="settings_section_data">Data</string>
+    <string name="settings_section_about">Tentang</string>
+
+    <!-- kartu akun di setelan -->
+    <string name="settings_account_guest">Akun tamu</string>
+    <string name="settings_account_tier_badge">Tier %1$s</string>
+    <string name="settings_account_loading">Memuat detail akun…</string>
+    <string name="settings_account_retry">Coba lagi</string>
+    <string name="settings_account_storage_used">%1$s terpakai</string>
+    <string name="settings_account_storage_remaining">· sisa %1$s</string>
+    <string name="settings_account_storage_unknown">Detail penyimpanan tidak disediakan oleh API.</string>
+    <string name="settings_account_error_network">Tidak bisa menghubungi GoFile. Periksa koneksi lalu coba lagi.</string>
+    <string name="settings_account_error_rate">Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.</string>
+    <string name="settings_account_error_server">GoFile sedang bermasalah. Coba lagi sebentar lagi.</string>
+    <string name="settings_account_error_not_found">Detail akun tidak tersedia untuk akun ini.</string>
+    <string name="settings_account_error_permission">Token ini tidak bisa membaca akun.</string>
+    <string name="settings_account_error_premium">Fitur ini membutuhkan akun GoFile Premium.</string>
+    <string name="settings_account_error_quota">Kuota GoFile kamu sudah penuh.</string>
+    <string name="settings_account_error_unknown">Terjadi kesalahan saat memuat akun.</string>
+    <string name="settings_account_no_details">Detail akun tidak tersedia untuk sesi ini.</string>
+    <string name="settings_account_expired_title">Sesi berakhir — masuk lagi</string>
+    <string name="settings_account_expired_body">GoFile tidak lagi menerima token ini. Masuk lagi untuk terus mengelola berkasmu.</string>
+    <string name="settings_account_sign_in">Masuk lagi</string>
+    <string name="settings_account_expand">Buka detail akun</string>
+
+    <!-- layar akun -->
+    <string name="settings_account_title">Akun</string>
+    <string name="settings_account_subtitle">Penyimpanan, sesi, dan keluar akun.</string>
+    <string name="settings_account_back">Kembali</string>
+    <string name="settings_account_email">Email</string>
+    <string name="settings_account_tier_label">Tier</string>
+    <string name="settings_account_root">Folder akar</string>
+    <string name="settings_account_id">ID akun</string>
+    <string name="settings_account_none">Tidak tersedia</string>
+    <string name="settings_storage_title">Penyimpanan</string>
+    <string name="settings_storage_used">%1$s terpakai</string>
+    <string name="settings_storage_total">dari %1$s</string>
+    <string name="settings_storage_left">Sisa %1$s</string>
+    <string name="settings_storage_missing">Kuota total tidak disediakan oleh API.</string>
+    <string name="settings_account_counts">%1$d berkas · %2$d folder</string>
+    <string name="settings_account_counts_missing">Jumlah berkas dan folder tidak disediakan oleh API.</string>
+    <string name="settings_account_breakdown_title">Penyimpanan per jenis</string>
+    <string name="settings_account_breakdown_missing">Rincian per jenis tidak disediakan oleh API, jadi tidak ada grafik yang bisa digambar.</string>
+    <string name="settings_account_breakdown_share">%1$d%%</string>
+    <string name="settings_account_details">Detail akun</string>
+    <string name="settings_sign_out_title">Keluar akun</string>
+    <string name="settings_sign_out">Keluar</string>
+    <string name="settings_sign_out_hint">Tahan satu detik untuk keluar.</string>
+    <string name="settings_remove_account">Hapus akun</string>
+    <string name="settings_remove_account_body">Keluar dan menghapus cache, favorit, serta item terbaru di perangkat ini. Berkas di GoFile tetap aman.</string>
+    <string name="settings_remove_account_hint">Tahan satu detik untuk menghapus akun ini dari perangkat.</string>
+
+    <!-- tampilan -->
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_body">Sistem mengikuti pengaturan mode gelap perangkatmu.</string>
+    <string name="settings_theme_system">Sistem</string>
+    <string name="settings_theme_dark">Gelap</string>
+    <string name="settings_theme_light">Terang</string>
+    <string name="settings_accent">Warna aksen</string>
+    <string name="settings_accent_coral">Koral</string>
+    <string name="settings_accent_amber">Amber</string>
+    <string name="settings_accent_mint">Mint</string>
+    <string name="settings_accent_violet">Violet</string>
+    <string name="settings_accent_blue">Biru</string>
+    <string name="settings_accent_description">Warna aksen %1$s</string>
+    <string name="settings_dynamic">Warna dinamis</string>
+    <string name="settings_dynamic_body">Mengambil palet dari wallpaper di Android 12 ke atas.</string>
+    <string name="settings_dynamic_disabled">Perlu Android 12 ke atas. Perangkat ini menjalankan Android %1$s.</string>
+    <string name="settings_language">Bahasa</string>
+    <string name="settings_language_body">Aplikasi langsung berganti bahasa; Android membuat ulang layar ini untuk menerapkannya.</string>
+    <string name="settings_language_system">Sistem</string>
+    <string name="settings_language_en">Inggris</string>
+    <string name="settings_language_id">Indonesia</string>
+    <string name="settings_text_size">Ukuran teks</string>
+    <string name="settings_text_size_value">%1$d%%</string>
+    <string name="settings_text_size_preview">Pratinjau: baris ini membesar mengikuti penggeser.</string>
+    <string name="settings_density">Kerapatan daftar</string>
+    <string name="settings_density_compact">Padat</string>
+    <string name="settings_density_comfort">Nyaman</string>
+    <string name="settings_density_relaxed">Lega</string>
+    <string name="settings_density_preview_file">Laporan kuartal.pdf</string>
+    <string name="settings_density_preview_folder">Aset desain</string>
+    <string name="settings_density_preview_meta">2,4 MB</string>
+    <string name="settings_motion">Gerak</string>
+    <string name="settings_motion_system">Sistem</string>
+    <string name="settings_motion_reduced">Dikurangi</string>
+    <string name="settings_motion_off">Mati</string>
+    <string name="settings_motion_body">Dikurangi dan Mati mempersingkat animasi; skala animator sistem tetap berlaku di atasnya.</string>
+
+    <!-- berkas -->
+    <string name="settings_view_mode">Tampilan bawaan</string>
+    <string name="settings_view_list">Daftar</string>
+    <string name="settings_view_grid">Kisi</string>
+    <string name="settings_sort">Urutan bawaan</string>
+    <string name="settings_sort_name">Nama</string>
+    <string name="settings_sort_size">Ukuran</string>
+    <string name="settings_sort_date">Tanggal</string>
+    <string name="settings_sort_type">Jenis</string>
+    <string name="settings_sort_direction">Arah urutan</string>
+    <string name="settings_sort_ascending">Naik</string>
+    <string name="settings_sort_descending">Turun</string>
+    <string name="settings_show_hidden">Berkas tersembunyi</string>
+    <string name="settings_show_hidden_body">Berkas yang namanya diawali titik.</string>
+    <string name="settings_delete">Konfirmasi hapus</string>
+    <string name="settings_delete_hold">Tahan untuk konfirmasi</string>
+    <string name="settings_delete_dialog">Dialog</string>
+    <string name="settings_delete_body">Tahan butuh tekan satu detik; dialog bertanya lewat tombol.</string>
+    <string name="settings_undo">Jendela urungkan</string>
+    <string name="settings_undo_value">%1$d dtk</string>
+    <string name="settings_undo_body">Berapa lama aksi Urungkan tersedia setelah menghapus.</string>
+
+    <!-- jaringan -->
+    <string name="settings_wifi_only">Hanya Wi-Fi</string>
+    <string name="settings_wifi_only_body">Jeda transfer saat memakai data seluler.</string>
+    <string name="settings_parallel">Transfer paralel</string>
+    <string name="settings_parallel_body">Berapa berkas yang berpindah bersamaan.</string>
+    <string name="settings_parallel_value">%1$d</string>
+    <string name="settings_download_location">Lokasi unduhan</string>
+    <string name="settings_download_default">Unduhan (bawaan)</string>
+    <string name="settings_download_change">Ubah</string>
+    <string name="settings_download_body">Tempat unduhan disimpan. Ubah membuka pemilih folder Android.</string>
+    <string name="settings_keep_awake">Layar tetap menyala</string>
+    <string name="settings_keep_awake_body">Mencegah layar tidur selama transfer.</string>
+    <string name="settings_notify_sound">Suara notifikasi</string>
+    <string name="settings_notify_sound_body">Memutar suara saat transfer selesai.</string>
+
+    <!-- keamanan -->
+    <string name="settings_app_lock">Kunci aplikasi</string>
+    <string name="settings_app_lock_body">Meminta biometrik atau kunci layar setiap aplikasi kembali dibuka.</string>
+    <string name="settings_app_lock_note">Perlu kunci layar, PIN, atau sidik jari yang sudah diatur di Android.</string>
+    <string name="settings_tips">Tips pengenalan</string>
+    <string name="settings_tips_body">Memutar ulang petunjuk gestur di Beranda dan Berkas.</string>
+    <string name="settings_tips_done">Tips akan tampil lagi</string>
+    <string name="settings_feedback">Kirim masukan</string>
+    <string name="settings_feedback_body">Membuka aplikasi email dengan log aplikasi terlampir.</string>
+
+    <!-- data -->
+    <string name="settings_cache">Cache</string>
+    <string name="settings_cache_body">Gambar mini dan berkas sementara.</string>
+    <string name="settings_cache_clear">Bersihkan cache</string>
+    <string name="settings_cache_clear_hint">Tahan satu detik untuk membersihkan.</string>
+    <string name="settings_cache_cleared">Cache dibersihkan</string>
+    <string name="settings_library">Pustaka</string>
+    <string name="settings_library_body">Favorit dan item terbaru disimpan di perangkat ini.</string>
+    <string name="settings_library_counts">%1$d favorit · %2$d terbaru</string>
+    <string name="settings_library_clear">Bersihkan pustaka</string>
+    <string name="settings_library_clear_hint">Tahan satu detik untuk membersihkan favorit dan item terbaru.</string>
+    <string name="settings_library_cleared">Pustaka dibersihkan</string>
+    <string name="settings_log">Ekspor log</string>
+    <string name="settings_log_body">Menyimpan log aplikasi supaya bisa dilampirkan ke laporan.</string>
+
+    <!-- tentang -->
+    <string name="settings_version">Versi</string>
+    <string name="settings_version_value">%1$s (%2$d)</string>
+    <string name="settings_repo">Kode sumber</string>
+    <string name="settings_repo_body">Membuka repositori proyek.</string>
+    <string name="settings_license">Lisensi</string>
+    <string name="settings_license_value">Apache-2.0</string>
+    <string name="settings_license_sheet_title">Lisensi</string>
+    <string name="settings_license_body">Gofile Expressive dilisensikan di bawah Apache License, Version 2.0. Salinan lisensi tersedia di apache.org/licenses/LICENSE-2.0. Perangkat lunak disediakan “apa adanya”, tanpa jaminan apa pun.</string>
+    <string name="settings_license_link">Buka lisensi lengkap</string>
+    <string name="settings_whats_new">Yang baru</string>
+    <string name="settings_whats_new_body">Catatan rilis untuk versi ini.</string>
+    <string name="settings_whats_new_title">Yang baru di %1$s</string>
+    <string name="settings_whats_new_empty">Build ini tidak menyertakan catatan rilis.</string>
+    <string name="settings_built_with">Dibuat dengan Kotlin dan Jetpack Compose. Tanpa WebView.</string>
+    <string name="settings_close">Tutup</string>
+
+    <!-- umum -->
+    <string name="settings_state_on">Aktif</string>
+    <string name="settings_state_off">Nonaktif</string>
+</resources>
