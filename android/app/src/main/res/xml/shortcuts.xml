@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Unggah berkas: langsung membuka pemilih berkas di folder terakhir. -->
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_upload"
+        android:shortcutId="upload"
+        android:shortcutLongLabel="@string/shortcut_upload_long"
+        android:shortcutShortLabel="@string/shortcut_upload_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.nellecrzier.gofileexpressive.MainActivity"
+            android:targetPackage="com.nellecrzier.gofileexpressive">
+            <extra
+                android:name="com.nellecrzier.gofileexpressive.extra.SHORTCUT"
+                android:value="upload" />
+        </intent>
+    </shortcut>
+    <!-- Panel transfer. -->
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_transfers"
+        android:shortcutId="transfers"
+        android:shortcutLongLabel="@string/shortcut_transfers_long"
+        android:shortcutShortLabel="@string/shortcut_transfers_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.nellecrzier.gofileexpressive.MainActivity"
+            android:targetPackage="com.nellecrzier.gofileexpressive">
+            <extra
+                android:name="com.nellecrzier.gofileexpressive.extra.SHORTCUT"
+                android:value="transfers" />
+        </intent>
+    </shortcut>
+</shortcuts>

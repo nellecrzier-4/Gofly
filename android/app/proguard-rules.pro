@@ -37,3 +37,24 @@
 
 # Pesan error GoFile dipertahankan apa adanya untuk laporan bug.
 -keepnames class com.nellecrzier.gofileexpressive.GoFileException { *; }
+
+# Media3 ExoPlayer: pemutar media memakai refleksi untuk memilih decoder.
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+
+# ZXing core: kelas matriks dipakai langsung, tanpa refleksi.
+-keep class com.google.zxing.** { *; }
+
+# Biometrik memakai FragmentActivity dan callback anonim.
+-keep class androidx.biometric.** { *; }
+
+# Model JSON aplikasi (dipakai lewat org.json, bukan refleksi) tetap aman,
+# tetapi nama kelas model dipertahankan supaya log tidak sulit dibaca.
+-keep class com.nellecrzier.gofileexpressive.GItem { *; }
+-keep class com.nellecrzier.gofileexpressive.GSession { *; }
+-keep class com.nellecrzier.gofileexpressive.TransferInfo { *; }
+
+# Jangan buang metadata anotasi Compose.
+-keepclassmembers class ** {
+    @androidx.compose.runtime.Composable <methods>;
+}

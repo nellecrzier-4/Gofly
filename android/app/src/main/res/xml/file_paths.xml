@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Berkas pratinjau di cache aplikasi, dibagikan sekali pakai ke aplikasi lain. -->
+    <cache-path name="preview" path="preview/" />
+    <!-- Unduhan yang tersimpan di penyimpanan aplikasi (fallback tanpa SAF). -->
+    <files-path name="downloads" path="downloads/" />
+    <!-- Log lokal untuk laporan bug. -->
+    <files-path name="logs" path="logs/" />
+    <external-files-path name="external_downloads" path="Downloads/" />
+</paths>

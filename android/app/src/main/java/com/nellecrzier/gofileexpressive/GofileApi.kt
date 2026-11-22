@@ -81,13 +81,7 @@ object GofileApi {
     fun getAccountDetails(token: String, accountId: String): JSONObject =
         execute("/accounts/$accountId", token = token)
 
-    private fun accountFrom(data: JSONObject): GSession = GSession(
-        token = data.optString("token"),
-        accountId = data.optString("id"),
-        rootFolder = data.optString("rootFolder"),
-        email = data.optString("email"),
-        tier = data.optString("tier"),
-    )
+    private fun accountFrom(data: JSONObject): GSession = GofileParsing.parseSession(data)
 
     /* ------------------------------ folder ------------------------------ */
 
@@ -117,44 +111,7 @@ object GofileApi {
             token = token,
             extra = contentHeaders(token),
         )
-        val data = envelope.optJSONObject("data") ?: JSONObject()
-        val metadata = envelope.optJSONObject("metadata")
-        val children = data.optJSONObject("children")
-        val items = mutableListOf<GItem>()
-        if (children != null) {
-            val keys = children.keys()
-            while (keys.hasNext()) {
-                val id = keys.next()
-                val child = children.optJSONObject(id) ?: continue
-                val type = child.optString("type")
-                if (!type.equals("folder", true) && !type.equals("file", true)) continue
-                items += GItem(
-                    id = id,
-                    name = child.optString("name").ifBlank { id },
-                    type = type,
-                    size = child.optLong("size"),
-                    link = child.optString("link"),
-                    parentFolder = child.optString("parentFolder"),
-                    mimetype = child.optString("mimetype"),
-                    createTime = child.optLong("createTime"),
-                    modTime = child.optLong("modTime"),
-                    md5 = child.optString("md5"),
-                    downloadCount = child.optLong("downloads"),
-                    childrenCount = child.optInt("childrenCount"),
-                )
-            }
-        }
-        val totalPages = metadata?.optInt("totalPages") ?: 1
-        return FolderPage(
-            // Pertahankan urutan server (sortField/sortDirection); folder dulu,
-            // stable supaya urutan halaman tidak rusak saat digabung.
-            items = items.sortedBy { if (it.isFolder) 0 else 1 },
-            page = metadata?.optInt("page") ?: page,
-            pageSize = metadata?.optInt("pageSize") ?: pageSize,
-            totalPages = totalPages.coerceAtLeast(1),
-            totalCount = metadata?.optInt("totalCount") ?: items.size,
-            hasNextPage = metadata?.optBoolean("hasNextPage") ?: false,
-        )
+        return GofileParsing.parseFolderPage(envelope, page, pageSize)
     }
 
     /** Cari isi folder secara rekursif (endpoint premium). */
@@ -164,29 +121,7 @@ object GofileApi {
             token = token,
             extra = contentHeaders(token),
         )
-        val data = envelope.optJSONObject("data") ?: return emptyList()
-        val items = mutableListOf<GItem>()
-        val keys = data.keys()
-        while (keys.hasNext()) {
-            val child = data.optJSONObject(keys.next()) ?: continue
-            val type = child.optString("type")
-            if (!type.equals("folder", true) && !type.equals("file", true)) continue
-            items += GItem(
-                id = child.optString("id"),
-                name = child.optString("name"),
-                type = type,
-                size = child.optLong("size"),
-                link = child.optString("link"),
-                parentFolder = child.optString("parentFolder"),
-                mimetype = child.optString("mimetype"),
-                createTime = child.optLong("createTime"),
-                modTime = child.optLong("modTime"),
-                md5 = child.optString("md5"),
-                downloadCount = child.optLong("downloads"),
-                childrenCount = child.optInt("childrenCount"),
-            )
-        }
-        return items
+        return GofileParsing.parseSearch(envelope)
     }
 
     /** Buat folder baru di dalam folder induk tertentu. */
@@ -272,6 +207,84 @@ object GofileApi {
         "X-BL" to language,
     )
 
+    /* ------------------------------ berkas ------------------------------ */
+
+    /**
+     * Ambil isi berkas dari CDN ke memori — dipakai pratinjau teks, PDF, dan
+     * gambar kecil. Batas 8 MB supaya tidak menghabiskan heap.
+     *
+     * Node CDN kadang menolak header akun; percobaan pertama memakai header
+     * akun, percobaan kedua tanpa header (pola yang sama dengan unduhan).
+     */
+    fun fetchBytes(url: String, token: String): ByteArray {
+        val response = openStream(url, token, withAccountHeaders = true)
+            ?: openStream(url, token, withAccountHeaders = false)
+            ?: throw GoFileException.Network("Berkas tidak bisa diambil dari server.")
+        response.use { res ->
+            val body = res.body ?: throw GoFileException.Unknown("Balasan berkas kosong.")
+            val declared = body.contentLength()
+            if (declared > MAX_PREVIEW_BYTES) {
+                throw GoFileException.Unknown("Berkas terlalu besar untuk pratinjau.")
+            }
+            val bytes = body.bytes()
+            if (bytes.size > MAX_PREVIEW_BYTES) {
+                throw GoFileException.Unknown("Berkas terlalu besar untuk pratinjau.")
+            }
+            return bytes
+        }
+    }
+
+    /**
+     * Unduh berkas ke cache aplikasi (bukan Downloads) untuk dibuka pemutar
+     * native atau aplikasi lain lewat FileProvider.
+     */
+    fun downloadToTemp(
+        context: android.content.Context,
+        url: String,
+        fileName: String,
+        token: String,
+    ): java.io.File {
+        val dir = java.io.File(context.cacheDir, "preview").apply { mkdirs() }
+        val safe = fileName.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "berkas" }
+        val target = java.io.File(dir, safe)
+        val response = openStream(url, token, withAccountHeaders = true)
+            ?: openStream(url, token, withAccountHeaders = false)
+            ?: throw GoFileException.Network("Berkas tidak bisa diunduh dari server.")
+        response.use { res ->
+            val body = res.body ?: throw GoFileException.Unknown("Balasan berkas kosong.")
+            target.outputStream().use { out -> body.byteStream().copyTo(out) }
+        }
+        return target
+    }
+
+    /**
+     * Buka aliran HTTP dengan opsi header akun. Mengembalikan null jika server
+     * menolak (bukan melempar) supaya pemanggil bisa mencoba tanpa header.
+     */
+    private fun openStream(
+        url: String,
+        token: String,
+        withAccountHeaders: Boolean,
+    ): okhttp3.Response? {
+        val builder = Request.Builder().url(url)
+        if (withAccountHeaders && token.isNotBlank()) {
+            builder.header("Authorization", "Bearer $token")
+            contentHeaders(token).forEach { (key, value) -> builder.header(key, value) }
+        }
+        return try {
+            val response = client.newCall(builder.build()).execute()
+            if (response.isSuccessful) response else {
+                response.close()
+                null
+            }
+        } catch (error: IOException) {
+            null
+        }
+    }
+
+    /** Ukuran maksimum pratinjau yang dimuat ke memori. */
+    const val MAX_PREVIEW_BYTES: Long = 8L * 1024 * 1024
+
     /* ------------------------------- token ------------------------------ */
 
     /** SHA-256(userAgent :: language :: token :: periode :: secret). */
@@ -349,31 +362,6 @@ object GofileApi {
         }
     }
 
-    private fun mapError(status: String, code: Int, serverMessage: String?): GoFileException {
-        val fallback = when (status) {
-            "error-token", "error-wrongToken" -> "Sesi berakhir. Masuk lagi untuk melanjutkan."
-            "error-notPremium" -> "Fitur ini membutuhkan akun GoFile Premium."
-            "error-rateLimit" -> "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi."
-            "error-limits" -> "Kuota akun GoFile sudah penuh."
-            "error-notFound" -> "Konten tidak ditemukan atau sudah dihapus."
-            "error-email" -> "Alamat email tidak valid."
-            "error-field", "error-contentsId", "error-tags" -> "Ada isian yang tidak valid."
-            "error-owner", "error-notOwner", "error-accountId" ->
-                "Konten ini bukan milik akun yang sedang masuk."
-            "error-protectedFolder" -> "Folder ini dilindungi dan tidak bisa diubah."
-            "error-rootFolder" -> "Folder akar tidak bisa diubah."
-            else -> "GoFile menjawab $status${if (code != 0) " (HTTP $code)" else ""}."
-        }
-        val message = serverMessage ?: fallback
-        return when (status) {
-            "error-token", "error-wrongToken" -> GoFileException.AuthExpired(message)
-            "error-notPremium" -> GoFileException.NotPremium(message)
-            "error-rateLimit" -> GoFileException.RateLimited(message)
-            "error-limits" -> GoFileException.QuotaExceeded(message)
-            "error-notFound" -> GoFileException.NotFound(message)
-            "error-owner", "error-notOwner", "error-accountId",
-            "error-protectedFolder", "error-rootFolder" -> GoFileException.Permission(message)
-            else -> if (code >= 500) GoFileException.Server(message) else GoFileException.Unknown(message)
-        }
-    }
+    private fun mapError(status: String, code: Int, serverMessage: String?): GoFileException =
+        GofileParsing.errorFor(status, code, serverMessage)
 }
