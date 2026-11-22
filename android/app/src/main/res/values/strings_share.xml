@@ -1,0 +1,120 @@
+<resources>
+    <!-- share sheet -->
+    <string name="share_title">Share</string>
+    <string name="share_close">Close</string>
+    <string name="share_chooser_title">Share link</string>
+    <string name="share_link_label">Link</string>
+
+    <string name="share_kind_file">File</string>
+    <string name="share_kind_folder">Folder</string>
+    <string name="share_kind_image">Image</string>
+    <string name="share_kind_video">Video</string>
+    <string name="share_kind_audio">Audio</string>
+    <string name="share_kind_pdf">PDF</string>
+    <string name="share_kind_document">Document</string>
+    <string name="share_kind_archive">Archive</string>
+    <string name="share_kind_code">Code</string>
+    <string name="share_kind_apk">App</string>
+    <string name="share_kind_other">File</string>
+    <string name="share_meta_pattern">%1$s · %2$s</string>
+    <string name="share_size_unknown">Unknown size</string>
+    <plurals name="share_items_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+
+    <string name="share_no_link">No link for this item</string>
+    <string name="share_no_link_hint">GoFile didn\'t return a link for this file. Try opening it again later.</string>
+    <string name="share_folder_link_hint">Opens the folder page on gofile.io</string>
+    <string name="share_no_session">You\'re not signed in, but links still work.</string>
+    <string name="share_clipboard_unavailable">Clipboard isn\'t available on this device</string>
+
+    <string name="share_action_copy">Copy link</string>
+    <string name="share_action_copied">Copied</string>
+    <string name="share_action_share">Share…</string>
+    <string name="share_action_qr">QR code</string>
+    <string name="share_action_download">Download</string>
+    <string name="share_action_details">Details</string>
+    <string name="share_action_details_hide">Hide details</string>
+    <string name="share_action_copy_sub">Keep it on the clipboard</string>
+    <string name="share_action_share_sub">Send it through another app</string>
+    <string name="share_action_qr_sub">Scan it from another device</string>
+    <string name="share_action_download_sub">Save a copy to this device</string>
+    <string name="share_action_download_folder_sub">Folders can\'t be downloaded directly</string>
+    <string name="share_action_details_sub">Size, type, checksum and dates</string>
+    <string name="share_action_retry">Try again</string>
+    <string name="share_action_cancel">Cancel</string>
+    <string name="share_action_save_date">Use this date</string>
+
+    <!-- details block -->
+    <string name="share_detail_id">ID</string>
+    <string name="share_detail_size">Size</string>
+    <string name="share_detail_type">Type</string>
+    <string name="share_detail_created">Created</string>
+    <string name="share_detail_modified">Modified</string>
+    <string name="share_detail_downloads">Downloads</string>
+    <string name="share_detail_md5">MD5</string>
+    <string name="share_detail_parent">Parent folder</string>
+
+    <!-- qr sheet -->
+    <string name="share_qr_title">QR code</string>
+    <string name="share_qr_hint">Point another device\'s camera here to open the link.</string>
+    <string name="share_qr_local">Generated on this device. Nothing is uploaded.</string>
+    <string name="share_qr_error">Couldn\'t build the QR code. Copy the link instead.</string>
+    <string name="share_qr_scan_desc">QR code for %1$s</string>
+
+    <!-- content settings -->
+    <string name="share_settings_title">Content settings</string>
+    <string name="share_settings_section_access">Access</string>
+    <string name="share_settings_section_expiry">Expiry</string>
+    <string name="share_settings_section_meta">Description &amp; tags</string>
+    <string name="share_settings_section_name">Name</string>
+    <string name="share_settings_visibility">Who can open it</string>
+    <string name="share_settings_visibility_keep">Unchanged</string>
+    <string name="share_settings_visibility_public">Public</string>
+    <string name="share_settings_visibility_private">Private</string>
+    <string name="share_settings_visibility_note">GoFile doesn\'t send the current value, so it\'s only set when you pick one.</string>
+    <string name="share_settings_password">Password</string>
+    <string name="share_settings_password_hint">Leave empty to remove it</string>
+    <string name="share_settings_password_clear">Clear password</string>
+    <string name="share_settings_expire_row">Expires on</string>
+    <string name="share_settings_expire_none">No expiry</string>
+    <string name="share_settings_expire_clear">Remove expiry</string>
+    <string name="share_settings_expire_note">The link stops working at the end of that day.</string>
+    <string name="share_settings_description">Description</string>
+    <string name="share_settings_description_hint">Optional note shown with the content</string>
+    <string name="share_settings_description_support">%1$d characters max</string>
+    <string name="share_settings_tags">Tags</string>
+    <string name="share_settings_tags_hint">Comma separated, e.g. work, 2026, design</string>
+    <string name="share_settings_tags_support">Lowercase letters, numbers and dashes</string>
+    <string name="share_settings_rename_row">Rename</string>
+    <string name="share_settings_rename_hint">New name</string>
+    <string name="share_settings_rename_note">Write the extension yourself; GoFile doesn\'t add it back.</string>
+    <string name="share_settings_save">Save changes</string>
+    <string name="share_settings_saving">Saving…</string>
+    <string name="share_settings_no_changes">Nothing to save yet</string>
+    <string name="share_settings_saved">Changes saved</string>
+    <string name="share_settings_renamed">Name updated</string>
+    <string name="share_settings_no_session">No active session. Sign in again to change settings.</string>
+    <string name="share_settings_no_links_notice">GoFile\'s API has no shared-link list and no revoke endpoint, so link statistics and turning a link off aren\'t offered here. Change the password or the expiry date to cut access.</string>
+
+    <!-- friendly errors -->
+    <string name="share_error_name_empty">Name can\'t be empty</string>
+    <string name="share_error_name_long">Name is too long (255 characters max)</string>
+    <string name="share_error_name_chars">Name can\'t contain / or \\</string>
+    <string name="share_error_password_long">Password is too long (64 characters max)</string>
+    <string name="share_error_description_long">Description is too long</string>
+    <string name="share_error_tag_chars">Tags can only use lowercase letters, numbers and dashes</string>
+    <string name="share_error_tag_long">Each tag is 32 characters at most</string>
+    <string name="share_error_tag_count">Use 20 tags at most</string>
+    <string name="share_error_expire_past">Pick a date after today</string>
+    <string name="share_error_network">Can\'t reach GoFile. Check your connection and try again.</string>
+    <string name="share_error_auth">Your session ended. Sign in again.</string>
+    <string name="share_error_premium">This needs a GoFile Premium account.</string>
+    <string name="share_error_rate">Too many requests. Wait a moment and try again.</string>
+    <string name="share_error_quota">Your GoFile storage is full.</string>
+    <string name="share_error_notfound">This content no longer exists.</string>
+    <string name="share_error_permission">You can\'t change this content.</string>
+    <string name="share_error_server">GoFile is having trouble. Try again shortly.</string>
+    <string name="share_error_generic">Something went wrong. Try again.</string>
+</resources>

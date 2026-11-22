@@ -1,0 +1,120 @@
+<resources>
+    <!-- lembar bagikan -->
+    <string name="share_title">Bagikan</string>
+    <string name="share_close">Tutup</string>
+    <string name="share_chooser_title">Bagikan tautan</string>
+    <string name="share_link_label">Tautan</string>
+
+    <string name="share_kind_file">File</string>
+    <string name="share_kind_folder">Folder</string>
+    <string name="share_kind_image">Gambar</string>
+    <string name="share_kind_video">Video</string>
+    <string name="share_kind_audio">Audio</string>
+    <string name="share_kind_pdf">PDF</string>
+    <string name="share_kind_document">Dokumen</string>
+    <string name="share_kind_archive">Arsip</string>
+    <string name="share_kind_code">Kode</string>
+    <string name="share_kind_apk">Aplikasi</string>
+    <string name="share_kind_other">File</string>
+    <string name="share_meta_pattern">%1$s · %2$s</string>
+    <string name="share_size_unknown">Ukuran tidak diketahui</string>
+    <plurals name="share_items_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d item</item>
+    </plurals>
+
+    <string name="share_no_link">Tidak ada tautan untuk item ini</string>
+    <string name="share_no_link_hint">GoFile tidak mengirim tautan untuk file ini. Coba buka lagi nanti.</string>
+    <string name="share_folder_link_hint">Membuka halaman folder di gofile.io</string>
+    <string name="share_no_session">Kamu belum masuk, tapi tautan tetap bisa dipakai.</string>
+    <string name="share_clipboard_unavailable">Papan klip tidak tersedia di perangkat ini</string>
+
+    <string name="share_action_copy">Salin tautan</string>
+    <string name="share_action_copied">Tersalin</string>
+    <string name="share_action_share">Bagikan…</string>
+    <string name="share_action_qr">Kode QR</string>
+    <string name="share_action_download">Unduh</string>
+    <string name="share_action_details">Detail</string>
+    <string name="share_action_details_hide">Sembunyikan detail</string>
+    <string name="share_action_copy_sub">Simpan di papan klip</string>
+    <string name="share_action_share_sub">Kirim lewat aplikasi lain</string>
+    <string name="share_action_qr_sub">Pindai dari perangkat lain</string>
+    <string name="share_action_download_sub">Simpan salinan ke perangkat ini</string>
+    <string name="share_action_download_folder_sub">Folder tidak bisa diunduh langsung</string>
+    <string name="share_action_details_sub">Ukuran, jenis, checksum, dan tanggal</string>
+    <string name="share_action_retry">Coba lagi</string>
+    <string name="share_action_cancel">Batal</string>
+    <string name="share_action_save_date">Pakai tanggal ini</string>
+
+    <!-- blok detail -->
+    <string name="share_detail_id">ID</string>
+    <string name="share_detail_size">Ukuran</string>
+    <string name="share_detail_type">Jenis</string>
+    <string name="share_detail_created">Dibuat</string>
+    <string name="share_detail_modified">Diubah</string>
+    <string name="share_detail_downloads">Unduhan</string>
+    <string name="share_detail_md5">MD5</string>
+    <string name="share_detail_parent">Folder induk</string>
+
+    <!-- lembar kode QR -->
+    <string name="share_qr_title">Kode QR</string>
+    <string name="share_qr_hint">Arahkan kamera perangkat lain ke kode ini untuk membuka tautan.</string>
+    <string name="share_qr_local">Dibuat di perangkat ini. Tidak ada yang diunggah.</string>
+    <string name="share_qr_error">Kode QR gagal dibuat. Salin tautannya saja.</string>
+    <string name="share_qr_scan_desc">Kode QR untuk %1$s</string>
+
+    <!-- setelan konten -->
+    <string name="share_settings_title">Setelan konten</string>
+    <string name="share_settings_section_access">Akses</string>
+    <string name="share_settings_section_expiry">Kedaluwarsa</string>
+    <string name="share_settings_section_meta">Deskripsi &amp; tag</string>
+    <string name="share_settings_section_name">Nama</string>
+    <string name="share_settings_visibility">Siapa yang bisa membuka</string>
+    <string name="share_settings_visibility_keep">Tidak diubah</string>
+    <string name="share_settings_visibility_public">Publik</string>
+    <string name="share_settings_visibility_private">Privat</string>
+    <string name="share_settings_visibility_note">GoFile tidak mengirim nilai saat ini, jadi pilihan ini hanya dikirim kalau kamu mengubahnya.</string>
+    <string name="share_settings_password">Kata sandi</string>
+    <string name="share_settings_password_hint">Biarkan kosong untuk menghapusnya</string>
+    <string name="share_settings_password_clear">Hapus kata sandi</string>
+    <string name="share_settings_expire_row">Kedaluwarsa pada</string>
+    <string name="share_settings_expire_none">Tanpa kedaluwarsa</string>
+    <string name="share_settings_expire_clear">Hapus kedaluwarsa</string>
+    <string name="share_settings_expire_note">Tautan berhenti berlaku pada akhir hari itu.</string>
+    <string name="share_settings_description">Deskripsi</string>
+    <string name="share_settings_description_hint">Catatan opsional yang tampil bersama konten</string>
+    <string name="share_settings_description_support">Maksimal %1$d karakter</string>
+    <string name="share_settings_tags">Tag</string>
+    <string name="share_settings_tags_hint">Pisahkan dengan koma, mis. kerja, 2026, desain</string>
+    <string name="share_settings_tags_support">Huruf kecil, angka, dan tanda hubung</string>
+    <string name="share_settings_rename_row">Ubah nama</string>
+    <string name="share_settings_rename_hint">Nama baru</string>
+    <string name="share_settings_rename_note">Tulis sendiri ekstensinya; GoFile tidak menambahkannya.</string>
+    <string name="share_settings_save">Simpan perubahan</string>
+    <string name="share_settings_saving">Menyimpan…</string>
+    <string name="share_settings_no_changes">Belum ada perubahan</string>
+    <string name="share_settings_saved">Perubahan tersimpan</string>
+    <string name="share_settings_renamed">Nama diperbarui</string>
+    <string name="share_settings_no_session">Sesi tidak aktif. Masuk lagi untuk mengubah setelan.</string>
+    <string name="share_settings_no_links_notice">API GoFile tidak punya daftar tautan yang dibagikan dan tidak punya endpoint untuk mencabutnya, jadi statistik tautan dan penonaktifan tautan tidak tersedia di sini. Ubah kata sandi atau tanggal kedaluwarsa untuk menutup akses.</string>
+
+    <!-- pesan kesalahan yang ramah -->
+    <string name="share_error_name_empty">Nama tidak boleh kosong</string>
+    <string name="share_error_name_long">Nama terlalu panjang (maks. 255 karakter)</string>
+    <string name="share_error_name_chars">Nama tidak boleh berisi / atau \\</string>
+    <string name="share_error_password_long">Kata sandi terlalu panjang (maks. 64 karakter)</string>
+    <string name="share_error_description_long">Deskripsi terlalu panjang</string>
+    <string name="share_error_tag_chars">Tag hanya boleh huruf kecil, angka, dan tanda hubung</string>
+    <string name="share_error_tag_long">Setiap tag maksimal 32 karakter</string>
+    <string name="share_error_tag_count">Maksimal 20 tag</string>
+    <string name="share_error_expire_past">Pilih tanggal setelah hari ini</string>
+    <string name="share_error_network">Tidak bisa menghubungi GoFile. Periksa koneksi lalu coba lagi.</string>
+    <string name="share_error_auth">Sesi berakhir. Masuk lagi.</string>
+    <string name="share_error_premium">Fitur ini butuh akun GoFile Premium.</string>
+    <string name="share_error_rate">Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.</string>
+    <string name="share_error_quota">Penyimpanan GoFile kamu penuh.</string>
+    <string name="share_error_notfound">Konten ini sudah tidak ada.</string>
+    <string name="share_error_permission">Kamu tidak bisa mengubah konten ini.</string>
+    <string name="share_error_server">GoFile sedang bermasalah. Coba lagi sebentar.</string>
+    <string name="share_error_generic">Terjadi kesalahan. Coba lagi.</string>
+</resources>
