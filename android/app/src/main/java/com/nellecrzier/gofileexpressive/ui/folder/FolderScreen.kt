@@ -764,7 +764,10 @@ private fun FolderTopBar(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp),
+            .padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 2.dp)
+            .clip(RoundedCornerShape(26.dp))
+            .background(Hyper.GlassFill)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (canGoBack) {

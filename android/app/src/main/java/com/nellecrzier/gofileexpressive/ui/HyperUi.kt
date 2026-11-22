@@ -322,7 +322,22 @@ fun HyperCard(
         color = fill,
         border = androidx.compose.foundation.BorderStroke(0.8.dp, border),
     ) {
-        Column(Modifier.padding(vertical = 2.dp), content = content)
+        Box {
+            Column(Modifier.padding(vertical = 2.dp), content = content)
+            // Kilau kaca: tepi atas sedikit lebih terang lalu memudar. Ini yang
+            // membuat kartu terasa "bahan" HyperSpring, bukan kotak datar.
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Hyper.GlassHighlight.copy(alpha = 0.30f),
+                            0.10f to Color.Transparent,
+                            1f to Color.Transparent,
+                        ),
+                    ),
+            )
+        }
     }
 }
 

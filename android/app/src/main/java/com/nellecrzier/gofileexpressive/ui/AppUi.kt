@@ -583,7 +583,7 @@ fun GofileApp(activity: MainActivity) {
                         notice = null
                     },
                     onSend = { sessionVm.sendLoginLink(sessionState.email) },
-                    onLogin = { sessionVm.loginWithToken(sessionState.tokenInput) },
+                    onLogin = { raw -> sessionVm.loginWithToken(raw) },
                     onGuest = { sessionVm.loginAsGuest() },
                 )
             }

@@ -1,48 +1,30 @@
 package com.nellecrzier.gofileexpressive.ui.login
 
-import android.os.Build
-import android.util.Patterns
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -55,101 +37,78 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nellecrzier.gofileexpressive.BuildConfig
-import com.nellecrzier.gofileexpressive.GItem
-import com.nellecrzier.gofileexpressive.GSession
-import com.nellecrzier.gofileexpressive.GoFileException
+import androidx.compose.ui.zIndex
 import com.nellecrzier.gofileexpressive.GofileApi
-import com.nellecrzier.gofileexpressive.MainActivity
-import com.nellecrzier.gofileexpressive.SessionStore
-import com.nellecrzier.gofileexpressive.TransferInfo
-import com.nellecrzier.gofileexpressive.TransferStore
-import com.nellecrzier.gofileexpressive.ui.Crumb
-import com.nellecrzier.gofileexpressive.ui.readableSize
-import kotlin.math.abs
-import kotlinx.coroutines.Dispatchers
+import com.nellecrzier.gofileexpressive.ui.BottomVeil
+import com.nellecrzier.gofileexpressive.ui.DotGridBackground
+import com.nellecrzier.gofileexpressive.ui.DropletPager
+import com.nellecrzier.gofileexpressive.ui.Hyper
+import com.nellecrzier.gofileexpressive.ui.HyperButton
+import com.nellecrzier.gofileexpressive.ui.HyperExpoOut
+import com.nellecrzier.gofileexpressive.ui.HyperEase
+import com.nellecrzier.gofileexpressive.ui.HyperPower4Out
+import com.nellecrzier.gofileexpressive.ui.HyperTextField
+import com.nellecrzier.gofileexpressive.ui.SplitTitle
+import com.nellecrzier.gofileexpressive.ui.TopScrim
+import com.nellecrzier.gofileexpressive.ui.hyperSpring
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import com.nellecrzier.gofileexpressive.ui.*
+
+private const val PAGE_WELCOME = 0
+private const val PAGE_EMAIL = 1
+private const val PAGE_TOKEN = 2
 
 /* ============================ masuk / setup =============================== */
 
+/**
+ * Tiga halaman: sambutan → email → tautan. Navigasi halaman dikendalikan di
+ * sini; [step] hanya menyinkronkan saat ViewModel memindahkan alur (mis. setelah
+ * link terkirim atau setelah App Link masuk).
+ *
+ * Perbaikan penting: halaman tautan selalu bisa dibuka langsung dari halaman
+ * email ("Punya tautan? Tempel di sini"), jadi menempel link tidak lagi
+ * bergantung pada email yang berhasil terkirim lebih dulu. Tombol aksi utama
+ * membaca isian yang sudah di-trim, menerima clipboard lewat ikon tempel, dan
+ * bar aksi berada di atas konten (`zIndex`) supaya tidak tertutup input.
+ */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 internal fun LoginScreen(
@@ -162,65 +121,131 @@ internal fun LoginScreen(
     onTokenChange: (String) -> Unit,
     onBackToEmail: () -> Unit,
     onSend: () -> Unit,
-    onLogin: () -> Unit,
+    onLogin: (String) -> Unit,
     onGuest: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    var page by rememberSaveable { mutableStateOf(if (step == "token") 2 else 0) }
-    LaunchedEffect(step) {
-        if (step == "token" && page != 2) page = 2
-        if (step == "email" && page > 1) page = 1
-    }
+    val clipboard = LocalClipboardManager.current
 
-    BackHandler(enabled = page > 0 && !busy) {
-        if (page == 2) {
-            page = 1
-            onBackToEmail()
-        } else {
-            page = 0
+    var page by rememberSaveable { mutableStateOf(if (step == "token") PAGE_TOKEN else PAGE_WELCOME) }
+    var pasteNotice by remember { mutableStateOf<String?>(null) }
+
+    // Sinkronkan hanya saat ViewModel benar-benar memindahkan alur.
+    LaunchedEffect(step) {
+        when (step) {
+            "token" -> if (page != PAGE_TOKEN) page = PAGE_TOKEN
+            "email" -> if (page == PAGE_TOKEN && tokenInput.isBlank()) page = PAGE_EMAIL
         }
     }
 
-    val emailInvalid = email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val emailReady = email.isNotBlank() && !emailInvalid
+    BackHandler(enabled = page > PAGE_WELCOME && !busy) {
+        pasteNotice = null
+        if (page == PAGE_TOKEN) {
+            page = PAGE_EMAIL
+            onBackToEmail()
+        } else {
+            page = PAGE_WELCOME
+        }
+    }
+
+    val trimmedEmail = email.trim()
+    val emailInvalid = trimmedEmail.isNotBlank() &&
+        !android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()
+    val emailReady = trimmedEmail.isNotBlank() && !emailInvalid
+
+    val trimmedToken = tokenInput.trim()
+    val tokenLooksValid = trimmedToken.isNotBlank() && GofileApi.extractToken(trimmedToken) != null
 
     fun tap() {
         if (!reduceMotion) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
+    fun pasteFromClipboard(): Boolean {
+        val text = clipboard.getText()?.text?.trim().orEmpty()
+        if (text.isBlank()) {
+            pasteNotice = "Clipboard kosong. Salin tautan dari email GoFile dulu."
+            return false
+        }
+        val token = GofileApi.extractToken(text)
+        if (token == null) {
+            pasteNotice = "Teks di clipboard bukan tautan login GoFile."
+            return false
+        }
+        pasteNotice = "Tautan ditempel dari clipboard."
+        onTokenChange(token)
+        page = PAGE_TOKEN
+        return true
+    }
+
+    fun submit(pageIndex: Int): Boolean = when (pageIndex) {
+        PAGE_WELCOME -> {
+            page = PAGE_EMAIL
+            true
+        }
+
+        PAGE_EMAIL -> if (emailReady && !busy) {
+            onSend()
+            true
+        } else {
+            false
+        }
+
+        else -> {
+            val token = GofileApi.extractToken(trimmedToken)
+            if (token == null) {
+                pasteNotice = "Tempel tautan lengkap dari email GoFile, atau token 32 karakternya."
+                false
+            } else if (busy) {
+                false
+            } else {
+                pasteNotice = null
+                onTokenChange(token)
+                onLogin(token)
+                true
+            }
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         DotGridBackground(
             Modifier.fillMaxSize(),
-            hero = page == 0,
+            hero = page == PAGE_WELCOME,
             reduceMotion = reduceMotion,
         )
-        TopScrim(Modifier.align(Alignment.TopCenter), height = 132.dp)
-        BottomVeil(Modifier.align(Alignment.BottomCenter), height = 236.dp)
+        TopScrim(Modifier.align(Alignment.TopCenter), height = 148.dp)
+        BottomVeil(Modifier.align(Alignment.BottomCenter), height = 268.dp)
 
-        // Pil lewati di kanan atas, seperti di onboarding HyperSpring.
+        // Pil kecil di kanan atas: lewati sambutan, atau pindah ke halaman tautan.
         Row(
             Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
                 .padding(top = 10.dp, end = 14.dp),
         ) {
-            Surface(
-                onClick = {
-                    if (busy) return@Surface
-                    tap()
-                    if (page == 0) page = 1
+            GlassChip(
+                text = when (page) {
+                    PAGE_WELCOME -> "Lewati"
+                    PAGE_EMAIL -> "Punya tautan"
+                    else -> "Ganti email"
                 },
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White.copy(alpha = 0.07f),
-                border = BorderStroke(0.8.dp, Hyper.Hairline),
-            ) {
-                Text(
-                    text = if (page == 0) "Lewati" else "Masuk",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                )
-            }
+                onClick = {
+                    if (busy) return@GlassChip
+                    tap()
+                    pasteNotice = null
+                    when (page) {
+                        PAGE_WELCOME -> page = PAGE_EMAIL
+                        PAGE_EMAIL -> {
+                            page = PAGE_TOKEN
+                            pasteFromClipboard()
+                        }
+
+                        else -> {
+                            page = PAGE_EMAIL
+                            onBackToEmail()
+                        }
+                    }
+                },
+            )
         }
 
         Column(
@@ -246,7 +271,7 @@ internal fun LoginScreen(
                                 slideOutHorizontally(tween(340, easing = HyperEase)) { full -> -full / 4 } +
                                     fadeOut(tween(340)),
                                 0f,
-                                SizeTransform(clip = false),
+                                SizeTransform(clip = true),
                             )
                         } else {
                             ContentTransform(
@@ -254,29 +279,26 @@ internal fun LoginScreen(
                                 slideOutHorizontally(tween(340, easing = HyperEase)) { full -> full / 4 } +
                                     fadeOut(tween(340)),
                                 0f,
-                                SizeTransform(clip = false),
+                                SizeTransform(clip = true),
                             )
                         }
                     }
                 },
             ) { current ->
-                val entrance = remember { Animatable(0f) }
-                LaunchedEffect(Unit) {
+                val entrance = remember(current) { Animatable(0f) }
+                LaunchedEffect(current) {
                     if (reduceMotion) {
                         entrance.snapTo(1f)
                     } else {
-                        entrance.animateTo(1f, hyperSpring(0.55f, 0.84f))
+                        entrance.snapTo(0f)
+                        entrance.animateTo(1f, hyperSpring(0.58f, 0.86f))
                     }
                 }
 
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 24.dp)
-                        .graphicsLayer {
-                            alpha = entrance.value
-                            translationY = 40f * (1f - entrance.value)
-                        },
+                        .padding(horizontal = 22.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -284,42 +306,67 @@ internal fun LoginScreen(
                             .widthIn(max = 460.dp)
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
-                            .padding(vertical = 16.dp),
+                            .graphicsLayer {
+                                alpha = entrance.value
+                                translationY = 34f * (1f - entrance.value)
+                                scaleX = 0.98f + 0.02f * entrance.value
+                                scaleY = 0.98f + 0.02f * entrance.value
+                            }
+                            .padding(vertical = 18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         when (current) {
-                            0 -> WelcomePage(reduceMotion)
-                            1 -> EmailPage(
-                                email = email,
-                                emailInvalid = emailInvalid,
-                                busy = busy,
-                                onEmailChange = onEmailChange,
-                                onGuest = {
-                                    tap()
-                                    onGuest()
-                                },
-                                onSend = {
-                                    tap()
-                                    onSend()
-                                },
-                                emailReady = emailReady,
-                            )
+                            PAGE_WELCOME -> WelcomePage(reduceMotion)
 
-                            else -> TokenPage(
-                                tokenInput = tokenInput,
-                                email = email,
-                                busy = busy,
-                                onTokenChange = onTokenChange,
-                                onLogin = {
-                                    tap()
-                                    onLogin()
-                                },
-                                onResend = { onSend() },
-                                onChangeEmail = {
-                                    page = 1
-                                    onBackToEmail()
-                                },
-                            )
+                            PAGE_EMAIL -> GlassPanel {
+                                EmailPage(
+                                    email = email,
+                                    emailInvalid = emailInvalid,
+                                    emailReady = emailReady,
+                                    busy = busy,
+                                    notice = pasteNotice,
+                                    onEmailChange = onEmailChange,
+                                    onGuest = {
+                                        tap()
+                                        onGuest()
+                                    },
+                                    onSend = {
+                                        tap()
+                                        submit(PAGE_EMAIL)
+                                    },
+                                    onPasteLink = {
+                                        tap()
+                                        if (!pasteFromClipboard()) page = PAGE_TOKEN
+                                    },
+                                )
+                            }
+
+                            else -> GlassPanel {
+                                TokenPage(
+                                    tokenInput = tokenInput,
+                                    tokenValid = tokenLooksValid,
+                                    email = email,
+                                    busy = busy,
+                                    notice = pasteNotice,
+                                    onTokenChange = {
+                                        pasteNotice = null
+                                        onTokenChange(it)
+                                    },
+                                    onPaste = {
+                                        tap()
+                                        pasteFromClipboard()
+                                    },
+                                    onLogin = {
+                                        tap()
+                                        submit(PAGE_TOKEN)
+                                    },
+                                    onResend = { onSend() },
+                                    onChangeEmail = {
+                                        page = PAGE_EMAIL
+                                        onBackToEmail()
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -328,77 +375,166 @@ internal fun LoginScreen(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = 2.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 DropletPager(count = 3, index = page)
             }
 
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (page > 0) {
-                    HyperButton(
-                        text = "Kembali",
-                        primary = false,
-                        squash = true,
-                        reduceMotion = reduceMotion,
-                        enabled = !busy,
-                        height = 56.dp,
-                        onClick = {
-                            tap()
-                            if (page == 2) {
-                                page = 1
-                                onBackToEmail()
-                            } else {
-                                page = 0
-                            }
-                        },
-                        modifier = Modifier.weight(0.8f),
-                    )
-                }
-                val nextEnabled = when (page) {
-                    0 -> !busy
-                    1 -> emailReady && !busy
-                    else -> tokenInput.isNotBlank() && !busy
-                }
-                HyperButton(
-                    text = when {
-                        busy && page == 1 -> "Mengirim…"
-                        busy && page == 2 -> "Memeriksa…"
-                        page == 2 -> "Masuk"
-                        page == 1 -> "Kirim tautan"
-                        else -> "Lanjut"
-                    },
-                    primary = true,
-                    squash = true,
-                    loading = busy,
-                    reduceMotion = reduceMotion,
-                    enabled = nextEnabled,
-                    height = 56.dp,
-                    onClick = {
-                        tap()
-                        when (page) {
-                            0 -> page = 1
-                            1 -> if (emailReady && !busy) onSend()
-                            else -> if (tokenInput.isNotBlank() && !busy) onLogin()
-                        }
-                    },
-                    modifier = Modifier.weight(1.2f),
-                )
-            }
+            ActionBar(
+                page = page,
+                busy = busy,
+                emailReady = emailReady,
+                tokenLooksValid = tokenLooksValid,
+                reduceMotion = reduceMotion,
+                onBack = {
+                    tap()
+                    pasteNotice = null
+                    if (page == PAGE_TOKEN) {
+                        page = PAGE_EMAIL
+                        onBackToEmail()
+                    } else {
+                        page = PAGE_WELCOME
+                    }
+                },
+                onNext = {
+                    tap()
+                    submit(page)
+                },
+            )
         }
     }
 }
 
+/* ------------------------------- bingkai kaca ----------------------------- */
+
+/**
+ * Panel kaca HyperSpring: isi gelap tembus pandang, garis rambut, kilau tipis
+ * di tepi atas, dan sudut besar. Dipakai untuk dua halaman formulir supaya
+ * bidang isian punya "bahan" yang sama dengan kartu di layar lain.
+ */
+@Composable
+private fun GlassPanel(content: @Composable () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(30.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Hyper.Card.copy(alpha = 0.92f),
+                        Hyper.Card.copy(alpha = 0.78f),
+                    ),
+                ),
+            )
+            .graphicsLayer { alpha = 1f }
+            .padding(20.dp),
+    ) {
+        // Kilau atas: garis putih 6% yang memudar ke tengah.
+        Box(
+            Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(30.dp))
+                .background(
+                    Brush.verticalGradient(
+                        0f to Hyper.GlassHighlight,
+                        0.09f to Color.Transparent,
+                        1f to Color.Transparent,
+                    ),
+                ),
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) { content() }
+    }
+}
+
+@Composable
+private fun GlassChip(text: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Hyper.GlassFill,
+        border = BorderStroke(0.8.dp, Hyper.Hairline),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = Hyper.Text2,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+        )
+    }
+}
+
+/**
+ * Bar aksi yang selalu terlihat. `zIndex` memastikan bar ini menerima ketukan
+ * walaupun konten halaman menggambar sampai tepi bawah saat keyboard terbuka.
+ */
+@Composable
+private fun ActionBar(
+    page: Int,
+    busy: Boolean,
+    emailReady: Boolean,
+    tokenLooksValid: Boolean,
+    reduceMotion: Boolean,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+) {
+    val nextEnabled = when (page) {
+        PAGE_WELCOME -> !busy
+        PAGE_EMAIL -> emailReady && !busy
+        else -> tokenLooksValid && !busy
+    }
+    Row(
+        Modifier
+            .zIndex(2f)
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.Transparent, Hyper.Bg.copy(alpha = 0.92f)),
+                ),
+            )
+            .navigationBarsPadding()
+            .padding(horizontal = 22.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (page > PAGE_WELCOME) {
+            HyperButton(
+                text = "Kembali",
+                primary = false,
+                squash = true,
+                reduceMotion = reduceMotion,
+                enabled = !busy,
+                height = 56.dp,
+                onClick = onBack,
+                modifier = Modifier.weight(0.78f),
+            )
+        }
+        HyperButton(
+            text = when {
+                busy && page == PAGE_EMAIL -> "Mengirim…"
+                busy && page == PAGE_TOKEN -> "Memeriksa…"
+                page == PAGE_TOKEN -> "Masuk"
+                page == PAGE_EMAIL -> "Kirim tautan"
+                else -> "Lanjut"
+            },
+            primary = true,
+            squash = true,
+            loading = busy,
+            reduceMotion = reduceMotion,
+            enabled = nextEnabled,
+            height = 56.dp,
+            onClick = onNext,
+            modifier = Modifier.weight(1.22f),
+        )
+    }
+}
+
+/* --------------------------------- halaman -------------------------------- */
+
 @Composable
 private fun WelcomePage(reduceMotion: Boolean) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        AccentGlow(Modifier.fillMaxWidth().height(160.dp))
         Text(
             text = "SELAMAT DATANG",
             style = MaterialTheme.typography.labelSmall,
@@ -413,38 +549,63 @@ private fun WelcomePage(reduceMotion: Boolean) {
             style = MaterialTheme.typography.displayLarge,
             reduceMotion = reduceMotion,
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
         Text(
             text = "Klien cloud native untuk mengunggah, mengunduh, dan merapikan folder tanpa WebView.",
             style = MaterialTheme.typography.bodyLarge,
             color = Hyper.Text2,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(30.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            WelcomeFeature(
-                icon = Icons.Filled.CloudQueue,
-                title = "Native dan ringan",
-                body = "Dibangun dengan Kotlin dan Jetpack Compose.",
-                delayIndex = 0,
-                reduceMotion = reduceMotion,
-            )
-            WelcomeFeature(
-                icon = Icons.Filled.Upload,
-                title = "Transfer latar belakang",
-                body = "Progres tetap berjalan lewat foreground service.",
-                delayIndex = 1,
-                reduceMotion = reduceMotion,
-            )
-            WelcomeFeature(
-                icon = Icons.Filled.Folder,
-                title = "Folder rapi",
-                body = "Buat, buka, dan hapus isi cloud langsung dari aplikasi.",
-                delayIndex = 2,
-                reduceMotion = reduceMotion,
-            )
-        }
+        Spacer(Modifier.height(26.dp))
+        WelcomeFeature(
+            icon = Icons.Filled.CloudQueue,
+            title = "Native dan ringan",
+            body = "Dibangun dengan Kotlin dan Jetpack Compose.",
+            delayIndex = 0,
+            reduceMotion = reduceMotion,
+        )
+        Spacer(Modifier.height(10.dp))
+        WelcomeFeature(
+            icon = Icons.Filled.Upload,
+            title = "Transfer latar belakang",
+            body = "Progres tetap berjalan lewat foreground service.",
+            delayIndex = 1,
+            reduceMotion = reduceMotion,
+        )
+        Spacer(Modifier.height(10.dp))
+        WelcomeFeature(
+            icon = Icons.Filled.Folder,
+            title = "Folder rapi",
+            body = "Buat, buka, dan hapus isi cloud langsung dari aplikasi.",
+            delayIndex = 2,
+            reduceMotion = reduceMotion,
+        )
+        Spacer(Modifier.height(18.dp))
+        Text(
+            text = "Masuk dengan tautan email, tempel tautan yang sudah kamu punya, atau coba sebagai tamu.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Hyper.Text3,
+            textAlign = TextAlign.Center,
+        )
     }
+}
+
+/** Cahaya koral lembut di belakang judul — khas HyperSpring, bukan kartu. */
+@Composable
+private fun AccentGlow(modifier: Modifier = Modifier) {
+    Box(
+        modifier.background(
+            Brush.radialGradient(
+                colors = listOf(
+                    Hyper.Accent.copy(alpha = 0.16f),
+                    Hyper.Accent.copy(alpha = 0.05f),
+                    Color.Transparent,
+                ),
+                center = Offset.Unspecified,
+                radius = 520f,
+            ),
+        ),
+    )
 }
 
 /** Baris fitur onboarding: kaca tipis, ikon 48dp, muncul berurutan. */
@@ -473,18 +634,18 @@ private fun WelcomeFeature(
                 translationY = 22f * (1f - progress.value)
             }
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White.copy(alpha = 0.07f))
-            .padding(16.dp),
+            .background(Hyper.GlassFill)
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(15.dp),
             color = Hyper.AccentSoft,
             border = BorderStroke(0.8.dp, Hyper.AccentEdge),
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(46.dp),
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = Hyper.Accent, modifier = Modifier.size(22.dp))
+                Icon(icon, contentDescription = null, tint = Hyper.Accent, modifier = Modifier.size(21.dp))
             }
         }
         Spacer(Modifier.width(16.dp))
@@ -509,10 +670,14 @@ private fun EmailPage(
     emailInvalid: Boolean,
     emailReady: Boolean,
     busy: Boolean,
+    notice: String?,
     onEmailChange: (String) -> Unit,
     onGuest: () -> Unit,
     onSend: () -> Unit,
+    onPasteLink: () -> Unit,
 ) {
+    Eyebrow("TAUTAN EMAIL")
+    Spacer(Modifier.height(8.dp))
     Text(
         text = "Masuk ke GoFile",
         style = MaterialTheme.typography.headlineLarge,
@@ -527,14 +692,18 @@ private fun EmailPage(
         color = Hyper.Text2,
         textAlign = TextAlign.Center,
     )
-    Spacer(Modifier.height(26.dp))
+    Spacer(Modifier.height(22.dp))
     HyperTextField(
         value = email,
         onValueChange = onEmailChange,
         label = "Alamat email",
         placeholder = "nama@contoh.com",
         leadingIcon = Icons.Filled.Email,
-        supporting = if (emailInvalid) "Format email belum benar." else "Tautan login hanya dikirim ke alamat ini.",
+        supporting = when {
+            emailInvalid -> "Format email belum benar."
+            notice != null -> notice
+            else -> "Tautan login hanya dikirim ke alamat ini."
+        },
         isError = emailInvalid,
         enabled = !busy,
         keyboardOptions = KeyboardOptions(
@@ -543,7 +712,23 @@ private fun EmailPage(
         ),
         keyboardActions = KeyboardActions(onSend = { if (emailReady && !busy) onSend() }),
     )
-    Spacer(Modifier.height(14.dp))
+    Spacer(Modifier.height(4.dp))
+    // Jalan pintas: jangan paksa mengirim email dulu kalau tautannya sudah ada.
+    TextButton(
+        onClick = onPasteLink,
+        enabled = !busy,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(
+            Icons.Filled.Link,
+            contentDescription = null,
+            tint = Hyper.Accent,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text("Sudah punya tautan? Tempel di sini", color = Hyper.Accent, style = MaterialTheme.typography.bodyMedium)
+    }
+    Spacer(Modifier.height(6.dp))
     HyperButton(
         text = "Lanjut sebagai tamu",
         icon = Icons.Filled.CloudQueue,
@@ -552,7 +737,7 @@ private fun EmailPage(
         onClick = onGuest,
         modifier = Modifier.fillMaxWidth(),
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(10.dp))
     Text(
         text = "Token disimpan lokal di perangkat.",
         style = MaterialTheme.typography.bodySmall,
@@ -564,13 +749,20 @@ private fun EmailPage(
 @Composable
 private fun TokenPage(
     tokenInput: String,
+    tokenValid: Boolean,
     email: String,
     busy: Boolean,
+    notice: String?,
     onTokenChange: (String) -> Unit,
+    onPaste: () -> Unit,
     onLogin: () -> Unit,
     onResend: () -> Unit,
     onChangeEmail: () -> Unit,
 ) {
+    val clipboard = LocalClipboardManager.current
+
+    Eyebrow("TAUTAN LOGIN")
+    Spacer(Modifier.height(8.dp))
     Text(
         text = "Cek email kamu",
         style = MaterialTheme.typography.headlineLarge,
@@ -580,12 +772,12 @@ private fun TokenPage(
     )
     Spacer(Modifier.height(10.dp))
     Text(
-        text = "Buka email dari GoFile, ketuk linknya untuk langsung masuk ke aplikasi — atau tempel di bawah.",
+        text = "Buka email dari GoFile, ketuk linknya untuk langsung masuk ke aplikasi — atau tempel link/token di bawah.",
         style = MaterialTheme.typography.bodyMedium,
         color = Hyper.Text2,
         textAlign = TextAlign.Center,
     )
-    Spacer(Modifier.height(26.dp))
+    Spacer(Modifier.height(22.dp))
     HyperTextField(
         value = tokenInput,
         onValueChange = onTokenChange,
@@ -593,21 +785,38 @@ private fun TokenPage(
         placeholder = "https://gofile.io/login/...",
         leadingIcon = Icons.Filled.Key,
         trailing = {
-            Icon(
-                Icons.Filled.ContentPaste,
-                contentDescription = null,
-                tint = Hyper.Text2,
-                modifier = Modifier.size(20.dp),
-            )
+            IconButton(
+                onClick = onPaste,
+                enabled = !busy,
+            ) {
+                Icon(
+                    Icons.Filled.ContentPaste,
+                    contentDescription = "Tempel dari clipboard",
+                    tint = Hyper.Accent,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         },
-        supporting = "Link dari email otomatis membuka aplikasi ini.",
+        supporting = when {
+            notice != null -> notice
+            tokenInput.isNotBlank() && !tokenValid -> "Belum dikenali sebagai tautan GoFile."
+            tokenValid -> "Tautan dikenali. Tekan Masuk."
+            else -> "Bisa juga tempel token 32 karakter tanpa tautan."
+        },
+        isError = tokenInput.isNotBlank() && !tokenValid,
         enabled = !busy,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(
-            onDone = { if (tokenInput.isNotBlank() && !busy) onLogin() },
+            onDone = { if (tokenValid && !busy) onLogin() },
         ),
     )
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(6.dp))
+    if (clipboard.getText() != null) {
+        TextButton(onClick = onPaste, enabled = !busy) {
+            Text("Tempel dari clipboard", color = Hyper.Accent)
+        }
+    }
+    Spacer(Modifier.height(2.dp))
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -618,5 +827,25 @@ private fun TokenPage(
         TextButton(onClick = onChangeEmail, enabled = !busy) {
             Text("Ganti email", color = Hyper.Text2)
         }
+    }
+}
+
+@Composable
+private fun Eyebrow(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(Hyper.Accent),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 2.4.sp,
+            color = Hyper.Text2,
+        )
     }
 }
