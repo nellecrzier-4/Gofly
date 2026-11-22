@@ -49,6 +49,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
@@ -119,6 +122,19 @@ import coil.request.ImageRequest
 import coil.request.videoFrameMillis
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.MainActivity
+import com.nellecrzier.gofileexpressive.DeleteConfirm
+import com.nellecrzier.gofileexpressive.Density
+import com.nellecrzier.gofileexpressive.GofileApi
+import com.nellecrzier.gofileexpressive.ui.HyperButton
+import com.nellecrzier.gofileexpressive.ui.preview.PreviewHost
+import com.nellecrzier.gofileexpressive.ui.preview.PreviewTarget
+import com.nellecrzier.gofileexpressive.ui.share.ContentSettingsSheet
+import com.nellecrzier.gofileexpressive.ui.share.ShareIntents
+import com.nellecrzier.gofileexpressive.ui.share.ShareSheet
+import com.nellecrzier.gofileexpressive.ui.share.shareLinkOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.nellecrzier.gofileexpressive.PrefsState
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ViewMode
@@ -179,6 +195,10 @@ fun FolderScreen(
     var details by remember { mutableStateOf<GItem?>(null) }
     var fabOpen by remember { mutableStateOf(false) }
     var pickerTargets by remember { mutableStateOf<List<GItem>>(emptyList()) }
+    var previewTarget by remember { mutableStateOf<PreviewTarget?>(null) }
+    var shareTarget by remember { mutableStateOf<GItem?>(null) }
+    var contentTarget by remember { mutableStateOf<GItem?>(null) }
+    val scope = rememberCoroutineScope()
 
     val query = state.query
     val filter = state.filter
@@ -213,6 +233,37 @@ fun FolderScreen(
         }
         clipboard.setText(AnnotatedString(item.link))
         activity.toast(context.getString(R.string.details_link_copied))
+    }
+
+    fun openPreviewOrFolder(item: GItem) {
+        if (item.isFolder) {
+            vm.open(token, item)
+            return
+        }
+        vm.recordRecent(item)
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        previewTarget = PreviewTarget(
+            item = item,
+            album = visible.filterNot { it.isFolder },
+        )
+    }
+
+    /** Unduh ke cache lalu serahkan ke aplikasi lain — tanpa WebView. */
+    fun openWithExternal(item: GItem) {
+        if (item.link.isBlank()) {
+            activity.toast(context.getString(R.string.details_no_link))
+            return
+        }
+        scope.launch {
+            try {
+                val file = withContext(Dispatchers.IO) {
+                    GofileApi.downloadToTemp(context, item.link, item.name, token)
+                }
+                activity.openWith(file, item.mimetype)
+            } catch (error: Exception) {
+                activity.toast(error.message ?: context.getString(R.string.preview_open_with))
+            }
+        }
     }
 
     fun toggleSelection(item: GItem) {
@@ -320,7 +371,7 @@ fun FolderScreen(
                                 if (state.selectionMode) {
                                     toggleSelection(item)
                                 } else {
-                                    openItem(item, token, activity, vm)
+                                    openPreviewOrFolder(item)
                                 }
                             },
                             onLongPress = { item ->
@@ -342,7 +393,7 @@ fun FolderScreen(
                                 if (state.selectionMode) {
                                     toggleSelection(item)
                                 } else {
-                                    openItem(item, token, activity, vm)
+                                    openPreviewOrFolder(item)
                                 }
                             },
                             onLongPress = { item ->
@@ -352,6 +403,7 @@ fun FolderScreen(
                             onSwipeShare = { share(listOf(it)) },
                             onSwipeDelete = { pendingDelete = listOf(it) },
                             onLoadMore = { vm.loadMore(token) },
+                            density = prefs.density,
                         )
                     }
                 }
@@ -555,15 +607,27 @@ fun FolderScreen(
                         color = Hyper.Text2,
                     )
                     Spacer(Modifier.height(18.dp))
-                    HoldToConfirm(
-                        label = stringResource(R.string.folder_delete_hold),
-                        hint = stringResource(R.string.folder_delete_hint),
-                        enabled = !state.busy,
-                        onConfirm = {
-                            vm.requestDelete(token, targets)
-                            pendingDelete = emptyList()
-                        },
-                    )
+                    if (prefs.deleteConfirm == DeleteConfirm.DIALOG) {
+                        HyperButton(
+                            text = stringResource(R.string.action_delete),
+                            onClick = {
+                                vm.requestDelete(token, targets)
+                                pendingDelete = emptyList()
+                            },
+                            enabled = !state.busy,
+                            primary = false,
+                        )
+                    } else {
+                        HoldToConfirm(
+                            label = stringResource(R.string.folder_delete_hold),
+                            hint = stringResource(R.string.folder_delete_hint),
+                            enabled = !state.busy,
+                            onConfirm = {
+                                vm.requestDelete(token, targets)
+                                pendingDelete = emptyList()
+                            },
+                        )
+                    }
                 }
             },
             confirmButton = {},
@@ -582,11 +646,22 @@ fun FolderScreen(
             onDismiss = { details = null },
             onFavorite = { vm.toggleFavorite(item) },
             onDownload = {
-                activity.startDownload(item.link, item.name, token)
+                activity.startDownload(item.link, item.name, token, item.md5)
                 vm.recordRecent(item)
                 details = null
             },
-            onShare = { share(listOf(item)) },
+            onShare = {
+                details = null
+                shareTarget = item
+            },
+            onPreview = {
+                details = null
+                openPreviewOrFolder(item)
+            },
+            onContentSettings = {
+                details = null
+                contentTarget = item
+            },
             onCopyLink = { copyLink(item) },
             onRename = {
                 details = null
@@ -620,19 +695,55 @@ fun FolderScreen(
             onConfirm = { vm.confirmPicker(token, pickerTargets) },
         )
     }
-}
 
-private fun openItem(
-    item: GItem,
-    token: String,
-    activity: MainActivity,
-    vm: FolderViewModel,
-) {
-    if (item.isFolder) {
-        vm.open(token, item)
-    } else if (item.link.startsWith("http")) {
-        activity.startDownload(item.link, item.name, token)
-        vm.recordRecent(item)
+    // Pratinjau native menutupi seluruh layar; ia menelan ketukan di latar.
+    PreviewHost(
+        target = previewTarget,
+        token = token,
+        reduceMotion = reduceMotion,
+        onClose = { previewTarget = null },
+        onOpenWith = { item -> openWithExternal(item) },
+        onDownload = { item ->
+            activity.startDownload(item.link, item.name, token, item.md5)
+            vm.recordRecent(item)
+        },
+        onShare = { item -> shareTarget = item },
+    )
+
+    shareTarget?.let { item ->
+        ShareSheet(
+            item = item,
+            token = token,
+            reduceMotion = reduceMotion,
+            onDismiss = { shareTarget = null },
+            onShareIntent = { target ->
+                val link = shareLinkOf(target)
+                if (link.isBlank()) {
+                    activity.toast(context.getString(R.string.details_no_link))
+                } else {
+                    context.startActivity(ShareIntents.sendText(context, link, target.name))
+                }
+                shareTarget = null
+            },
+            onDownload = { target ->
+                activity.startDownload(target.link, target.name, token, target.md5)
+                shareTarget = null
+            },
+        )
+    }
+
+    contentTarget?.let { item ->
+        ContentSettingsSheet(
+            item = item,
+            token = token,
+            reduceMotion = reduceMotion,
+            onDismiss = { contentTarget = null },
+            onSaved = { message ->
+                activity.toast(message)
+                contentTarget = null
+                vm.refresh(token)
+            },
+        )
     }
 }
 
@@ -852,6 +963,7 @@ private fun FileList(
     onSwipeShare: (GItem) -> Unit,
     onSwipeDelete: (GItem) -> Unit,
     onLoadMore: () -> Unit,
+    density: Density,
 ) {
     val listState = rememberLazyListState()
     val shouldLoadMore by remember(hasNextPage, items.size) {
@@ -877,6 +989,7 @@ private fun FileList(
                 onDelete = { onSwipeDelete(item) },
             ) {
                 FileRow(
+                    density = density,
                     item = item,
                     selected = item.id in selectedIds,
                     selectionMode = selectionMode,
@@ -912,6 +1025,7 @@ private fun FileList(
 
 @Composable
 private fun FileRow(
+    density: Density,
     item: GItem,
     selected: Boolean,
     selectionMode: Boolean,
@@ -937,8 +1051,21 @@ private fun FileRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .heightIn(
+                    min = when (density) {
+                        Density.COMPACT -> 48.dp
+                        Density.COMFORT -> 56.dp
+                        Density.RELAXED -> 64.dp
+                    },
+                )
+                .padding(
+                    horizontal = 14.dp,
+                    vertical = when (density) {
+                        Density.COMPACT -> 6.dp
+                        Density.COMFORT -> 10.dp
+                        Density.RELAXED -> 14.dp
+                    },
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconChip(
@@ -1493,6 +1620,8 @@ private fun ItemDetailsSheet(
     onDismiss: () -> Unit,
     onFavorite: () -> Unit,
     onDownload: () -> Unit,
+    onPreview: () -> Unit,
+    onContentSettings: () -> Unit,
     onShare: () -> Unit,
     onCopyLink: () -> Unit,
     onRename: () -> Unit,
@@ -1573,8 +1702,12 @@ private fun ItemDetailsSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
             ) {
+                if (!item.isFolder) {
+                    HyperIconButton(Icons.Filled.Visibility, stringResource(R.string.preview_title_short), onPreview)
+                }
                 HyperIconButton(Icons.Filled.Download, stringResource(R.string.action_download), onDownload)
                 HyperIconButton(Icons.Filled.Share, stringResource(R.string.action_share), onShare)
+                HyperIconButton(Icons.Filled.Tune, stringResource(R.string.share_settings_title), onContentSettings)
                 HyperIconButton(Icons.Filled.ContentCopy, stringResource(R.string.details_copy_link), onCopyLink)
                 HyperIconButton(Icons.Filled.CreateNewFolder, stringResource(R.string.action_rename), onRename)
                 HyperIconButton(Icons.Filled.FolderOpen, stringResource(R.string.action_move), onMove)

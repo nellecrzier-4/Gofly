@@ -129,4 +129,16 @@
 
     <!-- transfers -->
     <string name="transfer_failed">Transfer failed.</string>
+    <!-- shortcuts -->
+    <string name="shortcut_upload_short">Upload</string>
+    <string name="shortcut_upload_long">Upload a file</string>
+    <string name="shortcut_transfers_short">Transfers</string>
+    <string name="shortcut_transfers_long">Transfer panel</string>
+    <!-- app lock -->
+    <string name="lock_title">Gofile Expressive terkunci</string>
+    <string name="lock_subtitle">Verifikasi untuk membuka aplikasi</string>
+    <string name="lock_body">Aplikasi dikunci setiap kali kembali dari latar belakang. Gunakan biometrik atau PIN perangkat.</string>
+    <string name="lock_unlock">Buka kunci</string>
+    <string name="lock_unavailable">Perangkat ini tidak punya biometrik atau PIN. Kunci aplikasi tidak bisa dipakai.</string>
+    <string name="preview_title_short">Preview</string>
 </resources>

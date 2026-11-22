@@ -100,6 +100,9 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
     val events = _events.asSharedFlow()
 
     private var deleteJob: Job? = null
+
+    /** Jendela Undo dalam milidetik; mengikuti Setelan (3–15 detik). */
+    var undoWindowMs: Long = GofileConfig.DELETE_UNDO_MS
     private var globalJob: Job? = null
     private var loadJob: Job? = null
     private var lastToken: String? = null
@@ -374,7 +377,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
             )
         }
         deleteJob = viewModelScope.launch {
-            delay(GofileConfig.DELETE_UNDO_MS)
+            delay(undoWindowMs)
             try {
                 repository.delete(token, items.map { it.id })
                 _state.update { it.copy(undo = null) }

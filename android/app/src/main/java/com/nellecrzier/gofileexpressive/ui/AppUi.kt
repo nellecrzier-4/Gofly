@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui
 
+import android.net.Uri
 import android.os.Build
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
@@ -143,6 +144,7 @@ import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
+import com.nellecrzier.gofileexpressive.ui.security.AppLockGate
 import com.nellecrzier.gofileexpressive.ui.home.HomeScreen
 import com.nellecrzier.gofileexpressive.ui.login.LoginScreen
 import com.nellecrzier.gofileexpressive.ui.settings.SettingsScreen
@@ -190,18 +192,28 @@ internal fun readableSize(bytes: Long): String {
 @Composable
 fun GofileApp(activity: MainActivity) {
     val context = LocalContext.current
-    val reduceMotion = rememberReduceMotion()
+    val systemReduceMotion = rememberReduceMotion()
 
-    // HyperSpring hanya punya satu palet gelap; tidak ada warna dinamis.
-    GofileTheme {
+    // ViewModel dibuat di luar tema supaya preferensi (tema, aksen, skala teks)
+    // sudah tersedia saat palet dipilih.
+    val sessionVm: SessionViewModel = viewModel()
+    val folderVm: FolderViewModel = viewModel()
+    val settingsVm: SettingsViewModel = viewModel()
+    val prefs by settingsVm.state.collectAsStateWithLifecycle()
+    val reduceMotion = systemReduceMotion || prefs.motionReduced
+    val lockRevision by activity.lockRevision.collectAsState()
+
+    GofileTheme(
+        mode = prefs.themeMode,
+        accent = prefs.accent,
+        dynamic = prefs.dynamicColor,
+        fontScale = prefs.fontScale,
+    ) {
+        AppLockGate(enabled = prefs.appLock, lockRevision = lockRevision) {
         val permissionRevision by activity.permissionRevision.collectAsState()
 
-        val sessionVm: SessionViewModel = viewModel()
-        val folderVm: FolderViewModel = viewModel()
-        val settingsVm: SettingsViewModel = viewModel()
         val sessionState by sessionVm.state.collectAsStateWithLifecycle()
         val folderState by folderVm.state.collectAsStateWithLifecycle()
-        val prefs by settingsVm.state.collectAsStateWithLifecycle()
 
         val session = sessionState.session
         val loginStep = sessionState.step
@@ -277,6 +289,90 @@ fun GofileApp(activity: MainActivity) {
                 sessionVm.adoptLoginLink(token)
                 activity.loginLinkFlow.value = null
             }
+        }
+
+        val folderLabel = stringResource(R.string.tab_folder)
+
+        // Tautan folder publik (gofile.io/d/<id>) dibuka native, bukan di browser.
+        LaunchedEffect(Unit) {
+            activity.deepLinkFolder.collect { id ->
+                if (id.isNullOrBlank()) return@collect
+                val current = sessionVm.state.value.session
+                if (current.token.isNotBlank()) {
+                    folderVm.openDirect(
+                        current.token,
+                        GItem(
+                            id = id,
+                            name = folderLabel,
+                            type = "folder",
+                            size = 0,
+                            link = "",
+                            parentFolder = "",
+                            mimetype = "",
+                        ),
+                    )
+                    currentTab = "folder"
+                } else {
+                    showNotice("Masuk dulu untuk membuka tautan folder.", error = true)
+                }
+                activity.deepLinkFolder.value = null
+            }
+        }
+
+        // Berkas yang dibagikan aplikasi lain diunggah ke folder yang sedang dibuka.
+        LaunchedEffect(Unit) {
+            activity.incomingShare.collect { uris ->
+                if (uris.isEmpty()) return@collect
+                val current = sessionVm.state.value.session
+                val folderId = folderVm.state.value.currentFolderId ?: current.rootFolder
+                if (current.token.isBlank()) {
+                    showNotice("Masuk dulu untuk mengunggah berkas.", error = true)
+                } else {
+                    currentTab = "folder"
+                    activity.uploadUris(uris, folderId, current.token)
+                    showNotice("Mengunggah ${uris.size} berkas…", error = false)
+                }
+                activity.incomingShare.value = emptyList()
+            }
+        }
+
+        // Pintasan aplikasi (tekan lama ikon): unggah atau transfer.
+        LaunchedEffect(Unit) {
+            activity.shortcutRequest.collect { request ->
+                if (request.isNullOrBlank()) return@collect
+                val current = sessionVm.state.value.session
+                when (request) {
+                    "upload" -> {
+                        val folderId = folderVm.state.value.currentFolderId ?: current.rootFolder
+                        if (current.token.isNotBlank()) {
+                            activity.pickFileForUpload(folderId, current.token)
+                        }
+                    }
+                    "transfers" -> currentTab = "home"
+                }
+                activity.shortcutRequest.value = null
+            }
+        }
+
+        // Bahasa per-aplikasi: aktivitas dibuat ulang sekali setelah pilihan berubah.
+        // Jendela Undo mengikuti Setelan (3–15 detik).
+        LaunchedEffect(prefs.undoSeconds) {
+            folderVm.undoWindowMs = prefs.undoSeconds * 1000L
+        }
+
+        // Folder unduhan SAF yang dipilih dari Setelan.
+        LaunchedEffect(Unit) {
+            activity.downloadTreeResult.collect { uri ->
+                if (!uri.isNullOrBlank()) {
+                    settingsVm.setDownloadTree(uri)
+                    activity.downloadTreeResult.value = null
+                }
+            }
+        }
+
+        val initialLanguage = remember { prefs.language }
+        LaunchedEffect(prefs.language) {
+            if (prefs.language != initialLanguage) activity.recreate()
         }
 
         // Pemberitahuan hilang sendiri seperti pil toast HyperSpring.
@@ -417,6 +513,18 @@ fun GofileApp(activity: MainActivity) {
                                         session = session,
                                         reduceMotion = reduceMotion,
                                         onLogout = { sessionVm.logout() },
+                                        onPickDownloadFolder = { activity.pickDownloadFolder() },
+                                        onSendFeedback = { activity.sendFeedback() },
+                                        onExportLog = { activity.exportLog() },
+                                        onOpenLink = { url -> activity.openUrlExternally(url) },
+                                        onSignOut = { wipe ->
+                                            if (wipe) {
+                                                settingsVm.clearCache()
+                                                settingsVm.clearLibrary()
+                                                folderVm.clearLibrary()
+                                            }
+                                            sessionVm.logout()
+                                        },
                                     )
 
                                     else -> HomeScreen(
@@ -541,6 +649,7 @@ fun GofileApp(activity: MainActivity) {
             )
         }
 
+        }
     }
 }
 
