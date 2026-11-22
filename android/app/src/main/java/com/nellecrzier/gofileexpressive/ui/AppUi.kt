@@ -144,6 +144,7 @@ import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
+import com.nellecrzier.gofileexpressive.ui.glass.liquidGlassEffect
 import com.nellecrzier.gofileexpressive.ui.security.AppLockGate
 import com.nellecrzier.gofileexpressive.ui.home.HomeScreen
 import com.nellecrzier.gofileexpressive.ui.login.LoginScreen
@@ -393,6 +394,22 @@ fun GofileApp(activity: MainActivity) {
         val backdrop = rememberGraphicsLayer()
         var navBarTopLeft by remember { mutableStateOf(Offset.Zero) }
         var navBarSize by remember { mutableStateOf(IntSize.Zero) }
+        val screenDensity = LocalDensity.current.density
+        // Shader kaca HyperSpring (AGSL, Android 13+). Ukurannya mengikuti
+        // kapsul navigasi; kalau shader gagal, blur biasa tetap dipakai.
+        val glassEffect = remember(navBarSize, screenDensity, blurEffect) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                navBarSize.width > 0 && navBarSize.height > 0
+            ) {
+                liquidGlassEffect(
+                    widthPx = navBarSize.width.toFloat(),
+                    heightPx = navBarSize.height.toFloat(),
+                    density = screenDensity,
+                )
+            } else {
+                null
+            }
+        }
 
         fun goBack() {
             if (currentTab == "folder" && folderVm.back(session.token)) return
@@ -437,7 +454,7 @@ fun GofileApp(activity: MainActivity) {
                             .fillMaxSize()
                             .drawWithContent {
                                 drawContent()
-                                val effect = blurEffect
+                                val effect = glassEffect ?: blurEffect
                                 if (effect != null && navBarSize.width > 0 && navBarSize.height > 0) {
                                     backdrop.record(this, layoutDirection, navBarSize) {
                                         translate(-navBarTopLeft.x, -navBarTopLeft.y) {
