@@ -76,6 +76,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -143,6 +144,58 @@ fun <T> hyperSpring(response: Float = 0.4f, damping: Float = 0.8f) = spring<T>(
  * Skala tekan yang memantul. Dipakai kartu/baris yang tidak memakai `Surface`
  * ber-ripple, supaya sentuhan terasa "kenyal" seperti HyperSpring.
  */
+/**
+ * Garis cahaya tepi ala HyperSpring: 60% putih di kiri-atas, 18% di sisi lain.
+ * Dipakai sebagai border 0,8dp pada kartu dan kapsul kaca, menggantikan border
+ * putih rata yang terlihat datar.
+ */
+val HyperEdgeBrush: Brush
+    get() = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.60f),
+            Color.White.copy(alpha = 0.22f),
+            Color.White.copy(alpha = 0.30f),
+        ),
+        start = Offset.Zero,
+        end = Offset(900f, 1400f),
+    )
+
+/**
+ * Cahaya tekan: gradien radial aksen lembut di bawah jari, seperti glow folder
+ * HyperSpring. Intensitas mengikuti jarak tekan, jadi lepasnya terasa memantul.
+ */
+@Composable
+fun Modifier.hyperPressGlow(
+    interactionSource: MutableInteractionSource,
+    reduceMotion: Boolean,
+    glow: Color = Hyper.Accent,
+    intensity: Float = 0.20f,
+): Modifier {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val level by animateFloatAsState(
+        targetValue = if (pressed) 1f else 0f,
+        animationSpec = if (reduceMotion) tween(0) else hyperSpring(0.4f, 0.68f),
+        label = "pressGlow",
+    )
+    return drawBehind {
+        if (level > 0.01f) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        glow.copy(alpha = intensity * level),
+                        glow.copy(alpha = intensity * level * 0.35f),
+                        Color.Transparent,
+                    ),
+                    center = center,
+                    radius = size.maxDimension * 0.85f,
+                ),
+                radius = size.maxDimension * 0.85f,
+                center = center,
+            )
+        }
+    }
+}
+
 @Composable
 fun Modifier.springPress(
     interactionSource: MutableInteractionSource,
@@ -361,7 +414,7 @@ fun BottomVeil(modifier: Modifier = Modifier, height: Dp = 168.dp) {
 @Composable
 fun HyperCard(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
+    shape: RoundedCornerShape = RoundedCornerShape(22.dp),
     border: Color = Hyper.Hairline,
     fill: Color = Hyper.Card,
     content: @Composable ColumnScope.() -> Unit,
@@ -370,7 +423,7 @@ fun HyperCard(
         modifier = modifier,
         shape = shape,
         color = fill,
-        border = androidx.compose.foundation.BorderStroke(0.8.dp, border),
+        border = androidx.compose.foundation.BorderStroke(0.8.dp, HyperEdgeBrush),
     ) {
         Box {
             Column(Modifier.padding(vertical = 2.dp), content = content)
@@ -644,7 +697,19 @@ fun HyperButton(
             .graphicsLayer {
                 scaleX = scale.first
                 scaleY = scale.second
-            },
+            }
+            .then(
+                if (primary && enabled) {
+                    Modifier.shadow(
+                        elevation = 14.dp,
+                        shape = CircleShape,
+                        ambientColor = Hyper.Accent.copy(alpha = 0.55f),
+                        spotColor = Hyper.Accent.copy(alpha = 0.65f),
+                    )
+                } else {
+                    Modifier
+                },
+            ),
     ) {
         Surface(
             onClick = onClick,
@@ -1333,7 +1398,7 @@ fun HyperNavBar(
                         },
                     )
                 }
-                .border(1.dp, Hyper.GlassEdge, CircleShape)
+                .border(0.8.dp, HyperEdgeBrush, CircleShape)
                 .drawBehind {
                     drawLine(
                         color = Color.White.copy(alpha = 0.28f),
