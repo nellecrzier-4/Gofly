@@ -1,6 +1,10 @@
 pluginManagement {
     repositories {
         google()
+        // Cermin resmi Maven Central (Google Cloud Storage) lebih jarang kena
+        // 429 dari IP runner CI; mavenCentral() tetap dipakai sebagai cadangan.
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
+        maven("https://repo1.maven.org/maven2")
         mavenCentral()
         gradlePluginPortal()
     }
@@ -10,6 +14,8 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
+        maven("https://repo1.maven.org/maven2")
         mavenCentral()
     }
 }
