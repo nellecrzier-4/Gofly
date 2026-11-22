@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pratinjau media native (fase 5). Terjemahan Indonesia, bukan salinan
+     bahasa Inggris. -->
+<resources>
+
+    <!-- Bilah atas -->
+    <string name="preview_back">Kembali</string>
+    <string name="preview_more">Opsi lainnya</string>
+    <string name="preview_download">Unduh</string>
+    <string name="preview_share">Bagikan</string>
+    <string name="preview_open_with">Buka dengan</string>
+    <string name="preview_details">Detail</string>
+    <string name="preview_retry">Coba lagi</string>
+    <string name="preview_loading">Memuat…</string>
+    <string name="preview_fullscreen_enter">Masuk layar penuh</string>
+    <string name="preview_fullscreen_exit">Keluar dari layar penuh</string>
+    <string name="preview_line_numbers_show">Tampilkan nomor baris</string>
+    <string name="preview_line_numbers_hide">Sembunyikan nomor baris</string>
+
+    <!-- Gambar -->
+    <string name="preview_slideshow_start">Mulai slideshow</string>
+    <string name="preview_slideshow_stop">Hentikan slideshow</string>
+    <string name="preview_image_failed">Gambar ini tidak bisa ditampilkan.</string>
+    <string name="preview_page_counter">%1$d / %2$d</string>
+    <string name="preview_page_position">%1$d dari %2$d</string>
+
+    <!-- Audio dan video -->
+    <string name="preview_audio_play">Putar</string>
+    <string name="preview_audio_pause">Jeda</string>
+    <string name="preview_audio_forward">Maju 10 detik</string>
+    <string name="preview_audio_rewind">Mundur 10 detik</string>
+    <string name="preview_audio_failed">Audio ini tidak bisa diputar.</string>
+    <string name="preview_video_failed">Video ini tidak bisa diputar.</string>
+
+    <!-- Teks, kode, Markdown -->
+    <string name="preview_error_pdf">PDF ini tidak bisa ditampilkan di perangkat ini.</string>
+    <string name="preview_not_text">File ini bukan teks biasa.</string>
+    <string name="preview_text_empty_title">File kosong</string>
+    <string name="preview_text_empty">File ini kosong.</string>
+    <string name="preview_text_limit">1 MB</string>
+    <string name="preview_too_large_title">File terlalu besar untuk pratinjau</string>
+    <string name="preview_too_large_body">Pratinjau teks dibatasi sampai %1$s. Buka file di aplikasi lain untuk membaca semuanya.</string>
+    <string name="preview_unsupported_title">Tidak ada pratinjau untuk jenis ini</string>
+    <string name="preview_unsupported_body">Buka di aplikasi lain untuk melihat isinya.</string>
+
+    <!-- Kegagalan -->
+    <string name="preview_error_title">Tidak bisa membuka file ini</string>
+    <string name="preview_error_auth">Sesimu sudah berakhir. Masuk lagi untuk melanjutkan.</string>
+    <string name="preview_error_premium">File ini memerlukan akun GoFile premium.</string>
+    <string name="preview_error_not_found">File ini sudah tidak tersedia.</string>
+    <string name="preview_error_rate_limited">Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.</string>
+    <string name="preview_error_quota">Kuota penyimpanan sudah penuh.</string>
+    <string name="preview_error_permission">Kamu tidak punya akses ke file ini.</string>
+    <string name="preview_error_network">Tidak ada koneksi. Periksa jaringan lalu coba lagi.</string>
+    <string name="preview_error_server">GoFile sedang bermasalah. Coba lagi sebentar lagi.</string>
+    <string name="preview_error_unknown">Terjadi kesalahan.</string>
+    <string name="preview_error_no_link">GoFile belum membuat tautan langsung untuk file ini.</string>
+
+    <!-- Detail -->
+    <string name="preview_details_title">Detail</string>
+    <string name="preview_details_name">Nama</string>
+    <string name="preview_details_size">Ukuran</string>
+    <string name="preview_details_type">Jenis</string>
+    <string name="preview_details_id">ID</string>
+    <string name="preview_details_link">Tautan</string>
+    <string name="preview_details_no_link">Belum ada tautan.</string>
+    <string name="preview_details_copy_link">Salin tautan</string>
+    <string name="preview_details_link_copied">Tautan disalin.</string>
+    <string name="preview_details_close">Tutup</string>
+    <string name="preview_unknown">Tidak diketahui</string>
+
+    <!-- Satuan ukuran -->
+    <string name="preview_size_format">%1$s %2$s</string>
+    <string name="preview_unit_b">B</string>
+    <string name="preview_unit_kb">KB</string>
+    <string name="preview_unit_mb">MB</string>
+    <string name="preview_unit_gb">GB</string>
+    <string name="preview_unit_tb">TB</string>
+
+</resources>
