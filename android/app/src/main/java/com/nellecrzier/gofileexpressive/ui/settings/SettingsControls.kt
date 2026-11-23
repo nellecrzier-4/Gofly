@@ -1,9 +1,8 @@
 package com.nellecrzier.gofileexpressive.ui.settings
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,13 +23,18 @@ import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,16 +54,13 @@ import androidx.compose.ui.unit.sp
 import com.nellecrzier.gofileexpressive.AccentChoice
 import com.nellecrzier.gofileexpressive.Density
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperRow
-import com.nellecrzier.gofileexpressive.ui.HyperToggle
-import com.nellecrzier.gofileexpressive.ui.ValuePill
 
 /* ------------------------------ segmen ------------------------------ */
 
 /**
- * Segmen setelan dengan tinggi sentuh 48dp (HyperSegmented bawaan 44dp) dan
- * `selectableGroup` supaya TalkBack mengumumkan "radio button 1 dari 3".
+ * Segmen setelan Material 3. `SingleChoiceSegmentedButtonRow` sudah mengumumkan
+ * "radio button 1 dari 3" ke TalkBack dan menjaga sasaran sentuh 48dp, jadi
+ * `reduceMotion` tidak lagi dipakai di sini.
  */
 @Composable
 internal fun SettingsSegmented(
@@ -69,52 +70,21 @@ internal fun SettingsSegmented(
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Hyper.Track,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            Modifier
-                .padding(4.dp)
-                .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            options.forEach { (key, label) ->
-                val selected = value == key
-                val container by animateColorAsState(
-                    targetValue = if (selected) Hyper.Accent else Color.Transparent,
-                    animationSpec = tween(if (reduceMotion) 0 else 220),
-                    label = "settingsSegmentFill",
-                )
-                val content by animateColorAsState(
-                    targetValue = if (selected) Hyper.AccentInk else Hyper.Text2,
-                    animationSpec = tween(if (reduceMotion) 0 else 180),
-                    label = "settingsSegmentText",
-                )
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(container)
-                        .selectable(
-                            selected = selected,
-                            role = Role.RadioButton,
-                            onClick = { onChange(key) },
-                        )
-                        .padding(horizontal = 6.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+    SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, (key, label) ->
+            SegmentedButton(
+                selected = value == key,
+                onClick = { onChange(key) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                label = {
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
-                        color = content,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
                     )
-                }
-            }
+                },
+            )
         }
     }
 }
@@ -123,7 +93,7 @@ internal fun SettingsSegmented(
 
 /**
  * Baris dengan sakelar. Sakelar mendapat deskripsi + status baca layar karena
- * `HyperToggle` sendiri tidak menempelkan `ToggleableState`.
+ * `Switch` sendiri tidak menempelkan `ToggleableState`.
  */
 @Composable
 internal fun SettingsSwitchRow(
@@ -134,21 +104,39 @@ internal fun SettingsSwitchRow(
     subtitle: String? = null,
     enabled: Boolean = true,
     icon: ImageVector? = null,
-    iconTint: Color = Hyper.Text2,
+    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     val stateText = stringResource(
         if (checked) R.string.settings_state_on else R.string.settings_state_off,
     )
-    HyperRow(
-        title = title,
-        subtitle = subtitle,
-        icon = icon,
-        iconTint = iconTint,
-        modifier = modifier,
-        trailing = {
-            HyperToggle(
+    ListItem(
+        headlineContent = {
+            Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = subtitle?.let {
+            {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        leadingContent = icon?.let {
+            {
+                Icon(
+                    imageVector = it,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        },
+        trailingContent = {
+            Switch(
                 checked = checked,
-                onChange = onChange,
+                onCheckedChange = onChange,
                 enabled = enabled,
                 modifier = Modifier
                     .heightIn(min = 48.dp)
@@ -158,6 +146,8 @@ internal fun SettingsSwitchRow(
                     },
             )
         },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = modifier.fillMaxWidth(),
     )
 }
 
@@ -170,24 +160,49 @@ internal fun SettingsActionRow(
     subtitle: String? = null,
     value: String? = null,
     icon: ImageVector? = null,
-    iconTint: Color = Hyper.Text2,
+    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    HyperRow(
-        title = title,
-        subtitle = subtitle,
-        value = value,
-        icon = icon,
-        iconTint = iconTint,
-        onClick = onClick,
-        modifier = modifier,
-        trailing = {
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = Hyper.Text3,
-                modifier = Modifier.size(20.dp),
-            )
+    ListItem(
+        headlineContent = {
+            Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
+        supportingContent = subtitle?.let {
+            {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        leadingContent = icon?.let {
+            {
+                Icon(
+                    imageVector = it,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (value != null) {
+                    Spacer(Modifier.width(8.dp))
+                    ValueBadge(value)
+                }
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
     )
 }
 
@@ -211,17 +226,17 @@ internal fun SettingsSlider(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(12.dp))
-            ValuePill(valueLabel)
+            ValueBadge(valueLabel)
         }
         if (subtitle != null) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 1.dp),
             )
         }
@@ -236,11 +251,11 @@ internal fun SettingsSlider(
                 .padding(top = 4.dp)
                 .semantics { contentDescription = title },
             colors = SliderDefaults.colors(
-                thumbColor = Hyper.Accent,
-                activeTrackColor = Hyper.Accent,
-                inactiveTrackColor = Hyper.Track,
-                activeTickColor = Hyper.AccentInk,
-                inactiveTickColor = Hyper.Text3,
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                activeTickColor = MaterialTheme.colorScheme.onPrimary,
+                inactiveTickColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             ),
         )
     }
@@ -287,10 +302,10 @@ internal fun AccentSwatches(
             Text(
                 text = stringResource(R.string.settings_accent),
                 style = MaterialTheme.typography.titleSmall,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            ValuePill(selectedName)
+            ValueBadge(selectedName)
         }
         Row(
             Modifier
@@ -325,7 +340,7 @@ internal fun AccentSwatches(
                         Box(
                             Modifier
                                 .size(46.dp)
-                                .border(2.dp, Hyper.Text, CircleShape),
+                                .border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
                         )
                     }
                 }
@@ -345,7 +360,7 @@ internal fun TextSizePreview(
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = Hyper.Track,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = modifier.fillMaxWidth(),
     ) {
         Text(
@@ -354,7 +369,7 @@ internal fun TextSizePreview(
                 fontSize = (16f * scale).sp,
                 lineHeight = (24f * scale).sp,
             ),
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
         )
     }
@@ -373,7 +388,7 @@ internal fun DensityPreview(
     }
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = Hyper.Track,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(vertical = 4.dp)) {
@@ -387,8 +402,8 @@ internal fun DensityPreview(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp)
-                    .height(0.8.dp)
-                    .background(Hyper.Hairline),
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant),
             )
             PreviewFileRow(
                 title = stringResource(R.string.settings_density_preview_file),
@@ -416,14 +431,18 @@ private fun PreviewFileRow(
         Icon(
             if (folder) Icons.Filled.Folder else Icons.AutoMirrored.Filled.InsertDriveFile,
             contentDescription = null,
-            tint = if (folder) Hyper.Accent else Hyper.Text2,
+            tint = if (folder) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(10.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -434,8 +453,28 @@ private fun PreviewFileRow(
             style = MaterialTheme.typography.labelMedium,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
-            color = Hyper.Text3,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             maxLines = 1,
+        )
+    }
+}
+
+/** Pil nilai kecil: latar aksen lembut, teks aksen, sudut 8dp. */
+@Composable
+private fun ValueBadge(text: String, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = modifier,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
         )
     }
 }
