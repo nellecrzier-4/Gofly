@@ -1,6 +1,9 @@
 package com.nellecrzier.gofileexpressive.ui.account
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,41 +11,46 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperButton
-import com.nellecrzier.gofileexpressive.ui.HyperCard
-import com.nellecrzier.gofileexpressive.ui.HyperGroup
-import com.nellecrzier.gofileexpressive.ui.HyperIconButton
-import com.nellecrzier.gofileexpressive.ui.HyperPage
-import com.nellecrzier.gofileexpressive.ui.HyperRow
-import com.nellecrzier.gofileexpressive.ui.HoldToConfirm
-import com.nellecrzier.gofileexpressive.ui.NoticeBanner
-import com.nellecrzier.gofileexpressive.ui.SectionLabel
+import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
 import com.nellecrzier.gofileexpressive.ui.readableSize
 
 /**
@@ -64,59 +72,98 @@ internal fun AccountScreen(
 
     BackHandler(enabled = true, onBack = onBack)
 
-    HyperPage(
-        title = stringResource(R.string.settings_account_title),
-        subtitle = stringResource(R.string.settings_account_subtitle),
-        scroll = scroll,
-        reduceMotion = reduceMotion,
-        actions = {
-            HyperIconButton(
-                icon = Icons.Filled.Refresh,
-                description = stringResource(R.string.settings_account_retry),
-                onClick = onRetry,
-            )
-            HyperIconButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                description = stringResource(R.string.settings_account_back),
-                onClick = onBack,
-            )
-        },
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(scroll)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp),
     ) {
-        AccountHeader(session, state)
-
-        when (state) {
-            AccountUiState.Loading -> AccountLoadingCard(reduceMotion)
-
-            is AccountUiState.Failed -> {
-                Spacer(Modifier.height(12.dp))
-                NoticeBanner(text = stringResource(accountErrorRes(state.error)))
-                Spacer(Modifier.height(10.dp))
-                HyperButton(
-                    text = stringResource(R.string.settings_account_retry),
-                    onClick = onRetry,
-                    primary = false,
-                    height = 50.dp,
-                    modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.settings_account_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.settings_account_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            AccountUiState.Expired -> ExpiredSessionCard(
-                onSignIn = { onSignOut(false) },
-            )
-
-            AccountUiState.Unavailable -> {
-                Spacer(Modifier.height(12.dp))
-                NoteCard(stringResource(R.string.settings_account_no_details))
-            }
-
-            is AccountUiState.Ready -> {
-                StorageSection(state.snapshot, reduceMotion)
-                BreakdownSection(state.snapshot, reduceMotion)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledTonalIconButton(
+                    onClick = onRetry,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = stringResource(R.string.settings_account_retry),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.settings_account_back),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
+        Spacer(Modifier.height(8.dp))
+        Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
+            AccountHeader(session, state)
 
-        IdentitySection(session, snapshot)
-        SignOutSection(onSignOut)
+            when (state) {
+                AccountUiState.Loading -> AccountLoadingCard(reduceMotion)
+
+                is AccountUiState.Failed -> {
+                    Spacer(Modifier.height(12.dp))
+                    AccountNotice(stringResource(accountErrorRes(state.error)))
+                    Spacer(Modifier.height(10.dp))
+                    FilledTonalButton(
+                        onClick = onRetry,
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                    ) {
+                        Text(stringResource(R.string.settings_account_retry))
+                    }
+                }
+
+                AccountUiState.Expired -> ExpiredSessionCard(
+                    onSignIn = { onSignOut(false) },
+                )
+
+                AccountUiState.Unavailable -> {
+                    Spacer(Modifier.height(12.dp))
+                    NoteCard(stringResource(R.string.settings_account_no_details))
+                }
+
+                is AccountUiState.Ready -> {
+                    StorageSection(state.snapshot, reduceMotion)
+                    BreakdownSection(state.snapshot, reduceMotion)
+                }
+            }
+
+            IdentitySection(session, snapshot)
+            SignOutSection(onSignOut)
+        }
     }
 }
 
@@ -131,24 +178,25 @@ private fun AccountHeader(session: GSession, state: AccountUiState) {
         ?.takeIf { it.isNotBlank() }
         ?: session.tier.takeIf { it.isNotBlank() }
 
-    HyperCard(
-        fill = Hyper.AccentSoft,
-        border = Hyper.AccentEdge,
-        shape = RoundedCornerShape(22.dp),
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = CircleShape,
-                    color = Hyper.Card,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.size(44.dp),
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Filled.CloudQueue,
                             contentDescription = null,
-                            tint = Hyper.Accent,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -159,7 +207,7 @@ private fun AccountHeader(session: GSession, state: AccountUiState) {
                         text = email ?: stringResource(R.string.settings_account_guest),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         maxLines = 2,
                     )
                     Spacer(Modifier.height(3.dp))
@@ -169,7 +217,7 @@ private fun AccountHeader(session: GSession, state: AccountUiState) {
                         Text(
                             text = stringResource(R.string.settings_account_guest),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Hyper.Text2,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                         )
                     }
                 }
@@ -181,21 +229,27 @@ private fun AccountHeader(session: GSession, state: AccountUiState) {
 @Composable
 private fun AccountLoadingCard(reduceMotion: Boolean) {
     Spacer(Modifier.height(14.dp))
-    HyperGroup {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ExpressiveLoader(
                 size = 28.dp,
-                color = Hyper.Accent,
+                color = MaterialTheme.colorScheme.primary,
                 reduceMotion = reduceMotion,
             )
             Spacer(Modifier.width(14.dp))
             Text(
                 text = stringResource(R.string.settings_account_loading),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -204,9 +258,11 @@ private fun AccountLoadingCard(reduceMotion: Boolean) {
 @Composable
 private fun ExpiredSessionCard(onSignIn: () -> Unit) {
     Spacer(Modifier.height(14.dp))
-    HyperCard(
-        border = Hyper.AccentEdge,
-        shape = RoundedCornerShape(20.dp),
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -214,14 +270,14 @@ private fun ExpiredSessionCard(onSignIn: () -> Unit) {
                 Icon(
                     Icons.Filled.ErrorOutline,
                     contentDescription = null,
-                    tint = Hyper.Accent,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = stringResource(R.string.settings_account_expired_title),
                     style = MaterialTheme.typography.titleMedium,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -229,16 +285,22 @@ private fun ExpiredSessionCard(onSignIn: () -> Unit) {
             Text(
                 text = stringResource(R.string.settings_account_expired_body),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
-            HyperButton(
-                text = stringResource(R.string.settings_account_sign_in),
-                icon = Icons.AutoMirrored.Filled.Logout,
+            Button(
                 onClick = onSignIn,
-                height = 50.dp,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                shape = RoundedCornerShape(percent = 50),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.settings_account_sign_in))
+            }
         }
     }
 }
@@ -247,8 +309,14 @@ private fun ExpiredSessionCard(onSignIn: () -> Unit) {
 
 @Composable
 private fun StorageSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
-    SectionLabel(stringResource(R.string.settings_storage_title))
-    HyperGroup {
+    SectionHeader(stringResource(R.string.settings_storage_title))
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             val used = snapshot.usedBytes
             val total = snapshot.totalBytes
@@ -260,14 +328,14 @@ private fun StorageSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
                         ?: stringResource(R.string.settings_account_none),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = total?.let { stringResource(R.string.settings_storage_total, readableSize(it)) }
                         ?: "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 6.dp),
                 )
             }
@@ -301,7 +369,7 @@ private fun StorageSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
                             readableSize(remaining),
                         ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -311,7 +379,7 @@ private fun StorageSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
                 Text(
                     text = stringResource(R.string.settings_storage_missing),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
             }
 
@@ -325,7 +393,7 @@ private fun StorageSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
                     stringResource(R.string.settings_account_counts_missing)
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text3,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
         }
     }
@@ -333,14 +401,20 @@ private fun StorageSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
 
 @Composable
 private fun BreakdownSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
-    SectionLabel(stringResource(R.string.settings_account_breakdown_title))
-    HyperGroup {
+    SectionHeader(stringResource(R.string.settings_account_breakdown_title))
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             if (snapshot.breakdown.isEmpty()) {
                 Text(
                     text = stringResource(R.string.settings_account_breakdown_missing),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
             } else {
                 val description = snapshot.breakdown.joinToString(
@@ -363,38 +437,64 @@ private fun BreakdownSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
 
 @Composable
 private fun IdentitySection(session: GSession, snapshot: AccountSnapshot?) {
-    SectionLabel(stringResource(R.string.settings_account_details))
+    SectionHeader(stringResource(R.string.settings_account_details))
     val email = snapshot?.email?.takeIf { it.isNotBlank() } ?: session.email
     val tier = snapshot?.tier?.takeIf { it.isNotBlank() } ?: session.tier
     val root = snapshot?.rootFolder?.takeIf { it.isNotBlank() } ?: session.rootFolder
     val id = snapshot?.accountId?.takeIf { it.isNotBlank() } ?: session.accountId
 
-    HyperGroup {
-        IdentityRow(
-            label = stringResource(R.string.settings_account_email),
-            value = email,
-        )
-        IdentityRow(
-            label = stringResource(R.string.settings_account_tier_label),
-            value = tier,
-        )
-        IdentityRow(
-            label = stringResource(R.string.settings_account_root),
-            value = root,
-        )
-        IdentityRow(
-            label = stringResource(R.string.settings_account_id),
-            value = id,
-        )
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            IdentityRow(
+                label = stringResource(R.string.settings_account_email),
+                value = email,
+            )
+            IdentityRow(
+                label = stringResource(R.string.settings_account_tier_label),
+                value = tier,
+            )
+            IdentityRow(
+                label = stringResource(R.string.settings_account_root),
+                value = root,
+            )
+            IdentityRow(
+                label = stringResource(R.string.settings_account_id),
+                value = id,
+            )
+        }
     }
 }
 
 @Composable
 private fun IdentityRow(label: String, value: String) {
-    HyperRow(
-        title = label,
-        subtitle = value.ifBlank { null },
-        value = if (value.isBlank()) stringResource(R.string.settings_account_none) else null,
+    val supporting = value.ifBlank { null }
+    ListItem(
+        headlineContent = {
+            Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = supporting?.let {
+            {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        trailingContent = {
+            if (value.isBlank()) {
+                ValueBadge(stringResource(R.string.settings_account_none))
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 
@@ -407,10 +507,16 @@ private fun SignOutSection(onSignOut: (Boolean) -> Unit) {
     val remove = stringResource(R.string.settings_remove_account)
     val removeHint = stringResource(R.string.settings_remove_account_hint)
 
-    SectionLabel(stringResource(R.string.settings_sign_out_title))
-    HyperGroup {
+    SectionHeader(stringResource(R.string.settings_sign_out_title))
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            HoldToConfirm(
+            HoldToConfirmButton(
                 label = signOut,
                 hint = signOutHint,
                 onConfirm = { onSignOut(false) },
@@ -419,10 +525,10 @@ private fun SignOutSection(onSignOut: (Boolean) -> Unit) {
             Text(
                 text = stringResource(R.string.settings_remove_account_body),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(12.dp))
-            HoldToConfirm(
+            HoldToConfirmButton(
                 label = remove,
                 hint = removeHint,
                 onConfirm = { onSignOut(true) },
@@ -435,12 +541,78 @@ private fun SignOutSection(onSignOut: (Boolean) -> Unit) {
 
 @Composable
 private fun NoteCard(text: String) {
-    HyperCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(16.dp),
+        )
+    }
+}
+
+/** Pemberitahuan galat: ikon aksen + teks di permukaan netral. */
+@Composable
+private fun AccountNotice(text: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Filled.ErrorOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** Judul bagian tanpa batang aksen, memakai token tipografi Material 3. */
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 20.dp, bottom = 8.dp),
+    )
+}
+
+/** Pil nilai netral untuk isian yang kosong. */
+@Composable
+private fun ValueBadge(text: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
         )
     }
 }
