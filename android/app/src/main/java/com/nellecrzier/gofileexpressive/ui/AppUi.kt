@@ -439,6 +439,8 @@ fun GofileApp(activity: MainActivity) {
             val wideLayout = maxWidth >= 600.dp
             val showNavigation = loginStep == "ready" && !checkingSession
 
+            val rootFade = motionScheme.fastEffectsSpec<Float>()
+            val rootScale = motionScheme.defaultSpatialSpec<Float>()
             Row(Modifier.fillMaxSize()) {
                 if (showNavigation && wideLayout) {
                     AppNavigationRail(
@@ -451,7 +453,19 @@ fun GofileApp(activity: MainActivity) {
                 // Rel duduk sebagai saudara konten, jadi konten bergeser sejauh lebar
                 // rel (padding awal) dan toast tetap rata pada area konten.
                 Box(Modifier.weight(1f).fillMaxHeight()) {
-                    if (loginStep == "ready") {
+                    AnimatedContent(
+                        targetState = loginStep == "ready",
+                        transitionSpec = {
+                            if (reduceMotion) {
+                                fadeIn(tween(100)) togetherWith fadeOut(tween(100))
+                            } else {
+                                (fadeIn(rootFade) + scaleIn(rootScale, initialScale = 0.98f)) togetherWith
+                                    (fadeOut(rootFade) + scaleOut(rootScale, targetScale = 1.02f))
+                            }
+                        },
+                        label = "appRoot",
+                    ) { ready ->
+                    if (ready) {
                         if (checkingSession) {
                             Column(
                                 Modifier.fillMaxSize(),
@@ -605,7 +619,7 @@ fun GofileApp(activity: MainActivity) {
                             onLogin = { raw -> sessionVm.loginWithToken(raw) },
                             onGuest = { sessionVm.loginAsGuest() },
                         )
-                    }
+                    }}
 
                     // Pil toast di atas bar navigasi.
                     AppToastOverlay(
