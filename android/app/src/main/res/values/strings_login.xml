@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Welcome back</string>
+    <string name="login_subtitle">Your GoFile files, without the browser.</string>
+
+    <string name="login_welcome_title">Welcome to Gofile</string>
+    <string name="login_welcome_body">Sign in with a one-time email link, paste a link you already have, or look around as a guest.</string>
+    <string name="login_feature_upload">Everything in one place</string>
+    <string name="login_feature_upload_body">Upload, download, preview and organise your GoFile folders.</string>
+    <string name="login_feature_search">Fast, native search</string>
+    <string name="login_feature_search_body">Find a file across every folder you have opened.</string>
+    <string name="login_feature_private">No password to leak</string>
+    <string name="login_feature_private_body">A one-time link is the only key to your account.</string>
+
+    <string name="login_email_title">Sign in to GoFile</string>
+    <string name="login_email_body">We send a one-time link to your email. Tapping it opens this app directly.</string>
+    <string name="login_email_label">Email address</string>
+    <string name="login_email_hint">The link is only sent to this address.</string>
+    <string name="login_email_invalid">That email address does not look right.</string>
+    <string name="login_clear">Clear</string>
+    <string name="login_have_link">Already have a link? Paste it here</string>
+    <string name="login_guest">Continue as guest</string>
+
+    <string name="login_token_title">Check your email</string>
+    <string name="login_token_body">Open the message from GoFile and tap the link — or paste the link or 32-character token below.</string>
+    <string name="login_token_label">Login link or token</string>
+    <string name="login_token_hint">A full link or the 32-character token both work.</string>
+    <string name="login_token_invalid">Not recognised as a GoFile login link.</string>
+    <string name="login_guidance_title">Where do I find it?</string>
+    <string name="login_guidance_toggle">Show or hide help</string>
+    <string name="login_guidance_step1">Open the email from GoFile on this device.</string>
+    <string name="login_guidance_step2">Tap the “Sign in” link — it opens this app.</string>
+    <string name="login_guidance_step3">No email? Paste a link you saved earlier.</string>
+    <string name="login_paste">Paste from clipboard</string>
+    <string name="login_paste_chip">Paste detected link</string>
+    <string name="login_show_token">Show token</string>
+    <string name="login_hide_token">Hide token</string>
+    <string name="login_resend">Resend link</string>
+
+    <string name="login_cta_start">Get started</string>
+    <string name="login_cta_email">Send link</string>
+    <string name="login_cta_verify">Verify</string>
+    <string name="login_cta_signin">Sign in</string>
+    <string name="login_cta_sending">Sending…</string>
+    <string name="login_cta_checking">Verifying…</string>
+    <string name="login_back">Back</string>
+    <string name="login_skip">Skip</string>
+    <string name="login_step">Step %1$d of %2$d</string>
+</resources>

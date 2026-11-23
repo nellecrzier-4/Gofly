@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Selamat datang kembali</string>
+    <string name="login_subtitle">Berkas GoFile kamu, tanpa browser.</string>
+
+    <string name="login_welcome_title">Selamat datang di Gofile</string>
+    <string name="login_welcome_body">Masuk dengan tautan email sekali pakai, tempel tautan yang sudah kamu punya, atau lihat-lihat sebagai tamu.</string>
+    <string name="login_feature_upload">Semua di satu tempat</string>
+    <string name="login_feature_upload_body">Unggah, unduh, pratinjau, dan atur folder GoFile kamu.</string>
+    <string name="login_feature_search">Pencarian native yang cepat</string>
+    <string name="login_feature_search_body">Temukan berkas di semua folder yang pernah kamu buka.</string>
+    <string name="login_feature_private">Tanpa kata sandi</string>
+    <string name="login_feature_private_body">Tautan sekali pakai adalah satu-satunya kunci akunmu.</string>
+
+    <string name="login_email_title">Masuk ke GoFile</string>
+    <string name="login_email_body">Kami mengirim tautan sekali pakai ke emailmu. Ketuk tautannya — aplikasi ini langsung terbuka.</string>
+    <string name="login_email_label">Alamat email</string>
+    <string name="login_email_hint">Tautan hanya dikirim ke alamat ini.</string>
+    <string name="login_email_invalid">Format email belum benar.</string>
+    <string name="login_clear">Hapus</string>
+    <string name="login_have_link">Sudah punya tautan? Tempel di sini</string>
+    <string name="login_guest">Lanjut sebagai tamu</string>
+
+    <string name="login_token_title">Cek email kamu</string>
+    <string name="login_token_body">Buka pesan dari GoFile lalu ketuk tautannya — atau tempel tautan/32 karakter token di bawah.</string>
+    <string name="login_token_label">Tautan atau token dari email</string>
+    <string name="login_token_hint">Tautan lengkap atau token 32 karakter sama-sama bisa.</string>
+    <string name="login_token_invalid">Belum dikenali sebagai tautan login GoFile.</string>
+    <string name="login_guidance_title">Di mana menemukannya?</string>
+    <string name="login_guidance_toggle">Tampilkan atau sembunyikan bantuan</string>
+    <string name="login_guidance_step1">Buka email dari GoFile di perangkat ini.</string>
+    <string name="login_guidance_step2">Ketuk tautan “Masuk” — aplikasi ini terbuka.</string>
+    <string name="login_guidance_step3">Tidak ada email? Tempel tautan yang kamu simpan.</string>
+    <string name="login_paste">Tempel dari clipboard</string>
+    <string name="login_paste_chip">Tempel tautan yang terdeteksi</string>
+    <string name="login_show_token">Tampilkan token</string>
+    <string name="login_hide_token">Sembunyikan token</string>
+    <string name="login_resend">Kirim ulang tautan</string>
+
+    <string name="login_cta_start">Mulai</string>
+    <string name="login_cta_email">Kirim tautan</string>
+    <string name="login_cta_verify">Verifikasi</string>
+    <string name="login_cta_signin">Masuk</string>
+    <string name="login_cta_sending">Mengirim…</string>
+    <string name="login_cta_checking">Memeriksa…</string>
+    <string name="login_back">Kembali</string>
+    <string name="login_skip">Lewati</string>
+    <string name="login_step">Langkah %1$d dari %2$d</string>
+</resources>

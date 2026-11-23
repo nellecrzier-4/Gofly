@@ -4,7 +4,7 @@ import android.os.ParcelFileDescriptor
 import android.provider.Settings
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -36,11 +36,12 @@ class LoginScreenSmokeTest {
 
     @Test
     fun loginScreenShowsEmailField() {
-        // Halaman pertama adalah sambutan; "Lanjut" membuka halaman email.
-        compose.onNodeWithText("Lanjut").performClick()
+        // Halaman pertama adalah sambutan; CTA utama membuka halaman email.
+        compose.onNodeWithTag("login_cta").performClick()
 
-        compose.onNodeWithText("Alamat email").assertIsDisplayed()
-        compose.onNodeWithText("Kirim tautan").assertIsDisplayed()
+        compose.onNodeWithTag("login_email").assertIsDisplayed()
+        compose.onNodeWithTag("login_cta").assertIsDisplayed()
+        compose.onNodeWithTag("login_progress").assertIsDisplayed()
     }
 
     private class PrepareLoginRule : TestRule {
