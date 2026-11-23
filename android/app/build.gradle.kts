@@ -12,11 +12,20 @@ android {
         applicationId = "com.nellecrzier.gofileexpressive"
         minSdk = 26
         targetSdk = 35
-        versionCode = 13
-        versionName = "4.0"
+        versionCode = 14
+        versionName = "4.1"
     }
 
     signingConfigs {
+        // Kunci debug tetap (ikut repo) supaya setiap build CI memakai tanda tangan
+        // yang sama. Runner GitHub membuat debug.keystore baru tiap jalan, itulah
+        // yang membuat pembaruan APK gagal dan memaksa uninstall.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         // Rilis ditandatangani hanya bila keystore tersedia lewat variabel
         // lingkungan (CI: secrets). Tanpa itu, build rilis tetap bisa dibuat
         // untuk pemeriksaan, tanpa ditandatangani.
