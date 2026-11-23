@@ -5,17 +5,15 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -35,7 +33,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -50,10 +47,6 @@ import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GoFileException
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperExpoOut
-import com.nellecrzier.gofileexpressive.ui.IconChip
-import com.nellecrzier.gofileexpressive.ui.SheetShape
 import com.nellecrzier.gofileexpressive.ui.components.FileKind
 import java.text.DateFormat
 import java.util.Date
@@ -179,41 +172,43 @@ fun ShareActionRow(
     accent: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .then(
-                if (enabled) {
-                    Modifier.clickable(
-                        interactionSource = interaction,
-                        indication = ripple(color = Hyper.Pressed),
-                        onClick = onClick,
-                    )
-                } else {
-                    Modifier
-                },
-            )
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconChip(
-            icon = icon,
-            size = 34.dp,
-            iconSize = 18.dp,
-            tint = when {
-                !enabled -> Hyper.Text3
-                accent -> Hyper.Accent
-                else -> Hyper.Text
-            },
-        )
+        val chipTint = when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            accent -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.size(34.dp),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = chipTint,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
-                color = if (enabled) Hyper.Text else Hyper.Text3,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -221,7 +216,11 @@ fun ShareActionRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (enabled) Hyper.Text2 else Hyper.Text3,
+                    color = if (enabled) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    },
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 1.dp),
@@ -235,7 +234,7 @@ fun ShareActionRow(
     }
 }
 
-/** Pil "Tersalin": muncul dengan skala pegas, hilang tanpa animasi. */
+/** Pil "Tersalin": muncul dengan pudar dan skala halus, hilang tanpa animasi. */
 @Composable
 fun CopiedPill(
     modifier: Modifier = Modifier,
@@ -249,17 +248,13 @@ fun CopiedPill(
 
     LaunchedEffect(Unit) {
         if (!reduceMotion) {
-            appear.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow),
-            )
+            appear.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 200))
         }
     }
 
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = Hyper.AccentSoft,
-        border = androidx.compose.foundation.BorderStroke(0.8.dp, Hyper.AccentEdge),
+        color = MaterialTheme.colorScheme.primaryContainer,
         modifier = modifier.graphicsLayer {
             alpha = appear.value
             scaleX = 0.86f + 0.14f * appear.value
@@ -273,14 +268,14 @@ fun CopiedPill(
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                tint = Hyper.Accent,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(13.dp),
             )
             Spacer(Modifier.width(5.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = Hyper.Accent,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 maxLines = 1,
             )
         }
@@ -290,8 +285,9 @@ fun CopiedPill(
 /* -------------------------------- kerangka ------------------------------- */
 
 /**
- * Kerangka lembar HyperSpring: scrim, sudut 30dp, gagang geser, dan isi yang
- * bisa digulir. Dipakai ketiga lembar supaya chromenya identik.
+ * Kerangka lembar bagikan Material 3: sudut atas membulat, gagang geser, dan
+ * isi yang bisa digulir. Scrim memakai bawaan M3. Dipakai ketiga lembar supaya
+ * chromenya identik.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -304,10 +300,9 @@ internal fun ShareSheetFrame(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = SheetShape,
-        containerColor = Hyper.Card,
-        contentColor = Hyper.Text,
-        scrimColor = Hyper.SheetScrim,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         dragHandle = { ShareDragHandle() },
     ) {
         Column(
@@ -331,7 +326,7 @@ private fun ShareDragHandle() {
                 .width(38.dp)
                 .height(4.dp)
                 .clip(RoundedCornerShape(999.dp))
-                .background(Hyper.Text3.copy(alpha = 0.55f)),
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
         )
         Spacer(Modifier.height(6.dp))
     }
@@ -350,7 +345,7 @@ internal fun ShareContentFade(
 
     LaunchedEffect(Unit) {
         if (!reduceMotion) {
-            appear.animateTo(1f, tween(durationMillis = 260, easing = HyperExpoOut))
+            appear.animateTo(1f, tween(durationMillis = 260))
         }
     }
 
