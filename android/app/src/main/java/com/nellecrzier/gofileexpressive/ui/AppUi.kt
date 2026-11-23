@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui
 
 import android.net.Uri
@@ -32,10 +34,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -73,14 +77,21 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarArrangement
+import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -112,6 +123,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -127,6 +139,7 @@ import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
 import com.nellecrzier.gofileexpressive.ui.security.AppLockGate
 import com.nellecrzier.gofileexpressive.ui.home.HomeScreen
@@ -149,13 +162,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 data class Crumb(val id: String, val name: String)
 
-private data class AppTab(val key: String, val label: String, val icon: ImageVector)
+private data class AppTab(
+    val key: String,
+    val label: String,
+    val icon: ImageVector,
+    val outlined: ImageVector,
+)
 
 private val APP_TABS = listOf(
-    AppTab("home", "Beranda", Icons.Filled.Home),
-    AppTab("folder", "File", Icons.Filled.Folder),
-    AppTab("library", "Pustaka", Icons.Filled.Star),
-    AppTab("settings", "Setelan", Icons.Filled.Settings),
+    AppTab("home", "Beranda", Icons.Filled.Home, Icons.Outlined.Home),
+    AppTab("folder", "File", Icons.Filled.Folder, Icons.Outlined.Folder),
+    AppTab("library", "Pustaka", Icons.Filled.Star, Icons.Outlined.Star),
+    AppTab("settings", "Setelan", Icons.Filled.Settings, Icons.Outlined.Settings),
 )
 
 private val TAB_ORDER = APP_TABS.map { it.key }
@@ -187,6 +205,21 @@ fun GofileApp(activity: MainActivity) {
     val settingsVm: SettingsViewModel = viewModel()
     val prefs by settingsVm.state.collectAsStateWithLifecycle()
     val reduceMotion = systemReduceMotion || prefs.motionReduced
+    val darkTheme = when (prefs.themeMode) {
+        com.nellecrzier.gofileexpressive.ThemeMode.DARK -> true
+        com.nellecrzier.gofileexpressive.ThemeMode.LIGHT -> false
+        com.nellecrzier.gofileexpressive.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+    // Ikon status/navigation bar mengikuti tema aplikasi, bukan hanya tema sistem.
+    LaunchedEffect(darkTheme) {
+        androidx.core.view.WindowCompat.getInsetsController(
+            activity.window,
+            activity.window.decorView,
+        ).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
+        }
+    }
     val lockRevision by activity.lockRevision.collectAsState()
 
     GofileTheme(
@@ -231,6 +264,12 @@ fun GofileApp(activity: MainActivity) {
         fun openFolderTab() {
             currentTab = "folder"
             if (items.isEmpty()) folderVm.openRoot(session.token, session.rootFolder)
+        }
+
+        // Satu jalur pemilihan tab untuk bilah bawah maupun rel samping.
+        fun selectTab(key: String) {
+            currentTab = key
+            if (key == "folder") openFolderTab()
         }
 
         LaunchedEffect(Unit) {
@@ -387,197 +426,195 @@ fun GofileApp(activity: MainActivity) {
             }
         }
 
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            if (loginStep == "ready") {
-                if (checkingSession) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        AppLoadingIndicator(
-                            size = 52.dp,
-                            reduceMotion = reduceMotion,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.height(14.dp))
-                        Text(
-                            stringResource(R.string.session_preparing),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    Box(Modifier.fillMaxSize()) {
-                        // Halaman bergeser mengikuti gestur back prediktif.
-                        Box(
-                            Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    val p = backProgress
-                                    if (p > 0f) {
-                                        translationX = 36.dp.toPx() * p
-                                        scaleX = 1f - 0.05f * p
-                                        scaleY = 1f - 0.05f * p
-                                        transformOrigin = TransformOrigin(1f, 0.5f)
-                                    }
-                                },
-                        ) {
-                            AnimatedContent(
-                                targetState = currentTab,
-                                label = "tabContent",
-                                transitionSpec = {
-                                    if (reduceMotion) {
-                                        fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                                    } else {
-                                        val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
-                                        (
-                                            fadeIn(tween(200)) +
-                                                scaleIn(tween(260), initialScale = 0.97f) +
-                                                slideInHorizontally(tween(260)) { full ->
-                                                    if (forward) full / 12 else -full / 12
-                                                }
-                                            ) togetherWith (
-                                            fadeOut(tween(140)) +
-                                                scaleOut(tween(180), targetScale = 0.99f) +
-                                                slideOutHorizontally(tween(200)) { full ->
-                                                    if (forward) -full / 16 else full / 16
-                                                }
+        BoxWithConstraints(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+        ) {
+            // Layar lebar (tablet, lipat terbuka) memakai rel di sisi awal; layar
+            // ringkas tetap memakai bilah navigasi pendek di tepi bawah.
+            val wideLayout = maxWidth >= 600.dp
+            val showNavigation = loginStep == "ready" && !checkingSession
+
+            Row(Modifier.fillMaxSize()) {
+                if (showNavigation && wideLayout) {
+                    AppNavigationRail(
+                        currentTab = currentTab,
+                        reduceMotion = reduceMotion,
+                        onSelect = { key -> selectTab(key) },
+                    )
+                }
+
+                // Rel duduk sebagai saudara konten, jadi konten bergeser sejauh lebar
+                // rel (padding awal) dan toast tetap rata pada area konten.
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    if (loginStep == "ready") {
+                        if (checkingSession) {
+                            Column(
+                                Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                AppLoadingIndicator(
+                                    size = 52.dp,
+                                    reduceMotion = reduceMotion,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                Text(
+                                    stringResource(R.string.session_preparing),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            Box(Modifier.fillMaxSize()) {
+                                // Halaman bergeser mengikuti gestur back prediktif.
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            val p = backProgress
+                                            if (p > 0f) {
+                                                translationX = 36.dp.toPx() * p
+                                                scaleX = 1f - 0.05f * p
+                                                scaleY = 1f - 0.05f * p
+                                                transformOrigin = TransformOrigin(1f, 0.5f)
+                                            }
+                                        },
+                                ) {
+                                    AnimatedContent(
+                                        targetState = currentTab,
+                                        label = "tabContent",
+                                        transitionSpec = {
+                                            if (reduceMotion) {
+                                                fadeIn(tween(120)) togetherWith fadeOut(tween(120))
+                                            } else {
+                                                val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
+                                                (
+                                                    fadeIn(tween(200)) +
+                                                        scaleIn(tween(260), initialScale = 0.97f) +
+                                                        slideInHorizontally(tween(260)) { full ->
+                                                            if (forward) full / 12 else -full / 12
+                                                        }
+                                                    ) togetherWith (
+                                                    fadeOut(tween(140)) +
+                                                        scaleOut(tween(180), targetScale = 0.99f) +
+                                                        slideOutHorizontally(tween(200)) { full ->
+                                                            if (forward) -full / 16 else full / 16
+                                                        }
+                                                    )
+                                            }
+                                        },
+                                    ) { tab ->
+                                        when (tab) {
+                                            "folder" -> FolderScreen(
+                                                vm = folderVm,
+                                                state = folderState,
+                                                prefs = prefs,
+                                                token = session.token,
+                                                reduceMotion = reduceMotion,
+                                                activity = activity,
+                                                onNewFolder = {
+                                                    newFolderName = ""
+                                                    showCreateFolder = true
+                                                },
                                             )
+
+                                            "library" -> LibraryScreen(
+                                                vm = folderVm,
+                                                prefs = prefs,
+                                                token = session.token,
+                                                reduceMotion = reduceMotion,
+                                                activity = activity,
+                                                onOpenFolder = { currentTab = "folder" },
+                                            )
+
+                                            "settings" -> SettingsScreen(
+                                                session = session,
+                                                reduceMotion = reduceMotion,
+                                                onLogout = { sessionVm.logout() },
+                                                onPickDownloadFolder = { activity.pickDownloadFolder() },
+                                                onSendFeedback = { activity.sendFeedback() },
+                                                onExportLog = { activity.exportLog() },
+                                                onOpenLink = { url -> activity.openUrlExternally(url) },
+                                                onSignOut = { wipe ->
+                                                    if (wipe) {
+                                                        settingsVm.clearCache()
+                                                        settingsVm.clearLibrary()
+                                                        folderVm.clearLibrary()
+                                                    }
+                                                    sessionVm.logout()
+                                                },
+                                            )
+
+                                            else -> HomeScreen(
+                                                session = session,
+                                                items = items,
+                                                busy = busy,
+                                                reduceMotion = reduceMotion,
+                                                activity = activity,
+                                                permissionRevision = permissionRevision,
+                                                onOpenFolder = { openFolderTab() },
+                                                onUpload = {
+                                                    stack.lastOrNull()?.let {
+                                                        activity.pickFileForUpload(it.id, session.token)
+                                                    }
+                                                },
+                                                onNewFolder = {
+                                                    newFolderName = ""
+                                                    showCreateFolder = true
+                                                },
+                                                onRefresh = { folderVm.refresh(session.token) },
+                                            )
+                                        }
                                     }
-                                },
-                            ) { tab ->
-                                when (tab) {
-                                    "folder" -> FolderScreen(
-                                        vm = folderVm,
-                                        state = folderState,
-                                        prefs = prefs,
-                                        token = session.token,
-                                        reduceMotion = reduceMotion,
-                                        activity = activity,
-                                        onNewFolder = {
-                                            newFolderName = ""
-                                            showCreateFolder = true
-                                        },
-                                    )
-
-                                    "library" -> LibraryScreen(
-                                        vm = folderVm,
-                                        prefs = prefs,
-                                        token = session.token,
-                                        reduceMotion = reduceMotion,
-                                        activity = activity,
-                                        onOpenFolder = { currentTab = "folder" },
-                                    )
-
-                                    "settings" -> SettingsScreen(
-                                        session = session,
-                                        reduceMotion = reduceMotion,
-                                        onLogout = { sessionVm.logout() },
-                                        onPickDownloadFolder = { activity.pickDownloadFolder() },
-                                        onSendFeedback = { activity.sendFeedback() },
-                                        onExportLog = { activity.exportLog() },
-                                        onOpenLink = { url -> activity.openUrlExternally(url) },
-                                        onSignOut = { wipe ->
-                                            if (wipe) {
-                                                settingsVm.clearCache()
-                                                settingsVm.clearLibrary()
-                                                folderVm.clearLibrary()
-                                            }
-                                            sessionVm.logout()
-                                        },
-                                    )
-
-                                    else -> HomeScreen(
-                                        session = session,
-                                        items = items,
-                                        busy = busy,
-                                        reduceMotion = reduceMotion,
-                                        activity = activity,
-                                        permissionRevision = permissionRevision,
-                                        onOpenFolder = { openFolderTab() },
-                                        onUpload = {
-                                            stack.lastOrNull()?.let {
-                                                activity.pickFileForUpload(it.id, session.token)
-                                            }
-                                        },
-                                        onNewFolder = {
-                                            newFolderName = ""
-                                            showCreateFolder = true
-                                        },
-                                        onRefresh = { folderVm.refresh(session.token) },
-                                    )
                                 }
                             }
+
+                            // Lebar ringkas: bilah navigasi pendek Expressive di tepi bawah.
+                            if (!wideLayout) {
+                                AppShortNavigationBar(
+                                    modifier = Modifier.align(Alignment.BottomCenter),
+                                    currentTab = currentTab,
+                                    reduceMotion = reduceMotion,
+                                    onSelect = { key -> selectTab(key) },
+                                )
+                            }
                         }
+                    } else {
+                        LoginScreen(
+                            step = loginStep,
+                            email = sessionState.email,
+                            tokenInput = sessionState.tokenInput,
+                            busy = busy,
+                            reduceMotion = reduceMotion,
+                            onEmailChange = sessionVm::setEmail,
+                            onTokenChange = sessionVm::setTokenInput,
+                            onBackToEmail = {
+                                sessionVm.backToEmail()
+                                notice = null
+                            },
+                            onSend = { sessionVm.sendLoginLink(sessionState.email) },
+                            onLogin = { raw -> sessionVm.loginWithToken(raw) },
+                            onGuest = { sessionVm.loginAsGuest() },
+                        )
                     }
 
-                    NavigationBar(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .navigationBarsPadding(),
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    // Pil toast di atas bar navigasi.
+                    AppToastOverlay(
+                        visible = notice != null,
+                        reduceMotion = reduceMotion,
+                        bottomPadding = if (loginStep == "ready" && !checkingSession && !wideLayout) 92.dp else 16.dp,
                     ) {
-                        APP_TABS.forEach { tab ->
-                            NavigationBarItem(
-                                selected = currentTab == tab.key,
-                                onClick = {
-                                    currentTab = tab.key
-                                    if (tab.key == "folder") openFolderTab()
-                                },
-                                icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = { Text(tab.label, maxLines = 1) },
+                        notice?.let { text ->
+                            AppToast(
+                                text = text,
+                                error = noticeIsError,
+                                onDismiss = { notice = null },
                             )
                         }
                     }
-                }
-            } else {
-                LoginScreen(
-                    step = loginStep,
-                    email = sessionState.email,
-                    tokenInput = sessionState.tokenInput,
-                    busy = busy,
-                    reduceMotion = reduceMotion,
-                    onEmailChange = sessionVm::setEmail,
-                    onTokenChange = sessionVm::setTokenInput,
-                    onBackToEmail = {
-                        sessionVm.backToEmail()
-                        notice = null
-                    },
-                    onSend = { sessionVm.sendLoginLink(sessionState.email) },
-                    onLogin = { raw -> sessionVm.loginWithToken(raw) },
-                    onGuest = { sessionVm.loginAsGuest() },
-                )
-            }
-
-            // Pil toast di atas bar navigasi.
-            AnimatedVisibility(
-                visible = notice != null,
-                enter = if (reduceMotion) {
-                    fadeIn(tween(120))
-                } else {
-                    slideInVertically(tween(240)) { it / 2 } + fadeIn(tween(180))
-                },
-                exit = if (reduceMotion) {
-                    fadeOut(tween(100))
-                } else {
-                    slideOutVertically(tween(180)) { it / 3 } + fadeOut(tween(140))
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = if (loginStep == "ready" && !checkingSession) 92.dp else 16.dp,
-                    ),
-            ) {
-                notice?.let { text ->
-                    AppToast(
-                        text = text,
-                        error = noticeIsError,
-                        onDismiss = { notice = null },
-                    )
                 }
             }
         }
@@ -614,7 +651,125 @@ fun GofileApp(activity: MainActivity) {
     }
 }
 
+/* ============================= navigasi shell ============================= */
+
+/**
+ * Ikon tab dengan gerak seleksi Expressive: ikon terisi masuk dengan skala +
+ * pudar, ikon garis keluar sambil mengecil. Label tab tetap di tempatnya.
+ * Saat gerak diredupkan hanya silang-pudar singkat tanpa skala.
+ */
+@Composable
+private fun AnimatedTabIcon(
+    tab: AppTab,
+    selected: Boolean,
+    reduceMotion: Boolean,
+) {
+    val spatial = motionScheme.fastSpatialSpec<Float>()
+    val effects = motionScheme.fastEffectsSpec<Float>()
+    AnimatedContent(
+        targetState = selected,
+        transitionSpec = {
+            if (reduceMotion) {
+                fadeIn(tween(100)) togetherWith fadeOut(tween(100))
+            } else {
+                (fadeIn(effects) + scaleIn(spatial, initialScale = 0.72f)) togetherWith
+                    (fadeOut(effects) + scaleOut(spatial, targetScale = 0.86f))
+            }
+        },
+        contentAlignment = Alignment.Center,
+        label = "tabIcon",
+    ) { active ->
+        Icon(
+            imageVector = if (active) tab.icon else tab.outlined,
+            contentDescription = tab.label,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+/** Bilah navigasi pendek Expressive (lebar ringkas, < 600.dp). */
+@Composable
+private fun AppShortNavigationBar(
+    currentTab: String,
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+    onSelect: (String) -> Unit,
+) {
+    ShortNavigationBar(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        arrangement = ShortNavigationBarArrangement.EqualWeight,
+    ) {
+        APP_TABS.forEach { tab ->
+            ShortNavigationBarItem(
+                selected = currentTab == tab.key,
+                onClick = { onSelect(tab.key) },
+                icon = { AnimatedTabIcon(tab, currentTab == tab.key, reduceMotion) },
+                label = { Text(tab.label, maxLines = 1) },
+            )
+        }
+    }
+}
+
+/** Rel navigasi di sisi awal untuk lebar lebar (>= 600.dp). */
+@Composable
+private fun AppNavigationRail(
+    currentTab: String,
+    reduceMotion: Boolean,
+    onSelect: (String) -> Unit,
+) {
+    NavigationRail(
+        modifier = Modifier.fillMaxHeight(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        APP_TABS.forEach { tab ->
+            NavigationRailItem(
+                selected = currentTab == tab.key,
+                onClick = { onSelect(tab.key) },
+                icon = { AnimatedTabIcon(tab, currentTab == tab.key, reduceMotion) },
+                label = { Text(tab.label, maxLines = 1) },
+                alwaysShowLabel = true,
+            )
+        }
+    }
+}
+
 /* ================================= toast ================================== */
+
+/**
+ * Lapisan toast di atas area konten. Dipisah dari layar induk supaya gestur dan
+ * tata letak tidak memakai receiver RowScope; saat kosong tidak ada yang
+ * menghalangi sentuhan karena hanya isi [AnimatedVisibility] yang digambar.
+ */
+@Composable
+private fun AppToastOverlay(
+    visible: Boolean,
+    reduceMotion: Boolean,
+    bottomPadding: Dp,
+    content: @Composable () -> Unit,
+) {
+    Box(Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = if (reduceMotion) {
+                fadeIn(tween(120))
+            } else {
+                slideInVertically(tween(240)) { it / 2 } + fadeIn(tween(180))
+            },
+            exit = if (reduceMotion) {
+                fadeOut(tween(100))
+            } else {
+                slideOutVertically(tween(180)) { it / 3 } + fadeOut(tween(140))
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding),
+        ) {
+            content()
+        }
+    }
+}
 
 @Composable
 private fun AppToast(text: String, error: Boolean, onDismiss: () -> Unit) {
