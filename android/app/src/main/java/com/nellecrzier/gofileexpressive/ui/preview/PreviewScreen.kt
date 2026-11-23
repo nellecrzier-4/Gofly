@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,8 +47,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperEase
 import kotlinx.coroutines.delay
 
 /**
@@ -60,7 +59,7 @@ data class PreviewTarget(
 )
 
 /**
- * Pratinjau media layar penuh ala HyperSpring, digambar sepenuhnya dengan
+ * Pratinjau media layar penuh bergaya Material 3, digambar sepenuhnya dengan
  * Compose — tanpa WebView, tanpa HTML. Panggil di dalam Box di atas daftar
  * folder; `null` berarti tidak ada yang dirender.
  *
@@ -118,7 +117,7 @@ private fun PreviewOverlay(
 
     LaunchedEffect(Unit) {
         if (!reduceMotion && appear.value < 1f) {
-            appear.animateTo(1f, tween(240, easing = HyperEase))
+            appear.animateTo(1f, tween(240))
         }
     }
 
@@ -153,7 +152,7 @@ private fun PreviewOverlay(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Hyper.Bg)
+            .background(MaterialTheme.colorScheme.background)
             // Menelan ketukan yang tidak ditangani konten, supaya daftar folder
             // di bawah overlay tidak ikut bereaksi.
             .pointerInput(Unit) { detectTapGestures(onTap = { }) }
