@@ -25,8 +25,8 @@ fun connectedShape(
     val first = index == 0
     val last = index == count - 1
     return when {
-        first -> RoundedCornerShape(topStart = outer, bottomStart = outer, topEnd = inner, bottomEnd = inner)
-        last -> RoundedCornerShape(topStart = inner, bottomStart = inner, topEnd = outer, bottomEnd = outer)
+        first -> RoundedCornerShape(topStart = outer, topEnd = outer, bottomStart = inner, bottomEnd = inner)
+        last -> RoundedCornerShape(topStart = inner, topEnd = inner, bottomStart = outer, bottomEnd = outer)
         else -> RoundedCornerShape(inner)
     }
 }
@@ -48,8 +48,8 @@ fun animatedConnectedShape(
     val last = index == count - 1
     val single = count <= 1
     val targetTopStart = if (single || first) outer else inner
-    val targetBottomStart = if (single || first) outer else inner
-    val targetTopEnd = if (single || last) outer else inner
+    val targetTopEnd = if (single || first) outer else inner
+    val targetBottomStart = if (single || last) outer else inner
     val targetBottomEnd = if (single || last) outer else inner
     val spec = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
     val fallback = androidx.compose.animation.core.tween<Dp>(0)

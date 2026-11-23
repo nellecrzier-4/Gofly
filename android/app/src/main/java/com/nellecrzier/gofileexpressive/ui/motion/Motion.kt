@@ -116,10 +116,12 @@ fun Modifier.staggeredEnter(
     )
     return graphicsLayer {
         this.alpha = alpha
-        translationY = 16.dp.toPx() * (1f - progress)
-        val scale = 0.96f + 0.04f * progress
-        scaleX = scale
-        scaleY = scale
+        if (!reduceMotion) {
+            translationY = 16.dp.toPx() * (1f - progress)
+            val scale = 0.96f + 0.04f * progress
+            scaleX = scale
+            scaleY = scale
+        }
     }
 }
 
