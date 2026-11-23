@@ -9,7 +9,7 @@ plugins {
 // menaikkan versionCode. Android hanya mau memperbarui APK terpasang bila
 // versionCode baru lebih besar, applicationId sama, dan tanda tangan sama.
 // Naikkan versi di sini setiap menambah fitur (lihat CONTRIBUTING.md).
-val appVersionName = "4.2.0"
+val appVersionName = "4.3.0"
 val appVersionCode = appVersionName.split(".").let { (major, minor, patch) ->
     major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt()
 }

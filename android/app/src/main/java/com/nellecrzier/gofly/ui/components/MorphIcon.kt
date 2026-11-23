@@ -89,7 +89,7 @@ fun MorphIcon(
                 .graphicsLayer {
                     alpha = fade
                     if (!reduceMotion) {
-                        rotationZ = -90f * move
+                        rotationZ = -90f * (1f - move)
                         val scale = 0.6f + 0.4f * move
                         scaleX = scale
                         scaleY = scale

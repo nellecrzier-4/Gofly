@@ -59,6 +59,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -122,6 +123,7 @@ import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.Morph
 import com.nellecrzier.gofly.GofileApi
 import com.nellecrzier.gofly.R
+import com.nellecrzier.gofly.ui.components.MorphIcon
 import com.nellecrzier.gofly.ThemeMode
 import com.nellecrzier.gofly.ui.GofileTheme
 import com.nellecrzier.gofly.ui.components.AppLoadingIndicator
@@ -590,7 +592,7 @@ private fun HeroInline(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        HeroMark(size = size, progress = progress, reduceMotion = reduceMotion)
+        HeroMark(page = page, size = size, progress = progress, reduceMotion = reduceMotion)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
@@ -632,7 +634,7 @@ private fun HeroPanel(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.Center) {
-        HeroMark(size = size, progress = progress, reduceMotion = reduceMotion)
+        HeroMark(page = page, size = size, progress = progress, reduceMotion = reduceMotion)
         Spacer(Modifier.height(26.dp))
         Text(
             text = stringResource(R.string.login_welcome_title),
@@ -648,9 +650,14 @@ private fun HeroPanel(
     }
 }
 
-/** Tanda aplikasi di dalam poligon Material yang bermorfosis antar langkah. */
+/**
+ * Tanda aplikasi di dalam poligon Material yang bermorfosis antar langkah.
+ * Di dalamnya ada ikon awan (selamat datang) yang berganti menjadi kotak
+ * masuk (langkah email dan tautan).
+ */
 @Composable
 private fun HeroMark(
+    page: Int,
     size: androidx.compose.ui.unit.Dp,
     progress: Float,
     reduceMotion: Boolean,
@@ -666,7 +673,18 @@ private fun HeroMark(
             .size(size)
             .clip(shape)
             .background(MaterialTheme.colorScheme.primary),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        MorphIcon(
+            first = Icons.Filled.CloudQueue,
+            second = Icons.Filled.Inbox,
+            showSecond = page != PAGE_WELCOME,
+            contentDescription = null,
+            modifier = Modifier.size(size * 0.5f),
+            reduceMotion = reduceMotion,
+            tint = MaterialTheme.colorScheme.onPrimary,
+        )
+    }
 }
 
 /* ----------------------------- isi langkah ---------------------------- */

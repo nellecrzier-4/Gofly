@@ -5,6 +5,16 @@ Changelog, dan versi mengikuti Semantic Versioning. Berkas ini dibaca apa
 adanya oleh aplikasi (Setelan > Apa yang baru), jadi tulis sebagai teks biasa:
 tanpa tabel, tanpa HTML, dan baris pendek.
 
+## 4.3.0 - 2026-11-23
+
+### Antarmuka
+- Tanda aplikasi di layar selamat datang kini berisi ikon awan, dan berganti
+  menjadi ikon kotak masuk di langkah email dan tautan.
+
+### Perbaikan
+- Ikon ceklis di notifikasi singkat (dan ikon pengganti lain yang memakai
+  morfosis ikon) tidak lagi terputar 90 derajat setelah animasi selesai.
+
 ## 4.2.0 - 2026-11-23
 
 ### Umum
