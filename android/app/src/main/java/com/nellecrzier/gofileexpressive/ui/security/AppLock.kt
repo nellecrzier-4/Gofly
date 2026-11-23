@@ -38,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import com.nellecrzier.gofileexpressive.ui.rememberReduceMotion
 
 /**
@@ -65,7 +65,7 @@ fun AppLockGate(
     var unlocked by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var prompting by remember { mutableStateOf(false) }
-    val reduceMotion = rememberReduceMotion()
+    val reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion()
 
     fun prompt() {
         if (activity == null || prompting) return
@@ -110,7 +110,7 @@ fun AppLockGate(
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Hyper.Bg)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         if (unlocked) {
             content()
         } else {
@@ -122,30 +122,30 @@ fun AppLockGate(
                 Icon(
                     imageVector = Icons.Filled.Lock,
                     contentDescription = null,
-                    tint = Hyper.Accent,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp),
                 )
                 Spacer(Modifier.height(18.dp))
                 Text(
                     text = stringResource(R.string.lock_title),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = error ?: stringResource(R.string.lock_body),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (error != null) Hyper.Accent else Hyper.Text2,
+                    color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(22.dp))
                 Box(Modifier.widthIn(max = 320.dp)) {
-                    HyperButton(
-                        text = stringResource(R.string.lock_unlock),
+                    Button(
                         onClick = { prompt() },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) { Text(stringResource(R.string.lock_unlock)) }
                 }
             }
         }
