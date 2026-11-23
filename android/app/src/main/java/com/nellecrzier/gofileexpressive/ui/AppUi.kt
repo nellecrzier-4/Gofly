@@ -483,6 +483,9 @@ fun GofileApp(activity: MainActivity) {
                                             }
                                         },
                                 ) {
+                                    val tabFade = motionScheme.fastEffectsSpec<Float>()
+                                    val tabScale = motionScheme.defaultSpatialSpec<Float>()
+                                    val tabSlide = motionScheme.defaultSpatialSpec<IntOffset>()
                                     AnimatedContent(
                                         targetState = currentTab,
                                         label = "tabContent",
@@ -492,15 +495,15 @@ fun GofileApp(activity: MainActivity) {
                                             } else {
                                                 val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
                                                 (
-                                                    fadeIn(tween(200)) +
-                                                        scaleIn(tween(260), initialScale = 0.97f) +
-                                                        slideInHorizontally(tween(260)) { full ->
+                                                    fadeIn(tabFade) +
+                                                        scaleIn(tabScale, initialScale = 0.97f) +
+                                                        slideInHorizontally(tabSlide) { full ->
                                                             if (forward) full / 12 else -full / 12
                                                         }
                                                     ) togetherWith (
-                                                    fadeOut(tween(140)) +
-                                                        scaleOut(tween(180), targetScale = 0.99f) +
-                                                        slideOutHorizontally(tween(200)) { full ->
+                                                    fadeOut(tabFade) +
+                                                        scaleOut(tabScale, targetScale = 0.99f) +
+                                                        slideOutHorizontally(tabSlide) { full ->
                                                             if (forward) -full / 16 else full / 16
                                                         }
                                                     )
