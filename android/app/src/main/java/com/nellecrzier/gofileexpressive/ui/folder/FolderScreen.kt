@@ -1,18 +1,21 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@file:OptIn(
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+)
 
 package com.nellecrzier.gofileexpressive.ui.folder
 
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -74,6 +77,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -88,7 +92,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -97,7 +106,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -111,6 +125,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -131,6 +146,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -359,10 +375,21 @@ fun FolderScreen(
             }
 
             Box(Modifier.weight(1f)) {
+                val pullState = rememberPullToRefreshState()
                 PullToRefreshBox(
                     isRefreshing = state.refreshing,
                     onRefresh = { vm.refresh(token) },
+                    state = pullState,
                     modifier = Modifier.fillMaxSize(),
+                    indicator = {
+                        // Indikator Expressive: poligon morfosis, bukan lingkaran berputar.
+                        ExpressiveRefreshIndicator(
+                            state = pullState,
+                            isRefreshing = state.refreshing,
+                            reduceMotion = reduceMotion,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                        )
+                    },
                 ) {
                     when {
                         state.busy && state.items.isEmpty() -> SkeletonList(reduceMotion)
@@ -430,11 +457,27 @@ fun FolderScreen(
             }
         }
 
-        // Bar aksi seleksi: kapsul tonal di atas bar navigasi.
+        // Bar aksi seleksi: FloatingToolbar Expressive di atas bar navigasi.
+        val selectionEnter = if (reduceMotion) {
+            fadeIn(tween(100))
+        } else {
+            fadeIn(animationSpec = MaterialTheme.motionScheme.fastEffectsSpec()) +
+                slideInVertically(
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                ) { it }
+        }
+        val selectionExit = if (reduceMotion) {
+            fadeOut(tween(100))
+        } else {
+            fadeOut(animationSpec = MaterialTheme.motionScheme.fastEffectsSpec()) +
+                slideOutVertically(
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                ) { it }
+        }
         AnimatedVisibility(
             visible = state.selectionMode,
-            enter = fadeIn(tween(160)) + slideInVertically { it },
-            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it / 3 },
+            enter = selectionEnter,
+            exit = selectionExit,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -465,10 +508,12 @@ fun FolderScreen(
         }
 
         // Pil Undo untuk penghapusan yang ditunda.
+        val undoSpatial = motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntOffset>()
+        val undoEffects = motionScheme.fastEffectsSpec<Float>()
         AnimatedVisibility(
             visible = state.undo != null,
-            enter = fadeIn(tween(160)) + slideInVertically { it },
-            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it / 3 },
+            enter = fadeIn(undoEffects) + slideInVertically(undoSpatial) { it },
+            exit = fadeOut(undoEffects) + slideOutVertically(undoSpatial) { it / 3 },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -484,7 +529,7 @@ fun FolderScreen(
             )
         }
 
-        // FAB unggah / folder baru.
+        // FAB unggah / folder baru: FloatingActionButtonMenu Expressive.
         Column(
             horizontalAlignment = Alignment.End,
             modifier = Modifier
@@ -492,53 +537,103 @@ fun FolderScreen(
                 .navigationBarsPadding()
                 .padding(end = 18.dp, bottom = if (state.selectionMode) 158.dp else 96.dp),
         ) {
-            AnimatedVisibility(
-                visible = fabOpen,
-                enter = fadeIn(tween(140)) + scaleIn(initialScale = 0.86f),
-                exit = fadeOut(tween(120)) + scaleOut(tween(150), targetScale = 0.9f),
-            ) {
-                Column(horizontalAlignment = Alignment.End) {
-                    MiniAction(
-                        icon = Icons.Filled.CreateNewFolder,
-                        label = stringResource(R.string.folder_new_folder),
-                        onClick = {
-                            fabOpen = false
-                            onNewFolder()
-                        },
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    MiniAction(
-                        icon = Icons.Filled.Upload,
-                        label = stringResource(R.string.action_upload),
-                        onClick = {
-                            fabOpen = false
-                            state.crumbs.lastOrNull()?.let { activity.pickFileForUpload(it.id, token) }
-                        },
-                    )
-                    Spacer(Modifier.height(12.dp))
+            val fabPrimary = MaterialTheme.colorScheme.primary
+            val onFabToggle: (Boolean) -> Unit = { want ->
+                haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                if (state.selectionMode) {
+                    vm.clearSelection()
+                } else {
+                    fabOpen = want
                 }
             }
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .combinedClickable(
-                        onClick = {
-                            if (state.selectionMode) vm.clearSelection() else fabOpen = !fabOpen
-                        },
-                        onLongClick = {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            fabOpen = !fabOpen
-                        },
-                    ),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
+            if (reduceMotion) {
+                // Gerak diredupkan: butir menu tampil seketika, FAB tidak berubah ukuran.
+                if (fabOpen) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        MiniAction(
+                            icon = Icons.Filled.CreateNewFolder,
+                            label = stringResource(R.string.folder_new_folder),
+                            onClick = {
+                                fabOpen = false
+                                onNewFolder()
+                            },
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        MiniAction(
+                            icon = Icons.Filled.Upload,
+                            label = stringResource(R.string.action_upload),
+                            onClick = {
+                                fabOpen = false
+                                state.crumbs.lastOrNull()?.let { activity.pickFileForUpload(it.id, token) }
+                            },
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+                ToggleFloatingActionButton(
+                    checked = fabOpen,
+                    onCheckedChange = onFabToggle,
+                    containerColor = { fabPrimary },
+                    containerSize = { 56.dp },
+                    containerCornerRadius = { 28.dp },
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         imageVector = if (fabOpen) Icons.Filled.Close else Icons.Filled.Add,
                         contentDescription = stringResource(R.string.action_upload),
                         tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            } else {
+                FloatingActionButtonMenu(
+                    expanded = fabOpen,
+                    button = {
+                        ToggleFloatingActionButton(
+                            checked = fabOpen,
+                            onCheckedChange = onFabToggle,
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val progress = checkedProgress
+                            Icon(
+                                imageVector = if (progress > 0.5f) {
+                                    Icons.Filled.Close
+                                } else {
+                                    Icons.Filled.Add
+                                },
+                                contentDescription = stringResource(R.string.action_upload),
+                                modifier = with(ToggleFloatingActionButtonDefaults) {
+                                    Modifier.animateIcon(checkedProgress = { progress })
+                                },
+                            )
+                        }
+                    },
+                ) {
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            fabOpen = false
+                            onNewFolder()
+                        },
+                        text = { Text(stringResource(R.string.folder_new_folder)) },
+                        icon = {
+                            Icon(
+                                Icons.Filled.CreateNewFolder,
+                                contentDescription = null,
+                            )
+                        },
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            fabOpen = false
+                            state.crumbs.lastOrNull()?.let { activity.pickFileForUpload(it.id, token) }
+                        },
+                        text = { Text(stringResource(R.string.action_upload)) },
+                        icon = {
+                            Icon(
+                                Icons.Filled.Upload,
+                                contentDescription = null,
+                            )
+                        },
                     )
                 }
             }
@@ -729,6 +824,7 @@ fun FolderScreen(
             onUp = { vm.pickerBack(token) },
             onNewFolder = { name -> vm.pickerNewFolder(token, name) },
             onConfirm = { vm.confirmPicker(token, pickerTargets) },
+            reduceMotion = reduceMotion,
         )
     }
 
@@ -1145,6 +1241,26 @@ private fun FileRow(
 ) {
     val kind = item.fileKind()
     val interactionSource = remember { MutableInteractionSource() }
+    // Tinggi baris dan padding vertikal ikut beranimasi saat prefs.density berubah.
+    val rowSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Dp>()
+    val rowMinHeight by animateDpAsState(
+        targetValue = when (density) {
+            Density.COMPACT -> 48.dp
+            Density.COMFORT -> 56.dp
+            Density.RELAXED -> 64.dp
+        },
+        animationSpec = if (reduceMotion) tween<Dp>(0) else rowSpec,
+        label = "rowMinHeight",
+    )
+    val rowVerticalPadding by animateDpAsState(
+        targetValue = when (density) {
+            Density.COMPACT -> 6.dp
+            Density.COMFORT -> 10.dp
+            Density.RELAXED -> 14.dp
+        },
+        animationSpec = if (reduceMotion) tween<Dp>(0) else rowSpec,
+        label = "rowVerticalPadding",
+    )
     Surface(
         shape = shape,
         color = if (selected) {
@@ -1171,20 +1287,10 @@ private fun FileRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(
-                    min = when (density) {
-                        Density.COMPACT -> 48.dp
-                        Density.COMFORT -> 56.dp
-                        Density.RELAXED -> 64.dp
-                    },
-                )
+                .heightIn(min = rowMinHeight)
                 .padding(
                     horizontal = 14.dp,
-                    vertical = when (density) {
-                        Density.COMPACT -> 6.dp
-                        Density.COMFORT -> 10.dp
-                        Density.RELAXED -> 14.dp
-                    },
+                    vertical = rowVerticalPadding,
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1548,13 +1654,18 @@ private fun SelectionBar(
     onCopy: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(26.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 10.dp,
+    // Satu anak Column di dalam FloatingToolbar: baris hitung/pilih, lalu baris aksi.
+    HorizontalFloatingToolbar(
+        expanded = true,
+        modifier = Modifier.fillMaxWidth(),
+        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+            toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            toolbarContentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        expandedShadowElevation = 6.dp,
+        collapsedShadowElevation = 6.dp,
     ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Column(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 FilledTonalIconButton(
                     onClick = onClear,
@@ -1602,6 +1713,38 @@ private fun SelectionBar(
     }
 }
 
+/**
+ * Indikator tarik-untuk-segarkan: kotak indikator M3 dengan indikator poligon
+ * Expressive di dalamnya. Skala dan alfa mengikuti jarak tarikan; saat gerak
+ * diredupkan, skalanya tetap 1 dan hanya alfa yang berubah.
+ */
+@Composable
+private fun ExpressiveRefreshIndicator(
+    state: PullToRefreshState,
+    isRefreshing: Boolean,
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    PullToRefreshDefaults.IndicatorBox(
+        state = state,
+        isRefreshing = isRefreshing,
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        AppLoadingIndicator(
+            size = 24.dp,
+            reduceMotion = reduceMotion,
+            modifier = Modifier.graphicsLayer {
+                val fraction = state.distanceFraction.coerceIn(0f, 1f)
+                val pullScale = if (reduceMotion) 1f else 0.55f + 0.45f * fraction
+                scaleX = pullScale
+                scaleY = pullScale
+                alpha = if (isRefreshing) 1f else fraction
+            },
+        )
+    }
+}
+
 @Composable
 private fun BarAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -1627,6 +1770,36 @@ private fun BarAction(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 10.sp,
+        )
+    }
+}
+
+/**
+ * Panah lipat daftar subfolder: berputar 0° → 180° memakai spesifikasi
+ * spatial tercepat. Saat gerak diredupkan, panah tidak berputar sama sekali.
+ */
+@Composable
+private fun ExpandChevron(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    reduceMotion: Boolean,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded && !reduceMotion) 180f else 0f,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>(),
+        label = "chevronRotation",
+    )
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.size(44.dp),
+    ) {
+        Icon(
+            Icons.Filled.KeyboardArrowDown,
+            contentDescription = stringResource(R.string.details_folder),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .rotate(rotation)
+                .size(20.dp),
         )
     }
 }
@@ -2083,10 +2256,12 @@ private fun PickerSheet(
     onUp: () -> Unit,
     onNewFolder: (String) -> Unit,
     onConfirm: () -> Unit,
+    reduceMotion: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var newFolder by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
+    var foldersExpanded by remember { mutableStateOf(true) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -2146,6 +2321,13 @@ private fun PickerSheet(
                 }
                 Spacer(Modifier.weight(1f))
                 if (picker.busy) AppLoadingIndicator(size = 20.dp)
+                if (picker.folders.isNotEmpty()) {
+                    ExpandChevron(
+                        expanded = foldersExpanded,
+                        onToggle = { foldersExpanded = !foldersExpanded },
+                        reduceMotion = reduceMotion,
+                    )
+                }
             }
             if (picker.folders.isEmpty()) {
                 Text(
@@ -2154,7 +2336,7 @@ private fun PickerSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(vertical = 18.dp),
                 )
-            } else {
+            } else if (foldersExpanded) {
                 Column(
                     Modifier
                         .height(280.dp)
