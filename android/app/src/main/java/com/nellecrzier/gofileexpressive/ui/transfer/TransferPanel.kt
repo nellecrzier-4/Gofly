@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui.transfer
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -76,9 +79,8 @@ import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.transfer.TransferControls
 import com.nellecrzier.gofileexpressive.transfer.TransferFormat
 import com.nellecrzier.gofileexpressive.transfer.TransferHistory
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
-import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import kotlin.math.abs
 import java.text.DateFormat
 import java.util.Date
@@ -488,7 +490,7 @@ private fun TransferRow(
                         .height(18.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    ExpressiveLoader(
+                    AppLoadingIndicator(
                         size = 14.dp,
                         color = MaterialTheme.colorScheme.primary,
                         reduceMotion = reduceMotion,

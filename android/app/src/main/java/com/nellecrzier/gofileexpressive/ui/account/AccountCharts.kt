@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui.account
 
 import androidx.compose.animation.core.Animatable
@@ -35,7 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import kotlin.math.roundToInt
 

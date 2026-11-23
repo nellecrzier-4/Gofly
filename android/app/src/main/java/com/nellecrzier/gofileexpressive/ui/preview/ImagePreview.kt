@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.preview
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import androidx.compose.animation.core.animate
@@ -58,7 +59,6 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -326,7 +326,7 @@ private fun ImagePage(
                     modifier = Modifier.fillMaxSize(),
                 )
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ExpressiveLoader(
+                    AppLoadingIndicator(
                         size = 42.dp,
                         color = MaterialTheme.colorScheme.primary,
                         reduceMotion = reduceMotion,

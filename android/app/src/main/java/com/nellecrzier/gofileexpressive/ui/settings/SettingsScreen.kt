@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.settings
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -55,7 +56,6 @@ import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.GoFileException
 import com.nellecrzier.gofileexpressive.GofileApi
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import com.nellecrzier.gofileexpressive.ui.account.AccountScreen
 import com.nellecrzier.gofileexpressive.ui.account.AccountTierBadge
 import com.nellecrzier.gofileexpressive.ui.account.AccountUiState
@@ -314,7 +314,7 @@ private fun SettingsAccountCard(
                 AccountUiState.Loading -> {
                     Spacer(Modifier.height(14.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        ExpressiveLoader(
+                        AppLoadingIndicator(
                             size = 22.dp,
                             color = MaterialTheme.colorScheme.primary,
                             reduceMotion = reduceMotion,

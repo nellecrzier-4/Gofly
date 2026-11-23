@@ -2,6 +2,7 @@
 
 package com.nellecrzier.gofileexpressive.ui.folder
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -150,7 +151,6 @@ import com.nellecrzier.gofileexpressive.PrefsState
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ViewMode
 import com.nellecrzier.gofileexpressive.ui.Crumb
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.ui.components.FileKind
 import com.nellecrzier.gofileexpressive.ui.components.fileKind
@@ -1097,7 +1097,7 @@ private fun FileList(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ExpressiveLoader(size = 22.dp, strokeOnly = true)
+                    AppLoadingIndicator(size = 22.dp)
                     Spacer(Modifier.width(10.dp))
                     Text(
                         stringResource(R.string.folder_loading_more),
@@ -1311,7 +1311,7 @@ private fun FileGrid(
                     Modifier.fillMaxWidth().padding(12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ExpressiveLoader(size = 22.dp, strokeOnly = true)
+                    AppLoadingIndicator(size = 22.dp)
                 }
             }
         }
@@ -2117,7 +2117,7 @@ private fun PickerSheet(
                     Text(stringResource(R.string.picker_new_folder), color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.weight(1f))
-                if (picker.busy) ExpressiveLoader(size = 20.dp, strokeOnly = true)
+                if (picker.busy) AppLoadingIndicator(size = 20.dp)
             }
             if (picker.folders.isEmpty()) {
                 Text(

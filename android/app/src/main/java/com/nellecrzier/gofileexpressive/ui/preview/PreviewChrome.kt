@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.preview
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,7 +51,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 
 /**
  * Tombol ikon 48dp di bilah atas pratinjau. Material 3 memakai 40dp sebagai
@@ -364,7 +364,7 @@ internal fun PreviewLoading(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ExpressiveLoader(
+        AppLoadingIndicator(
             size = 46.dp,
             color = MaterialTheme.colorScheme.primary,
             reduceMotion = reduceMotion,

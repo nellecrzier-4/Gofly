@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.account
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -49,7 +50,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
 import com.nellecrzier.gofileexpressive.ui.readableSize
 
@@ -240,7 +240,7 @@ private fun AccountLoadingCard(reduceMotion: Boolean) {
             Modifier.fillMaxWidth().padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ExpressiveLoader(
+            AppLoadingIndicator(
                 size = 28.dp,
                 color = MaterialTheme.colorScheme.primary,
                 reduceMotion = reduceMotion,

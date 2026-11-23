@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui.home
 
 import androidx.compose.animation.animateColorAsState
@@ -56,7 +58,7 @@ import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.transfer.TransferPanel
 
 /* ================================ beranda ================================= */

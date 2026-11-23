@@ -125,6 +125,7 @@ import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
 import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
 import com.nellecrzier.gofileexpressive.ui.security.AppLockGate
@@ -394,7 +395,7 @@ fun GofileApp(activity: MainActivity) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        ExpressiveLoader(
+                        AppLoadingIndicator(
                             size = 52.dp,
                             reduceMotion = reduceMotion,
                             color = MaterialTheme.colorScheme.primary,

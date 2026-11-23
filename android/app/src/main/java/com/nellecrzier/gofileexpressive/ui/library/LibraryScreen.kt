@@ -2,6 +2,7 @@
 
 package com.nellecrzier.gofileexpressive.ui.library
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -54,7 +55,6 @@ import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.PrefsState
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import com.nellecrzier.gofileexpressive.ui.components.fileKind
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.vm.FolderViewModel
@@ -118,7 +118,7 @@ fun LibraryScreen(
                 },
                 trailingIcon = {
                     if (state.globalSearching) {
-                        ExpressiveLoader(size = 18.dp, strokeOnly = true)
+                        AppLoadingIndicator(size = 18.dp)
                     }
                 },
                 singleLine = true,

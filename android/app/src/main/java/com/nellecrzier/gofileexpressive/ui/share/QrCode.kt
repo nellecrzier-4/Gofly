@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.share
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -55,7 +56,6 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -168,7 +168,7 @@ fun ShareQrSheet(
                             modifier = Modifier.size(36.dp),
                         )
 
-                        ShareQrState.Building -> ExpressiveLoader(
+                        ShareQrState.Building -> AppLoadingIndicator(
                             size = 30.dp,
                             color = Color(0xFF141414),
                             reduceMotion = reduceMotion,

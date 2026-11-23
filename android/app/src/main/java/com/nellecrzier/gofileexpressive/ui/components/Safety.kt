@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui.components
 
 import androidx.compose.animation.core.Animatable
@@ -31,7 +33,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import kotlinx.coroutines.launch
 
 /**
