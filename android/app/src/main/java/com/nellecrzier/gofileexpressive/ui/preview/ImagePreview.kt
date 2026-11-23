@@ -12,12 +12,17 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
@@ -52,9 +58,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.DropletPager
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
-import com.nellecrzier.gofileexpressive.ui.Hyper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -139,7 +143,7 @@ internal fun ImagePreview(
                 contentAlignment = Alignment.Center,
             ) {
                 if (images.size <= 8) {
-                    DropletPager(count = images.size, index = pagerState.currentPage)
+                    PagerDots(count = images.size, index = pagerState.currentPage)
                 } else {
                     PreviewPageCounter(
                         text = stringResource(
@@ -324,7 +328,7 @@ private fun ImagePage(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ExpressiveLoader(
                         size = 42.dp,
-                        color = Hyper.Accent,
+                        color = MaterialTheme.colorScheme.primary,
                         reduceMotion = reduceMotion,
                     )
                 }
@@ -338,6 +342,34 @@ private fun ImagePage(
                 )
             },
         )
+    }
+}
+
+/**
+ * Indikator halaman statis: satu titik per gambar, titik aktif memakai warna
+ * aksen dan sisanya garis luar.
+ */
+@Composable
+private fun PagerDots(count: Int, index: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(count) { dot ->
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (dot == index) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant
+                        },
+                    ),
+            )
+        }
     }
 }
 
@@ -381,7 +413,7 @@ private fun BlurredBackdrop(
             modifier = modifier.blur(30.dp).scale(1.2f),
         )
     } else {
-        Box(modifier.background(Hyper.CardRaised))
+        Box(modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh))
     }
 }
 
