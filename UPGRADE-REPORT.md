@@ -106,10 +106,10 @@ penghitungan recomposition).
 
 ## Keputusan desain
 
-- **Satu objek token `Hyper`.** Getter membaca set token aktif; `GofileTheme`
-  menukar set lalu memaksa subtree digambar ulang dengan `key(...)`. Ini
-  menghindari menyentuh ratusan pemanggil saat menambah tema terang dan warna
-  dinamis. Konsekuensinya: pembacaan token bukan `State`, jadi kunci itu wajib.
+- **Satu sumber warna Material 3.** `GofileTheme` memilih skema dinamis
+  (Android 12+) atau skema tonal dari aksen pengguna, lalu membagikan
+  spesifikasi gerak lewat `LocalMotionScheme`. Layar membaca
+  `MaterialTheme.colorScheme` langsung, tanpa objek token global.
 - **Tema terang adalah palet turunan, bukan mode Material terpisah.** Latar
   kertas hangat, kartu putih, garis rambut lebih tegas, aksen digelapkan agar
   kontras AA tetap lolos.

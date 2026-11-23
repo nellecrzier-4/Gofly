@@ -96,6 +96,8 @@ dependencies {
     implementation("androidx.compose.material3.adaptive:adaptive:1.0.0")
     // Bahasa per-aplikasi (API 33+ LocaleManager, fallback AppCompat).
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // Tema XML Material 3 DayNight + overlay warna dinamis untuk splash/aktivitas.
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.fragment:fragment-ktx:1.8.4")
     // Folder upload lewat SAF.
     implementation("androidx.documentfile:documentfile:1.0.1")

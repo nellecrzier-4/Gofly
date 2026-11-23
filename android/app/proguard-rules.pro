@@ -1,4 +1,4 @@
-# HyperSpring / Gofile Expressive — R8 rules.
+# Gofile Expressive — R8 rules.
 #
 # Aplikasi ini tidak memakai WebView, JavascriptInterface, atau refleksi JSON
 # berbasis model, jadi aturan di bawah hanya menjaga hal-hal yang memang

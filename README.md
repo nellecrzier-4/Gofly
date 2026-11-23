@@ -2,7 +2,7 @@
 
 Klien GoFile dua sisi: **aplikasi Android native 100% Compose** (tanpa WebView) dan **klien web statis** (HTML/CSS/JS, tanpa build step) yang bisa dipasang sebagai PWA.
 
-Bahasa visualnya HyperSpring: latar hitam, kartu `#0E0E10` yang dibedakan garis rambut 0,8dp, satu aksen koral `#FF5F45`, sudut 18dp, dan gerak spring (`hyperSpring(0.4f, 0.85f)`). Sejak 4.0 ada juga palet terang dan warna dinamis Material You.
+Antarmuka Android memakai Material 3 Expressive: warna dinamis Material You di Android 12+, skema tonal dari aksen pilihan sebagai cadangan, tipografi dan bentuk bawaan M3, sudut bersambung untuk daftar dan grup kontrol, serta gerak spatial/effects yang menghormati setelan kurangi gerak.
 
 ## Login
 
@@ -17,7 +17,7 @@ GoFile tidak menyediakan login kata sandi; magic link adalah satu-satunya jalan 
 
 Seluruh UI Jetpack Compose, seluruh jaringan lewat `GofileApi` (OkHttp). Tidak ada `WebView`, `androidx.webkit`, Custom Tabs, atau jembatan JavaScript — CI menggagalkan PR bila muncul pemakaian nyata.
 
-**Penjelajah berkas**: paginasi otomatis, pencarian dalam folder dengan sorotan, urut nama/ukuran/tanggal/tipe, filter tipe, tampilan daftar dan grid dengan thumbnail (Coil), breadcrumb, pull-to-refresh, skeleton, cache folder untuk mode offline, favorit, terbaru, pencarian lintas folder yang pernah dibuka, multi-pilih dengan bilah aksi kaca, rename/move/copy, detail item, dan hapus dengan jendela **Undo** (API GoFile tidak punya recycle bin — lihat "Batas API").
+**Penjelajah berkas**: paginasi otomatis, pencarian dalam folder dengan sorotan, urut nama/ukuran/tanggal/tipe, filter tipe, tampilan daftar dan grid dengan thumbnail (Coil), breadcrumb, pull-to-refresh, skeleton, cache folder untuk mode offline, favorit, terbaru, pencarian lintas folder yang pernah dibuka, multi-pilih dengan bilah aksi, rename/move/copy, detail item, dan hapus dengan jendela **Undo** (API GoFile tidak punya recycle bin — lihat "Batas API").
 
 **Pratinjau native**: gambar (zoom, geser, galeri, slideshow), video/audio (Media3 ExoPlayer dengan header CDN), teks/kode/Markdown (Compose `AnnotatedString`, tanpa HTML), PDF (`PdfRenderer`), dan "Buka dengan" lewat chooser sistem + FileProvider.
 

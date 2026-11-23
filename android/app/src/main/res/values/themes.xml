@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- HyperSpring: edge-to-edge, bar transparan, latar hitam murni. -->
-    <style name="Theme.GofileExpressive" parent="@android:style/Theme.Material.NoActionBar">
+    <!-- Tema Material 3 DayNight: edge-to-edge, bar transparan, warna dinamis. -->
+    <style name="Theme.GofileExpressive" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/surface</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
         <item name="android:colorAccent">@color/primary</item>
+        <item name="dynamicColorThemeOverlay">@style/ThemeOverlay.Material3.DynamicColors.DayNight</item>
     </style>
 
-    <!-- Splash Screen API (Android 12+), ikon adaptif di atas latar hitam. -->
+    <!-- Splash Screen API (Android 12+), ikon adaptif di atas latar tema. -->
     <style name="Theme.GofileExpressive.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/surface</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>

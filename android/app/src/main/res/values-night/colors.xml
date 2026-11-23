@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warna dasar Material 3 mode gelap. -->
+    <color name="surface">#141218</color>
+    <color name="primary">#FFB4A8</color>
+    <color name="on_primary">#690005</color>
+    <color name="ic_launcher_background">#FF5F45</color>
+</resources>

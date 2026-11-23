@@ -5,6 +5,18 @@ Changelog, dan versi mengikuti Semantic Versioning. Berkas ini dibaca apa
 adanya oleh aplikasi (Setelan > Apa yang baru), jadi tulis sebagai teks biasa:
 tanpa tabel, tanpa HTML, dan baris pendek.
 
+## 4.1.0 - 2026-11-23
+
+### Antarmuka
+- Aplikasi Android pindah penuh ke Material 3 Expressive: warna dinamis
+  Material You di Android 12+, skema tonal dari aksen pilihan sebagai
+  cadangan, tipografi dan bentuk bawaan M3, serta sudut bersambung untuk
+  daftar dan grup kontrol.
+- Gerak memakai spesifikasi spatial/effects Expressive dan tetap menghormati
+  setelan kurangi gerak (SYSTEM/REDUCED/OFF).
+- Efek kaca, latar titik, dan komponen visual lama dihapus; tidak ada lagi
+  shader AGSL maupun blur yang hanya berjalan di Android 13+.
+
 ## 4.0.0 - 2026-11-23
 
 Rilis besar: aplikasi Android ditulis ulang sepenuhnya secara native dengan
