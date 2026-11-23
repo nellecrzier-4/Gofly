@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -72,6 +73,7 @@ fun PreviewHost(
     target: PreviewTarget?,
     token: String,
     reduceMotion: Boolean,
+    origin: androidx.compose.ui.geometry.Rect? = null,
     onClose: () -> Unit,
     onOpenWith: (GItem) -> Unit,
     onDownload: ((GItem) -> Unit)? = null,
@@ -83,6 +85,7 @@ fun PreviewHost(
             target = target,
             token = token,
             reduceMotion = reduceMotion,
+            origin = origin,
             onClose = onClose,
             onOpenWith = onOpenWith,
             onDownload = onDownload,
@@ -96,6 +99,7 @@ private fun PreviewOverlay(
     target: PreviewTarget,
     token: String,
     reduceMotion: Boolean,
+    origin: androidx.compose.ui.geometry.Rect?,
     onClose: () -> Unit,
     onOpenWith: (GItem) -> Unit,
     onDownload: ((GItem) -> Unit)?,
@@ -114,6 +118,7 @@ private fun PreviewOverlay(
     var backProgress by remember { mutableFloatStateOf(0f) }
 
     val appear = remember { Animatable(if (reduceMotion) 1f else 0f) }
+    var rootSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
 
     LaunchedEffect(Unit) {
         if (!reduceMotion && appear.value < 1f) {
@@ -156,11 +161,25 @@ private fun PreviewOverlay(
             // Menelan ketukan yang tidak ditangani konten, supaya daftar folder
             // di bawah overlay tidak ikut bereaksi.
             .pointerInput(Unit) { detectTapGestures(onTap = { }) }
+            .onSizeChanged { rootSize = it }
             .graphicsLayer {
                 alpha = appear.value * (1f - backProgress * 0.55f)
-                val shrink = 0.02f * (1f - appear.value) + 0.03f * backProgress
-                scaleX = 1f - shrink
-                scaleY = 1f - shrink
+                val p = appear.value
+                val fromOrigin = origin != null && rootSize.width > 0 && rootSize.height > 0 && p < 1f
+                if (fromOrigin) {
+                    val ow = origin!!.width.coerceAtLeast(1f)
+                    val oh = origin.height.coerceAtLeast(1f)
+                    val targetScale = (ow / rootSize.width).coerceIn(0.25f, 1f)
+                    val targetScaleY = (oh / rootSize.height).coerceIn(0.25f, 1f)
+                    scaleX = targetScale + (1f - targetScale) * p
+                    scaleY = targetScaleY + (1f - targetScaleY) * p
+                    translationX = (origin.center.x - rootSize.width / 2f) * (1f - p)
+                    translationY = (origin.center.y - rootSize.height / 2f) * (1f - p)
+                } else {
+                    val shrink = 0.02f * (1f - p) + 0.03f * backProgress
+                    scaleX = 1f - shrink
+                    scaleY = 1f - shrink
+                }
             },
     ) {
         if (item.link.isBlank()) {

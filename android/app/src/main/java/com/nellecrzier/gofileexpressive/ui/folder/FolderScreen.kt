@@ -5,6 +5,9 @@
 
 package com.nellecrzier.gofileexpressive.ui.folder
 
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.runtime.mutableStateMapOf
 import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import android.content.Intent
@@ -223,6 +226,8 @@ fun FolderScreen(
     var fabOpen by remember { mutableStateOf(false) }
     var pickerTargets by remember { mutableStateOf<List<GItem>>(emptyList()) }
     var previewTarget by remember { mutableStateOf<PreviewTarget?>(null) }
+    var previewOrigin by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val itemBounds = remember { mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>() }
     var shareTarget by remember { mutableStateOf<GItem?>(null) }
     var contentTarget by remember { mutableStateOf<GItem?>(null) }
     val scope = rememberCoroutineScope()
@@ -269,6 +274,7 @@ fun FolderScreen(
         }
         vm.recordRecent(item)
         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        previewOrigin = itemBounds[item.id]
         previewTarget = PreviewTarget(
             item = item,
             album = visible.filterNot { it.isFolder },
@@ -425,6 +431,7 @@ fun FolderScreen(
                             },
                             onMenu = { item -> details = item },
                             onLoadMore = { vm.loadMore(token) },
+                            onItemBounds = { id, rect -> itemBounds[id] = rect },
                         )
 
                         else -> FileList(
@@ -451,6 +458,7 @@ fun FolderScreen(
                             onLoadMore = { vm.loadMore(token) },
                             density = prefs.density,
                             reduceMotion = reduceMotion,
+                            onItemBounds = { id, rect -> itemBounds[id] = rect },
                         )
                     }
                 }
@@ -833,7 +841,11 @@ fun FolderScreen(
         target = previewTarget,
         token = token,
         reduceMotion = reduceMotion,
-        onClose = { previewTarget = null },
+        origin = previewOrigin,
+        onClose = {
+            previewTarget = null
+            previewOrigin = null
+        },
         onOpenWith = { item -> openWithExternal(item) },
         onDownload = { item ->
             activity.startDownload(item.link, item.name, token, item.md5)
@@ -1154,6 +1166,7 @@ private fun FileList(
     onLoadMore: () -> Unit,
     density: Density,
     reduceMotion: Boolean = false,
+    onItemBounds: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> },
 ) {
     val listState = rememberLazyListState()
     // Masuk bertahap hanya pada komposisi pertama; bergulir tidak mengulanginya.
@@ -1199,6 +1212,7 @@ private fun FileList(
                     onMenu = { onMenu(item) },
                     shape = rowShape,
                     reduceMotion = reduceMotion,
+                    onBounds = { onItemBounds(item.id, it) },
                 )
                 }
             }
@@ -1238,6 +1252,7 @@ private fun FileRow(
     onMenu: () -> Unit,
     shape: Shape = RoundedCornerShape(18.dp),
     reduceMotion: Boolean = false,
+    onBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val kind = item.fileKind()
     val interactionSource = remember { MutableInteractionSource() }
@@ -1408,6 +1423,7 @@ private fun FileGrid(
     onLongPress: (GItem) -> Unit,
     onMenu: (GItem) -> Unit,
     onLoadMore: () -> Unit,
+    onItemBounds: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> },
 ) {
     val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
     val shouldLoadMore by remember(hasNextPage, items.size) {
@@ -1430,6 +1446,7 @@ private fun FileGrid(
         gridItems(items, key = { it.id }) { item ->
             GridCard(
                 modifier = Modifier.animateItem(),
+                onBounds = { onItemBounds(item.id, it) },
                 item = item,
                 selected = item.id in selectedIds,
                 selectionMode = selectionMode,
@@ -1455,6 +1472,7 @@ private fun FileGrid(
 @Composable
 private fun GridCard(
     modifier: Modifier = Modifier,
+    onBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     item: GItem,
     selected: Boolean,
     selectionMode: Boolean,
@@ -1482,6 +1500,7 @@ private fun GridCard(
         },
         modifier = modifier
             .fillMaxWidth()
+            .onGloballyPositioned { onBounds(it.boundsInRoot()) }
             .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
     ) {
         Column {
