@@ -5,6 +5,24 @@
 
 package com.nellecrzier.gofileexpressive.ui.folder
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.key
+import com.nellecrzier.gofileexpressive.ui.components.MorphIcon
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.runtime.mutableStateMapOf
@@ -305,6 +323,43 @@ fun FolderScreen(
     }
 
     LaunchedEffect(token) { vm.rememberToken(token) }
+    LaunchedEffect(state.selectionMode) { if (state.selectionMode) fabOpen = false }
+
+    val sortMenuSlot: @Composable () -> Unit = {
+        DropdownMenu(
+            expanded = sortMenu,
+            onDismissRequest = { sortMenu = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            SortMenuItem(stringResource(R.string.sort_name), "name", prefs, vm) { sortMenu = false }
+            SortMenuItem(stringResource(R.string.sort_size), "size", prefs, vm) { sortMenu = false }
+            SortMenuItem(stringResource(R.string.sort_created), "created", prefs, vm) { sortMenu = false }
+            SortMenuItem(stringResource(R.string.sort_modified), "modified", prefs, vm) { sortMenu = false }
+            SortMenuItem(stringResource(R.string.sort_type), "type", prefs, vm) { sortMenu = false }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        if (prefs.sortAscending) stringResource(R.string.sort_descending)
+                        else stringResource(R.string.sort_ascending),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        if (prefs.sortAscending) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                onClick = {
+                    vm.setSort(prefs.sortField, !prefs.sortAscending)
+                    sortMenu = false
+                },
+            )
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -314,6 +369,8 @@ fun FolderScreen(
                 canGoBack = state.crumbs.size > 1,
                 searchOpen = searchOpen,
                 viewMode = prefs.viewMode,
+                reduceMotion = reduceMotion,
+                sortMenu = sortMenuSlot,
                 onBack = { vm.back(token) },
                 onToggleSearch = {
                     searchOpen = !searchOpen
@@ -330,8 +387,8 @@ fun FolderScreen(
 
             AnimatedVisibility(
                 visible = searchOpen,
-                enter = fadeIn() + slideInVertically { -it / 3 },
-                exit = fadeOut() + slideOutVertically { -it / 3 },
+                enter = fadeIn(tween(200)) + expandVertically(tween(260)),
+                exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
             ) {
                 OutlinedTextField(
                     value = query,
@@ -397,6 +454,7 @@ fun FolderScreen(
                         )
                     },
                 ) {
+                    key(state.crumbs.lastOrNull()?.id) {
                     when {
                         state.busy && state.items.isEmpty() -> SkeletonList(reduceMotion)
 
@@ -460,6 +518,7 @@ fun FolderScreen(
                             reduceMotion = reduceMotion,
                             onItemBounds = { id, rect -> itemBounds[id] = rect },
                         )
+                    }
                     }
                 }
             }
@@ -528,7 +587,7 @@ fun FolderScreen(
                 .padding(
                     start = 16.dp,
                     end = 16.dp,
-                    bottom = if (state.selectionMode) 148.dp else 86.dp,
+                    bottom = if (state.selectionMode) 236.dp else 86.dp,
                 ),
         ) {
             UndoBar(
@@ -538,12 +597,17 @@ fun FolderScreen(
         }
 
         // FAB unggah / folder baru: FloatingActionButtonMenu Expressive.
+        AnimatedVisibility(
+            visible = !state.selectionMode,
+            enter = fadeIn(tween(180)) + scaleIn(tween(240), initialScale = 0.6f),
+            exit = fadeOut(tween(120)) + scaleOut(tween(150), targetScale = 0.6f),
+            modifier = Modifier.align(Alignment.BottomEnd),
+        ) {
         Column(
             horizontalAlignment = Alignment.End,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
-                .padding(end = 18.dp, bottom = if (state.selectionMode) 158.dp else 96.dp),
+                .padding(end = 18.dp, bottom = 96.dp),
         ) {
             val fabPrimary = MaterialTheme.colorScheme.primary
             val onFabToggle: (Boolean) -> Unit = { want ->
@@ -646,30 +710,6 @@ fun FolderScreen(
                 }
             }
         }
-
-        DropdownMenu(
-            expanded = sortMenu,
-            onDismissRequest = { sortMenu = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
-            SortMenuItem(stringResource(R.string.sort_name), "name", prefs, vm) { sortMenu = false }
-            SortMenuItem(stringResource(R.string.sort_size), "size", prefs, vm) { sortMenu = false }
-            SortMenuItem(stringResource(R.string.sort_created), "created", prefs, vm) { sortMenu = false }
-            SortMenuItem(stringResource(R.string.sort_modified), "modified", prefs, vm) { sortMenu = false }
-            SortMenuItem(stringResource(R.string.sort_type), "type", prefs, vm) { sortMenu = false }
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        if (prefs.sortAscending) stringResource(R.string.sort_descending)
-                        else stringResource(R.string.sort_ascending),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                },
-                onClick = {
-                    vm.setSort(prefs.sortField, !prefs.sortAscending)
-                    sortMenu = false
-                },
-            )
         }
     }
 
@@ -894,86 +934,129 @@ fun FolderScreen(
 /* --------------------------------- header --------------------------------- */
 
 @Composable
+private fun TopAction(
+    onClick: () -> Unit,
+    reduceMotion: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val src = remember { MutableInteractionSource() }
+    FilledTonalIconButton(
+        onClick = onClick,
+        interactionSource = src,
+        modifier = Modifier.size(40.dp).pressScale(src, reduceMotion),
+    ) { content() }
+}
+
+@Composable
 private fun FolderTopBar(
     title: String,
     canGoBack: Boolean,
     searchOpen: Boolean,
     viewMode: ViewMode,
+    reduceMotion: Boolean,
     onBack: () -> Unit,
     onToggleSearch: () -> Unit,
     onToggleView: () -> Unit,
     onOpenSort: () -> Unit,
     onRefresh: () -> Unit,
+    sortMenu: @Composable () -> Unit,
 ) {
+    var spins by remember { mutableIntStateOf(0) }
+    val spin by animateFloatAsState(
+        targetValue = spins * 360f,
+        animationSpec = if (reduceMotion) tween(0) else tween(520, easing = FastOutSlowInEasing),
+        label = "refreshSpin",
+    )
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 4.dp),
+            .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (canGoBack) {
-            FilledTonalIconButton(
-                onClick = onBack,
-                modifier = Modifier.size(44.dp),
-            ) {
+        AnimatedVisibility(
+            visible = canGoBack,
+            enter = fadeIn(tween(180)) + scaleIn(tween(220), initialScale = 0.5f) +
+                expandHorizontally(tween(240)),
+            exit = fadeOut(tween(120)) + scaleOut(tween(150), targetScale = 0.5f) +
+                shrinkHorizontally(tween(200)),
+        ) {
+            TopAction(onClick = onBack, reduceMotion = reduceMotion) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.root),
                     modifier = Modifier.size(20.dp),
                 )
             }
-        } else {
-            Spacer(Modifier.width(12.dp))
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        FilledTonalIconButton(
-            onClick = onToggleSearch,
-            modifier = Modifier.size(44.dp),
-        ) {
-            Icon(
-                if (searchOpen) Icons.Filled.Close else Icons.Filled.Search,
-                contentDescription = stringResource(R.string.folder_search_hint),
-                modifier = Modifier.size(20.dp),
+        AnimatedContent(
+            targetState = title,
+            transitionSpec = {
+                (fadeIn(tween(200, delayMillis = 60)) + slideInVertically(tween(240)) { it / 3 }) togetherWith
+                    (fadeOut(tween(90)) + slideOutVertically(tween(160)) { -it / 3 }) using null
+            },
+            contentAlignment = Alignment.CenterStart,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = if (canGoBack) 12.dp else 8.dp, end = 8.dp),
+            label = "folderTitle",
+        ) { text ->
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        FilledTonalIconButton(
-            onClick = onOpenSort,
-            modifier = Modifier.size(44.dp),
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Sort,
-                contentDescription = stringResource(R.string.folder_sort),
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        FilledTonalIconButton(
-            onClick = onToggleView,
-            modifier = Modifier.size(44.dp),
-        ) {
-            Icon(
-                if (viewMode == ViewMode.GRID) Icons.Filled.List else Icons.Filled.GridView,
-                contentDescription = stringResource(
-                    if (viewMode == ViewMode.GRID) R.string.view_list else R.string.view_grid,
-                ),
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        FilledTonalIconButton(
-            onClick = onRefresh,
-            modifier = Modifier.size(44.dp),
-        ) {
-            Icon(
-                Icons.Filled.FolderOpen,
-                contentDescription = stringResource(R.string.action_refresh),
-                modifier = Modifier.size(20.dp),
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TopAction(onClick = onToggleSearch, reduceMotion = reduceMotion) {
+                MorphIcon(
+                    first = Icons.Filled.Search,
+                    second = Icons.Filled.Close,
+                    showSecond = searchOpen,
+                    contentDescription = stringResource(R.string.folder_search_hint),
+                    modifier = Modifier.size(20.dp),
+                    reduceMotion = reduceMotion,
+                )
+            }
+            // Menu urut berlabuh tepat di tombolnya, bukan di tepi layar.
+            Box {
+                TopAction(onClick = onOpenSort, reduceMotion = reduceMotion) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Sort,
+                        contentDescription = stringResource(R.string.folder_sort),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                sortMenu()
+            }
+            TopAction(onClick = onToggleView, reduceMotion = reduceMotion) {
+                MorphIcon(
+                    first = Icons.Filled.GridView,
+                    second = Icons.Filled.List,
+                    showSecond = viewMode == ViewMode.GRID,
+                    contentDescription = stringResource(
+                        if (viewMode == ViewMode.GRID) R.string.view_list else R.string.view_grid,
+                    ),
+                    modifier = Modifier.size(20.dp),
+                    reduceMotion = reduceMotion,
+                )
+            }
+            TopAction(
+                onClick = {
+                    spins++
+                    onRefresh()
+                },
+                reduceMotion = reduceMotion,
+            ) {
+                Icon(
+                    Icons.Filled.Refresh,
+                    contentDescription = stringResource(R.string.action_refresh),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .graphicsLayer { rotationZ = spin },
+                )
+            }
         }
     }
 }
@@ -1017,44 +1100,65 @@ private fun SortMenuItem(
 
 @Composable
 private fun Breadcrumbs(crumbs: List<Crumb>, onJump: (Int) -> Unit) {
-    if (crumbs.size <= 1) return
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 18.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(bottom = 4.dp),
+    val listState = rememberLazyListState()
+    LaunchedEffect(crumbs.size) {
+        if (crumbs.size > 1) listState.animateScrollToItem(crumbs.lastIndex)
+    }
+    AnimatedVisibility(
+        visible = crumbs.size > 1,
+        enter = fadeIn(tween(200)) + expandVertically(tween(260)),
+        exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
     ) {
-        items(crumbs.size) { index ->
-            val crumb = crumbs[index]
-            val last = index == crumbs.lastIndex
-            Surface(
-                shape = CircleShape,
-                color = if (last) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                },
-                modifier = Modifier.clip(CircleShape).combinedClickable(
-                    onClick = { onJump(index) },
-                ),
-            ) {
-                Text(
-                    text = crumb.name,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (last) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 1,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        LazyRow(
+            state = listState,
+            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            itemsIndexed(crumbs, key = { index, crumb -> "$index-${crumb.id}" }) { index, crumb ->
+                val last = index == crumbs.lastIndex
+                val container by animateColorAsState(
+                    if (last) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tween(200),
+                    label = "crumbBg",
                 )
-            }
-            if (!last) {
-                Text(
-                    "›",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 4.dp),
+                val content by animateColorAsState(
+                    if (last) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tween(200),
+                    label = "crumbFg",
                 )
+                Row(
+                    Modifier.animateItem(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = container,
+                        modifier = Modifier.clip(CircleShape).combinedClickable(
+                            onClick = { onJump(index) },
+                        ),
+                    ) {
+                        Text(
+                            text = crumb.name,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = content,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .widthIn(max = 160.dp)
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                        )
+                    }
+                    if (!last) {
+                        Text(
+                            "›",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 6.dp),
+                        )
+                    }
+                }
             }
         }
     }
@@ -1071,40 +1175,68 @@ private fun FilterChips(selected: String, onSelect: (String) -> Unit) {
         FILTER_ARCHIVE to R.string.filter_archives,
     )
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp),
+        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 2.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(options) { (value, label) ->
+        items(options, key = { it.first }) { (value, label) ->
             val active = value == selected
+            val src = remember { MutableInteractionSource() }
+            val container by animateColorAsState(
+                if (active) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                tween(200),
+                label = "chipBg",
+            )
+            val content by animateColorAsState(
+                if (active) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                tween(200),
+                label = "chipFg",
+            )
+            val outline by animateColorAsState(
+                if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                else MaterialTheme.colorScheme.outlineVariant,
+                tween(200),
+                label = "chipBorder",
+            )
             Surface(
                 shape = CircleShape,
-                color = if (active) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                },
-                border = BorderStroke(
-                    1.dp,
-                    if (active) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                ),
-                modifier = Modifier.clip(CircleShape).combinedClickable(
-                    onClick = { onSelect(value) },
-                ),
+                color = container,
+                border = BorderStroke(1.dp, outline),
+                modifier = Modifier
+                    .animateItem()
+                    .clip(CircleShape)
+                    .pressScale(src, false, 0.94f)
+                    .combinedClickable(
+                        interactionSource = src,
+                        indication = LocalIndication.current,
+                        onClick = { onSelect(value) },
+                    ),
             ) {
-                Text(
-                    stringResource(label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (active) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                )
+                Row(
+                    Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AnimatedVisibility(
+                        visible = active,
+                        enter = fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.4f) +
+                            expandHorizontally(tween(200)),
+                        exit = fadeOut(tween(100)) + scaleOut(tween(120), targetScale = 0.4f) +
+                            shrinkHorizontally(tween(160)),
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = content,
+                            modifier = Modifier.padding(end = 6.dp).size(16.dp),
+                        )
+                    }
+                    Text(
+                        stringResource(label),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = content,
+                    )
+                }
             }
         }
     }
@@ -1276,13 +1408,18 @@ private fun FileRow(
         animationSpec = if (reduceMotion) tween<Dp>(0) else rowSpec,
         label = "rowVerticalPadding",
     )
-    Surface(
-        shape = shape,
-        color = if (selected) {
+    val rowColor by animateColorAsState(
+        targetValue = if (selected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
             MaterialTheme.colorScheme.surfaceContainer
         },
+        animationSpec = tween(200),
+        label = "rowColor",
+    )
+    Surface(
+        shape = shape,
+        color = rowColor,
         border = if (selected) {
             BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
         } else {
@@ -1352,7 +1489,15 @@ private fun FileRow(
                 )
                 Spacer(Modifier.width(6.dp))
             }
-            if (selectionMode) {
+            AnimatedContent(
+                targetState = selectionMode,
+                transitionSpec = {
+                    (fadeIn(tween(160)) + scaleIn(tween(200), initialScale = 0.6f)) togetherWith
+                        (fadeOut(tween(100)) + scaleOut(tween(120), targetScale = 0.6f)) using null
+                },
+                label = "rowTrailing",
+            ) { inSelection ->
+            if (inSelection) {
                 Icon(
                     imageVector = if (selected) Icons.Filled.Check else Icons.Filled.Add,
                     contentDescription = stringResource(R.string.folder_selected_count, 1),
@@ -1374,6 +1519,7 @@ private fun FileRow(
                         modifier = Modifier.size(20.dp),
                     )
                 }
+            }
             }
         }
     }
@@ -1673,22 +1819,17 @@ private fun SelectionBar(
     onCopy: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    // Satu anak Column di dalam FloatingToolbar: baris hitung/pilih, lalu baris aksi.
-    HorizontalFloatingToolbar(
-        expanded = true,
+    Surface(
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 6.dp,
         modifier = Modifier.fillMaxWidth(),
-        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-            toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            toolbarContentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        expandedShadowElevation = 6.dp,
-        collapsedShadowElevation = 6.dp,
     ) {
-        Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 FilledTonalIconButton(
                     onClick = onClear,
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
                         Icons.Filled.Close,
@@ -1696,37 +1837,53 @@ private fun SelectionBar(
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                Text(
-                    stringResource(R.string.folder_selected_count, count),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                Spacer(Modifier.width(14.dp))
+                AnimatedContent(
+                    targetState = count,
+                    transitionSpec = {
+                        val up = targetState > initialState
+                        (fadeIn(tween(160)) + slideInVertically(tween(200)) { if (up) it else -it }) togetherWith
+                            (fadeOut(tween(100)) + slideOutVertically(tween(160)) { if (up) -it else it }) using null
+                    },
+                    contentAlignment = Alignment.CenterStart,
                     modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = onSelectAll) {
+                    label = "selCount",
+                ) { n ->
+                    Text(
+                        stringResource(R.string.folder_selected_count, n),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
+                TextButton(onClick = onSelectAll, contentPadding = PaddingValues(horizontal = 8.dp)) {
                     Text(
                         stringResource(R.string.folder_select_all),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
+                        maxLines = 1,
                     )
                 }
-                TextButton(onClick = onInvert) {
+                TextButton(onClick = onInvert, contentPadding = PaddingValues(horizontal = 8.dp)) {
                     Text(
                         stringResource(R.string.folder_invert_selection),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
+                        maxLines = 1,
                     )
                 }
             }
+            Spacer(Modifier.height(4.dp))
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BarAction(Icons.Filled.Download, stringResource(R.string.action_download), onDownload)
-                BarAction(Icons.Filled.Share, stringResource(R.string.action_share), onShare)
-                BarAction(Icons.Filled.FolderOpen, stringResource(R.string.action_move), onMove)
-                BarAction(Icons.Filled.ContentCopy, stringResource(R.string.action_copy), onCopy)
-                BarAction(Icons.Filled.Delete, stringResource(R.string.action_delete), onDelete)
+                BarAction(0, Icons.Filled.Download, stringResource(R.string.action_download), onDownload)
+                BarAction(1, Icons.Filled.Share, stringResource(R.string.action_share), onShare)
+                BarAction(2, Icons.Filled.FolderOpen, stringResource(R.string.action_move), onMove)
+                BarAction(3, Icons.Filled.ContentCopy, stringResource(R.string.action_copy), onCopy)
+                BarAction(4, Icons.Filled.Delete, stringResource(R.string.action_delete), onDelete)
             }
         }
     }
@@ -1766,15 +1923,25 @@ private fun ExpressiveRefreshIndicator(
 
 @Composable
 private fun BarAction(
+    index: Int,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
 ) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val src = remember { MutableInteractionSource() }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .staggeredEnter(index + 2, false, shown)
             .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(onClick = onClick)
+            .pressScale(src, false, 0.9f)
+            .combinedClickable(
+                interactionSource = src,
+                indication = LocalIndication.current,
+                onClick = onClick,
+            )
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Icon(
@@ -1953,6 +2120,17 @@ private fun FolderEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val bob by rememberInfiniteTransition(label = "emptyBob").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(2200, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse,
+        ),
+        label = "emptyBobValue",
+    )
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             Modifier.padding(28.dp).widthIn(max = 420.dp),
@@ -1961,7 +2139,10 @@ private fun FolderEmptyState(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(76.dp),
+                modifier = Modifier
+                    .size(76.dp)
+                    .staggeredEnter(0, false, shown)
+                    .graphicsLayer { translationY = -6.dp.toPx() * bob },
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
@@ -1977,6 +2158,8 @@ private fun FolderEmptyState(
                 title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.staggeredEnter(3, false, shown),
             )
             Spacer(Modifier.height(6.dp))
             Text(
@@ -1984,13 +2167,14 @@ private fun FolderEmptyState(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.staggeredEnter(5, false, shown),
             )
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = onAction,
                     shape = RoundedCornerShape(percent = 50),
-                    modifier = Modifier.height(46.dp),
+                    modifier = Modifier.height(46.dp).staggeredEnter(7, false, shown),
                 ) { Text(actionLabel) }
             }
         }

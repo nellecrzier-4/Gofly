@@ -2,6 +2,9 @@
 
 package com.nellecrzier.gofileexpressive.ui
 
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import android.net.Uri
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
@@ -506,30 +509,30 @@ fun GofileApp(activity: MainActivity) {
                                             }
                                         },
                                 ) {
-                                    val tabFade = motionScheme.fastEffectsSpec<Float>()
-                                    val tabScale = motionScheme.defaultSpatialSpec<Float>()
-                                    val tabSlide = motionScheme.defaultSpatialSpec<IntOffset>()
+                                    // Fade-through ringan: layar lama memudar cepat (90 ms), layar baru
+                                    // masuk sesudahnya sambil bergeser sedikit. Hanya satu layar yang
+                                    // terlihat pada satu waktu, jadi tidak ada dua layar berat yang
+                                    // digambar bersamaan, dan memakai tween (bukan spring yang lama
+                                    // mengendap) supaya komposisi layar lama dilepas dengan cepat.
                                     AnimatedContent(
                                         targetState = currentTab,
                                         label = "tabContent",
                                         transitionSpec = {
                                             if (reduceMotion) {
-                                                fadeIn(tween(120)) togetherWith fadeOut(tween(120))
+                                                fadeIn(tween(100)) togetherWith fadeOut(tween(80))
                                             } else {
                                                 val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
                                                 (
-                                                    fadeIn(tabFade) +
-                                                        scaleIn(tabScale, initialScale = 0.97f) +
-                                                        slideInHorizontally(tabSlide) { full ->
-                                                            if (forward) full / 12 else -full / 12
-                                                        }
+                                                    fadeIn(tween(200, delayMillis = 80, easing = LinearOutSlowInEasing)) +
+                                                        slideInHorizontally(
+                                                            tween(300, delayMillis = 50, easing = FastOutSlowInEasing),
+                                                        ) { full -> if (forward) full / 14 else -full / 14 }
                                                     ) togetherWith (
-                                                    fadeOut(tabFade) +
-                                                        scaleOut(tabScale, targetScale = 0.99f) +
-                                                        slideOutHorizontally(tabSlide) { full ->
-                                                            if (forward) -full / 16 else full / 16
-                                                        }
-                                                    )
+                                                    fadeOut(tween(80, easing = FastOutLinearInEasing)) +
+                                                        slideOutHorizontally(
+                                                            tween(120, easing = FastOutLinearInEasing),
+                                                        ) { full -> if (forward) -full / 24 else full / 24 }
+                                                    ) using null
                                             }
                                         },
                                     ) { tab ->

@@ -2,6 +2,10 @@
 
 package com.nellecrzier.gofileexpressive.ui.home
 
+import com.nellecrzier.gofileexpressive.ui.motion.staggeredEnter
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
@@ -85,6 +89,9 @@ internal fun HomeScreen(
     val fileCount = remember(items) { items.size - folderCount }
     val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
 
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -93,7 +100,7 @@ internal fun HomeScreen(
             .padding(horizontal = 16.dp),
     ) {
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.staggeredEnter(0, reduceMotion, shown), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.tab_home),
@@ -114,7 +121,7 @@ internal fun HomeScreen(
         Spacer(Modifier.height(12.dp))
         PermissionSetup(activity = activity, revision = permissionRevision)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.staggeredEnter(1, reduceMotion, shown), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistChip(
                 onClick = {},
                 label = { Text("Sesi aktif") },
@@ -139,7 +146,7 @@ internal fun HomeScreen(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
             ),
             shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().staggeredEnter(2, reduceMotion, shown),
         ) {
             Column(Modifier.padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -172,7 +179,7 @@ internal fun HomeScreen(
         }
 
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.staggeredEnter(3, reduceMotion, shown), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(
                 label = "Folder",
                 value = folderCount.toString(),
@@ -204,19 +211,20 @@ internal fun HomeScreen(
             text = "AKSI CEPAT",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.staggeredEnter(4, reduceMotion, shown),
         )
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = onOpenFolder,
             shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp).staggeredEnter(5, reduceMotion, shown),
         ) {
             Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
             Text("Buka folder root")
         }
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.staggeredEnter(6, reduceMotion, shown), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionTile("Unggah", "Pilih berkas", Icons.Filled.Upload, onUpload, Modifier.weight(1f))
             ActionTile("Folder baru", "Di folder ini", Icons.Filled.CreateNewFolder, onNewFolder, Modifier.weight(1f))
         }
@@ -232,7 +240,7 @@ internal fun HomeScreen(
             FilledTonalButton(
                 onClick = onRefresh,
                 shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp).staggeredEnter(7, reduceMotion, shown),
             ) {
                 Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -250,7 +258,7 @@ internal fun HomeScreen(
             limit = 2,
             reduceMotion = reduceMotion,
             showEmptyHint = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().staggeredEnter(8, reduceMotion, shown),
         )
         Spacer(Modifier.height(120.dp))
     }
