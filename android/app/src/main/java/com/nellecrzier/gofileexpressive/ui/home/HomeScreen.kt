@@ -1,6 +1,9 @@
 package com.nellecrzier.gofileexpressive.ui.home
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,8 +56,7 @@ import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.animatedCount
-import com.nellecrzier.gofileexpressive.ui.animatedSize
+import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
 import com.nellecrzier.gofileexpressive.ui.transfer.TransferPanel
 
 /* ================================ beranda ================================= */
@@ -75,9 +77,23 @@ internal fun HomeScreen(
     val folderCount = remember(items) { items.count { it.isFolder } }
     val fileCount = remember(items) { items.size - folderCount }
     val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
-    val shownFolders = animatedCount(folderCount, reduceMotion)
-    val shownFiles = animatedCount(fileCount, reduceMotion)
-    val shownSize = animatedSize(totalSize.toFloat(), reduceMotion).toLong()
+    val countSpec = motionScheme.defaultEffectsSpec<Int>()
+    val sizeSpec = motionScheme.defaultEffectsSpec<Float>()
+    val shownFolders by animateIntAsState(
+        targetValue = folderCount,
+        animationSpec = if (reduceMotion) tween(0) else countSpec,
+        label = "folderCount",
+    )
+    val shownFiles by animateIntAsState(
+        targetValue = fileCount,
+        animationSpec = if (reduceMotion) tween(0) else countSpec,
+        label = "fileCount",
+    )
+    val shownSize by animateFloatAsState(
+        targetValue = totalSize.toFloat(),
+        animationSpec = if (reduceMotion) tween(0) else sizeSpec,
+        label = "totalSize",
+    )
 
     Column(
         Modifier
@@ -169,7 +185,7 @@ internal fun HomeScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile("Folder", shownFolders.toString(), Icons.Filled.FolderOpen, Modifier.weight(1f))
             StatTile("Berkas", shownFiles.toString(), Icons.AutoMirrored.Filled.InsertDriveFile, Modifier.weight(1f))
-            StatTile("Ukuran", readableSize(shownSize), Icons.Filled.SwapVert, Modifier.weight(1f))
+            StatTile("Ukuran", readableSize(shownSize.toLong()), Icons.Filled.SwapVert, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(16.dp))
