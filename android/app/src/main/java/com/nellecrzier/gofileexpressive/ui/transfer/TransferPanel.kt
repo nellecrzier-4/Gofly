@@ -2,8 +2,6 @@ package com.nellecrzier.gofileexpressive.ui.transfer
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -33,10 +32,17 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,14 +77,8 @@ import com.nellecrzier.gofileexpressive.transfer.TransferControls
 import com.nellecrzier.gofileexpressive.transfer.TransferFormat
 import com.nellecrzier.gofileexpressive.transfer.TransferHistory
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
-import com.nellecrzier.gofileexpressive.ui.HoldToConfirm
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperButton
-import com.nellecrzier.gofileexpressive.ui.HyperExpoOut
-import com.nellecrzier.gofileexpressive.ui.HyperPower3Out
-import com.nellecrzier.gofileexpressive.ui.HyperSegmented
-import com.nellecrzier.gofileexpressive.ui.IconChip
-import com.nellecrzier.gofileexpressive.ui.hyperSpring
+import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
+import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
 import kotlin.math.abs
 import java.text.DateFormat
 import java.util.Date
@@ -98,7 +98,7 @@ private const val MAX_ROWS = 40
 /* ============================== panel ================================== */
 
 /**
- * Panel transfer HyperSpring.
+ * Panel transfer Material 3.
  *
  * Dua segmen (Aktif / Riwayat), filter arah dan status, baris dengan progres,
  * kecepatan, ETA, serta tombol jeda/lanjutkan/batal. Baris selesai bisa digeser
@@ -140,19 +140,19 @@ internal fun TransferPanel(
             Text(
                 text = stringResource(R.string.transfer_panel_empty_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = modifier,
             )
         }
         return
     }
 
-    Surface(
+    Card(
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
-        color = Hyper.Card,
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
-        shadowElevation = 6.dp,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
     ) {
         Column(Modifier.padding(14.dp)) {
             PanelHeader(
@@ -162,14 +162,23 @@ internal fun TransferPanel(
                 onClear = { confirmClear = true },
             )
             Spacer(Modifier.height(10.dp))
-            HyperSegmented(
-                options = listOf(
-                    SEGMENT_ACTIVE to stringResource(R.string.transfer_panel_active),
-                    SEGMENT_HISTORY to stringResource(R.string.transfer_panel_history),
-                ),
-                value = segment,
-                onChange = { segment = it },
+            val segments = listOf(
+                SEGMENT_ACTIVE to stringResource(R.string.transfer_panel_active),
+                SEGMENT_HISTORY to stringResource(R.string.transfer_panel_history),
             )
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                segments.forEachIndexed { index, (key, label) ->
+                    SegmentedButton(
+                        selected = segment == key,
+                        onClick = { segment = key },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = segments.size,
+                        ),
+                        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterPill(stringResource(R.string.transfer_panel_filter_all), typeFilter == FILTER_ALL) {
@@ -214,7 +223,7 @@ internal fun TransferPanel(
                         },
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(vertical = 10.dp),
                 )
             } else {
@@ -222,7 +231,7 @@ internal fun TransferPanel(
                     Text(
                         text = stringResource(R.string.transfer_panel_swipe_hint),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Hyper.Text3,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(bottom = 6.dp),
                     )
                 }
@@ -287,19 +296,25 @@ private fun PanelHeader(
     onClear: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconChip(
-            icon = Icons.Filled.SwapVert,
-            size = 30.dp,
-            tint = Hyper.Accent,
-            fill = Hyper.AccentSoft,
-            edge = Hyper.AccentEdge,
-            iconSize = 16.dp,
-        )
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(30.dp),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.SwapVert,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
         Spacer(Modifier.width(10.dp))
         Text(
             text = stringResource(R.string.transfer_panel_title),
             style = MaterialTheme.typography.titleSmall,
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.weight(1f))
         Text(
@@ -312,14 +327,14 @@ private fun PanelHeader(
                 if (segment == SEGMENT_HISTORY) historyCount else activeCount,
             ),
             style = MaterialTheme.typography.labelMedium,
-            color = Hyper.Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (segment == SEGMENT_HISTORY) {
             Spacer(Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Filled.DeleteOutline,
                 contentDescription = stringResource(R.string.transfer_panel_clear),
-                tint = Hyper.Text2,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(30.dp)
                     .clip(CircleShape)
@@ -334,11 +349,11 @@ private fun PanelHeader(
 private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = CircleShape,
-        color = if (selected) Hyper.Accent else Hyper.Chip,
-        border = BorderStroke(
-            0.7.dp,
-            if (selected) Hyper.Accent else Hyper.Hairline,
-        ),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
         modifier = Modifier
             .clip(CircleShape)
             .clickable { onClick() },
@@ -347,7 +362,11 @@ private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
             text = label,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) Hyper.AccentInk else Hyper.Text2,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
             maxLines = 1,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
         )
@@ -382,7 +401,7 @@ private fun TransferRow(
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = info.progress.coerceIn(0, 100) / 100f,
-        animationSpec = tween(if (reduceMotion) 0 else 320, easing = HyperExpoOut),
+        animationSpec = if (reduceMotion) tween(0) else motionScheme.fastEffectsSpec<Float>(),
         label = "transferProgress",
     )
     val indeterminate = info.progress < 0 && info.state == TransferInfo.STATE_RUNNING
@@ -390,105 +409,105 @@ private fun TransferRow(
     val failed = info.state == TransferInfo.STATE_ERROR
     val paused = info.state == TransferInfo.STATE_PAUSED
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Hyper.CardRaised)
-            .clickable { onDetails() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+    Surface(
+        onClick = onDetails,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = when {
-                    finished -> Icons.Filled.CheckCircle
-                    failed -> Icons.Filled.ErrorOutline
-                    info.direction == "download" -> Icons.Filled.Download
-                    else -> Icons.Filled.Upload
-                },
-                contentDescription = stringResource(
-                    if (info.direction == "download") {
-                        R.string.transfer_type_download
-                    } else {
-                        R.string.transfer_type_upload
-                    },
-                ),
-                modifier = Modifier.size(16.dp),
-                tint = when {
-                    finished -> Hyper.Ok
-                    failed -> Hyper.Accent
-                    paused -> Hyper.Text3
-                    else -> Hyper.Text2
-                },
-            )
-            Spacer(Modifier.width(8.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = info.fileName.ifBlank { stringResource(R.string.transfer_panel_unknown) },
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Hyper.Text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = statusLine(info),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = when {
-                        failed -> Hyper.Accent
-                        paused -> Hyper.Text3
-                        else -> Hyper.Text2
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (info.isActive) {
-                Spacer(Modifier.width(4.dp))
-                if (paused) {
-                    RowAction(Icons.Filled.PlayArrow, stringResource(R.string.transfer_action_resume), onResume)
-                } else {
-                    RowAction(Icons.Filled.Pause, stringResource(R.string.transfer_action_pause), onPause)
-                }
-                RowAction(Icons.Filled.Close, stringResource(R.string.transfer_action_cancel), onCancel)
-            } else if (info.outputUri.isNotBlank()) {
-                Spacer(Modifier.width(4.dp))
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Filled.OpenInNew,
-                    contentDescription = stringResource(R.string.transfer_action_open),
-                    tint = Hyper.Text3,
-                    modifier = Modifier.size(15.dp),
+                    imageVector = when {
+                        finished -> Icons.Filled.CheckCircle
+                        failed -> Icons.Filled.ErrorOutline
+                        info.direction == "download" -> Icons.Filled.Download
+                        else -> Icons.Filled.Upload
+                    },
+                    contentDescription = stringResource(
+                        if (info.direction == "download") {
+                            R.string.transfer_type_download
+                        } else {
+                            R.string.transfer_type_upload
+                        },
+                    ),
+                    modifier = Modifier.size(16.dp),
+                    tint = when {
+                        finished -> MaterialTheme.colorScheme.tertiary
+                        failed -> MaterialTheme.colorScheme.primary
+                        paused -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = info.fileName.ifBlank { stringResource(R.string.transfer_panel_unknown) },
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = statusLine(info),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = when {
+                            failed -> MaterialTheme.colorScheme.primary
+                            paused -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (info.isActive) {
+                    Spacer(Modifier.width(4.dp))
+                    if (paused) {
+                        RowAction(Icons.Filled.PlayArrow, stringResource(R.string.transfer_action_resume), onResume)
+                    } else {
+                        RowAction(Icons.Filled.Pause, stringResource(R.string.transfer_action_pause), onPause)
+                    }
+                    RowAction(Icons.Filled.Close, stringResource(R.string.transfer_action_cancel), onCancel)
+                } else if (info.outputUri.isNotBlank()) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Filled.OpenInNew,
+                        contentDescription = stringResource(R.string.transfer_action_open),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            if (indeterminate || (info.progress < 0 && info.state == TransferInfo.STATE_RETRYING)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(18.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    ExpressiveLoader(
+                        size = 14.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        reduceMotion = reduceMotion,
+                    )
+                }
+            } else {
+                LinearProgressIndicator(
+                    progress = { if (finished) 1f else animatedProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
+                    color = when {
+                        failed -> MaterialTheme.colorScheme.primary
+                        paused -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 )
             }
-        }
-        Spacer(Modifier.height(8.dp))
-        if (indeterminate || (info.progress < 0 && info.state == TransferInfo.STATE_RETRYING)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(18.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                ExpressiveLoader(
-                    size = 14.dp,
-                    color = Hyper.Accent,
-                    reduceMotion = reduceMotion,
-                )
-            }
-        } else {
-            LinearProgressIndicator(
-                progress = { if (finished) 1f else animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp),
-                color = when {
-                    failed -> Hyper.Accent
-                    paused -> Hyper.Text3
-                    else -> Hyper.Text
-                },
-                trackColor = Hyper.Track,
-            )
         }
     }
 }
@@ -506,7 +525,7 @@ private fun RowAction(
         Icon(
             imageVector = icon,
             contentDescription = description,
-            tint = Hyper.Text2,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp),
         )
     }
@@ -565,9 +584,9 @@ private fun SwipeToDismiss(
             else -> dragOffset
         },
         animationSpec = if (dismissed) {
-            tween(180, easing = HyperPower3Out)
+            tween(180)
         } else {
-            hyperSpring(0.35f, 0.72f)
+            motionScheme.defaultSpatialSpec<Float>()
         },
         finishedListener = { if (dismissed) onDismiss() },
         label = "swipeOffset",
@@ -624,9 +643,8 @@ private fun TransferDetailsDialog(
     val context = LocalContext.current
     Dialog(onDismissRequest = onClose) {
         Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = Hyper.Card,
-            border = BorderStroke(0.8.dp, Hyper.Hairline),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -640,14 +658,14 @@ private fun TransferDetailsDialog(
                         text = stringResource(R.string.transfer_panel_details_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = stringResource(R.string.transfer_panel_close),
-                            tint = Hyper.Text2,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -655,7 +673,7 @@ private fun TransferDetailsDialog(
                 Text(
                     text = info.fileName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -714,38 +732,54 @@ private fun TransferDetailsDialog(
                 }
                 Spacer(Modifier.height(14.dp))
                 if (info.isActive) {
-                    HyperButton(
-                        text = stringResource(R.string.transfer_action_cancel),
-                        icon = Icons.Filled.Close,
-                        primary = false,
+                    FilledTonalButton(
                         onClick = {
                             TransferControls.cancel(context, info.id)
                             onClose()
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        reduceMotion = reduceMotion,
-                    )
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.transfer_action_cancel))
+                    }
                 } else if (info.outputUri.isNotBlank()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HyperButton(
-                            text = stringResource(R.string.transfer_action_open),
-                            icon = Icons.Filled.OpenInNew,
+                        Button(
                             onClick = {
                                 if (TransferControls.open(context, info)) onClose()
                             },
-                            modifier = Modifier.weight(1f),
-                            reduceMotion = reduceMotion,
-                        )
-                        HyperButton(
-                            text = stringResource(R.string.transfer_action_share),
-                            icon = Icons.Filled.Share,
-                            primary = false,
+                            shape = RoundedCornerShape(percent = 50),
+                            modifier = Modifier.weight(1f).height(56.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.transfer_action_open))
+                        }
+                        FilledTonalButton(
                             onClick = {
                                 if (TransferControls.share(context, info)) onClose()
                             },
-                            modifier = Modifier.weight(1f),
-                            reduceMotion = reduceMotion,
-                        )
+                            shape = RoundedCornerShape(percent = 50),
+                            modifier = Modifier.weight(1f).height(56.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.transfer_action_share))
+                        }
                     }
                 }
             }
@@ -759,13 +793,13 @@ private fun DetailRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = Hyper.Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(112.dp),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
     }
@@ -779,9 +813,8 @@ private fun ClearHistoryDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = Hyper.Card,
-            border = BorderStroke(0.8.dp, Hyper.Hairline),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(20.dp)) {
@@ -789,16 +822,16 @@ private fun ClearHistoryDialog(
                     text = stringResource(R.string.transfer_panel_clear_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = stringResource(R.string.transfer_panel_clear_body, count),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(16.dp))
-                HoldToConfirm(
+                HoldToConfirmButton(
                     label = stringResource(R.string.transfer_panel_clear_hold),
                     hint = stringResource(R.string.transfer_panel_clear_hint),
                     onConfirm = onCleared,
@@ -807,7 +840,7 @@ private fun ClearHistoryDialog(
                 Text(
                     text = stringResource(R.string.transfer_panel_close),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .align(Alignment.End)
                         .clip(CircleShape)
