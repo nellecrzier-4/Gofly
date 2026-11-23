@@ -1,7 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.preview
 
 import android.content.Context
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,16 +15,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,9 +62,6 @@ import androidx.media3.ui.PlayerView
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GofileConfig
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperCard
-import com.nellecrzier.gofileexpressive.ui.IconChip
 import kotlinx.coroutines.delay
 
 /**
@@ -145,7 +143,7 @@ internal fun VideoPreview(
 }
 
 /**
- * Audio tanpa artwork: satu kartu HyperSpring dengan judul, seek bar,
+ * Audio tanpa artwork: satu kartu Material 3 dengan judul, seek bar,
  * play/pause, dan lompat 10 detik. Pemutar hidup selama pratinjau terbuka.
  */
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -220,23 +218,35 @@ internal fun AudioPreview(
     }
 
     Box(modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-        HyperCard(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+            modifier = Modifier.widthIn(max = 460.dp).fillMaxWidth(),
+        ) {
             Column(Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconChip(
-                        icon = Icons.Filled.MusicNote,
-                        size = 54.dp,
-                        iconSize = 26.dp,
-                        tint = Hyper.Accent,
-                        fill = Hyper.AccentSoft,
-                        edge = Hyper.AccentEdge,
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(54.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.MusicNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
                             text = item.name,
                             style = MaterialTheme.typography.titleLarge,
-                            color = Hyper.Text,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -244,7 +254,7 @@ internal fun AudioPreview(
                         Text(
                             text = previewSizeText(item.size),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Hyper.Text2,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -268,23 +278,18 @@ internal fun AudioPreview(
                     },
                     valueRange = 0f..maxValue,
                     enabled = durationMs > 0L,
-                    colors = SliderDefaults.colors(
-                        thumbColor = Hyper.Accent,
-                        activeTrackColor = Hyper.Accent,
-                        inactiveTrackColor = Hyper.Track,
-                    ),
                 )
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
                         text = previewTimeText(if (scrubbing) scrubValue.toLong() else positionMs),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = previewTimeText(durationMs),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
@@ -303,8 +308,7 @@ internal fun AudioPreview(
                     Surface(
                         onClick = { togglePlay() },
                         shape = CircleShape,
-                        color = Hyper.Accent,
-                        border = BorderStroke(0.8.dp, Hyper.AccentEdge),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(64.dp),
                     ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -313,7 +317,7 @@ internal fun AudioPreview(
                                 contentDescription = stringResource(
                                     if (playing) R.string.preview_audio_pause else R.string.preview_audio_play,
                                 ),
-                                tint = Hyper.AccentInk,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(30.dp),
                             )
                         }
