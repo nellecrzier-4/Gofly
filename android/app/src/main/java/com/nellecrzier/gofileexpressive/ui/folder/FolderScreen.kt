@@ -19,6 +19,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
@@ -38,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -76,11 +78,17 @@ import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -99,6 +107,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -127,7 +136,7 @@ import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.DeleteConfirm
 import com.nellecrzier.gofileexpressive.Density
 import com.nellecrzier.gofileexpressive.GofileApi
-import com.nellecrzier.gofileexpressive.ui.HyperButton
+import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
 import com.nellecrzier.gofileexpressive.ui.preview.PreviewHost
 import com.nellecrzier.gofileexpressive.ui.preview.PreviewTarget
 import com.nellecrzier.gofileexpressive.ui.share.ContentSettingsSheet
@@ -141,16 +150,7 @@ import com.nellecrzier.gofileexpressive.PrefsState
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ViewMode
 import com.nellecrzier.gofileexpressive.ui.Crumb
-import com.nellecrzier.gofileexpressive.ui.EmptyState
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
-import com.nellecrzier.gofileexpressive.ui.HoldToConfirm
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.hyperSpring
-import com.nellecrzier.gofileexpressive.ui.HyperPower3Out
-import com.nellecrzier.gofileexpressive.ui.HyperIconButton
-import com.nellecrzier.gofileexpressive.ui.HyperRow
-import com.nellecrzier.gofileexpressive.ui.HyperTextField
-import com.nellecrzier.gofileexpressive.ui.IconChip
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.ui.components.FileKind
 import com.nellecrzier.gofileexpressive.ui.components.fileKind
@@ -304,23 +304,31 @@ fun FolderScreen(
                 enter = fadeIn() + slideInVertically { -it / 3 },
                 exit = fadeOut() + slideOutVertically { -it / 3 },
             ) {
-                HyperTextField(
+                OutlinedTextField(
                     value = query,
                     onValueChange = vm::setQuery,
-                    label = stringResource(R.string.folder_search_hint),
-                    leadingIcon = Icons.Filled.Search,
+                    label = { Text(stringResource(R.string.folder_search_hint)) },
+                    leadingIcon = {
+                        Icon(Icons.Filled.Search, contentDescription = null)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 18.dp, vertical = 6.dp),
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    trailing = {
+                    trailingIcon = {
                         if (query.isNotBlank()) {
-                            HyperIconButton(
-                                icon = Icons.Filled.Close,
-                                description = stringResource(R.string.folder_search_close),
+                            FilledTonalIconButton(
                                 onClick = { vm.setQuery("") },
-                            )
+                                modifier = Modifier.size(44.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.folder_search_close),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
                         }
                     },
                 )
@@ -414,13 +422,11 @@ fun FolderScreen(
             }
         }
 
-        // Bar aksi seleksi: kapsul kaca di atas bar navigasi.
+        // Bar aksi seleksi: kapsul tonal di atas bar navigasi.
         AnimatedVisibility(
             visible = state.selectionMode,
-            enter = fadeIn(tween(160)) +
-                slideInVertically(hyperSpring(0.46f, 0.74f)) { it },
-            exit = fadeOut(tween(120)) +
-                slideOutVertically(tween(180, easing = HyperPower3Out)) { it / 3 },
+            enter = fadeIn(tween(160)) + slideInVertically { it },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it / 3 },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -453,10 +459,8 @@ fun FolderScreen(
         // Pil Undo untuk penghapusan yang ditunda.
         AnimatedVisibility(
             visible = state.undo != null,
-            enter = fadeIn(tween(160)) +
-                slideInVertically(hyperSpring(0.46f, 0.74f)) { it },
-            exit = fadeOut(tween(120)) +
-                slideOutVertically(tween(180, easing = HyperPower3Out)) { it / 3 },
+            enter = fadeIn(tween(160)) + slideInVertically { it },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { it / 3 },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -482,10 +486,7 @@ fun FolderScreen(
         ) {
             AnimatedVisibility(
                 visible = fabOpen,
-                enter = fadeIn(tween(140)) + scaleIn(
-                    animationSpec = hyperSpring(0.4f, 0.62f),
-                    initialScale = 0.86f,
-                ),
+                enter = fadeIn(tween(140)) + scaleIn(initialScale = 0.86f),
                 exit = fadeOut(tween(120)) + scaleOut(tween(150), targetScale = 0.9f),
             ) {
                 Column(horizontalAlignment = Alignment.End) {
@@ -511,7 +512,7 @@ fun FolderScreen(
             }
             Surface(
                 shape = CircleShape,
-                color = Hyper.Accent,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
@@ -529,7 +530,7 @@ fun FolderScreen(
                     Icon(
                         imageVector = if (fabOpen) Icons.Filled.Close else Icons.Filled.Add,
                         contentDescription = stringResource(R.string.action_upload),
-                        tint = Hyper.AccentInk,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
             }
@@ -538,7 +539,7 @@ fun FolderScreen(
         DropdownMenu(
             expanded = sortMenu,
             onDismissRequest = { sortMenu = false },
-            containerColor = Hyper.Card,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             SortMenuItem(stringResource(R.string.sort_name), "name", prefs, vm) { sortMenu = false }
             SortMenuItem(stringResource(R.string.sort_size), "size", prefs, vm) { sortMenu = false }
@@ -550,7 +551,7 @@ fun FolderScreen(
                     Text(
                         if (prefs.sortAscending) stringResource(R.string.sort_descending)
                         else stringResource(R.string.sort_ascending),
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 },
                 onClick = {
@@ -566,14 +567,22 @@ fun FolderScreen(
         var name by remember(item.id) { mutableStateOf(item.name) }
         AlertDialog(
             onDismissRequest = { pendingRename = null },
-            containerColor = Hyper.Card,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(24.dp),
-            title = { Text(stringResource(R.string.folder_rename_title), color = Hyper.Text) },
+            title = {
+                Text(
+                    stringResource(R.string.folder_rename_title),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            },
             text = {
-                HyperTextField(
+                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = stringResource(R.string.folder_rename_label),
+                    label = { Text(stringResource(R.string.folder_rename_label)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
@@ -583,11 +592,11 @@ fun FolderScreen(
                         pendingRename = null
                     },
                     enabled = name.isNotBlank() && name != item.name,
-                ) { Text(stringResource(R.string.action_save), color = Hyper.Accent) }
+                ) { Text(stringResource(R.string.action_save), color = MaterialTheme.colorScheme.primary) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingRename = null }) {
-                    Text(stringResource(R.string.action_cancel), color = Hyper.Text2)
+                    Text(stringResource(R.string.action_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
         )
@@ -598,7 +607,7 @@ fun FolderScreen(
         val targets = pendingDelete
         AlertDialog(
             onDismissRequest = { pendingDelete = emptyList() },
-            containerColor = Hyper.Card,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(24.dp),
             title = {
                 Text(
@@ -611,7 +620,7 @@ fun FolderScreen(
                             stringResource(R.string.folder_item_count, targets.size)
                         },
                     ),
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             },
             text = {
@@ -623,21 +632,21 @@ fun FolderScreen(
                             stringResource(R.string.folder_deleted_many, targets.size)
                         },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(18.dp))
                     if (prefs.deleteConfirm == DeleteConfirm.DIALOG) {
-                        HyperButton(
-                            text = stringResource(R.string.action_delete),
+                        FilledTonalButton(
                             onClick = {
                                 vm.requestDelete(token, targets)
                                 pendingDelete = emptyList()
                             },
                             enabled = !state.busy,
-                            primary = false,
-                        )
+                            shape = RoundedCornerShape(percent = 50),
+                            modifier = Modifier.height(56.dp),
+                        ) { Text(stringResource(R.string.action_delete)) }
                     } else {
-                        HoldToConfirm(
+                        HoldToConfirmButton(
                             label = stringResource(R.string.folder_delete_hold),
                             hint = stringResource(R.string.folder_delete_hint),
                             enabled = !state.busy,
@@ -652,7 +661,7 @@ fun FolderScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { pendingDelete = emptyList() }) {
-                    Text(stringResource(R.string.action_cancel), color = Hyper.Text2)
+                    Text(stringResource(R.string.action_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
         )
@@ -783,51 +792,73 @@ private fun FolderTopBar(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 2.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .background(Hyper.GlassFill)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (canGoBack) {
-            HyperIconButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                description = stringResource(R.string.root),
+            FilledTonalIconButton(
                 onClick = onBack,
-            )
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.root),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         } else {
             Spacer(Modifier.width(12.dp))
         }
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        HyperIconButton(
-            icon = if (searchOpen) Icons.Filled.Close else Icons.Filled.Search,
-            description = stringResource(R.string.folder_search_hint),
+        FilledTonalIconButton(
             onClick = onToggleSearch,
-        )
-        HyperIconButton(
-            icon = Icons.AutoMirrored.Filled.Sort,
-            description = stringResource(R.string.folder_sort),
+            modifier = Modifier.size(44.dp),
+        ) {
+            Icon(
+                if (searchOpen) Icons.Filled.Close else Icons.Filled.Search,
+                contentDescription = stringResource(R.string.folder_search_hint),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        FilledTonalIconButton(
             onClick = onOpenSort,
-        )
-        HyperIconButton(
-            icon = if (viewMode == ViewMode.GRID) Icons.Filled.List else Icons.Filled.GridView,
-            description = stringResource(
-                if (viewMode == ViewMode.GRID) R.string.view_list else R.string.view_grid,
-            ),
+            modifier = Modifier.size(44.dp),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Sort,
+                contentDescription = stringResource(R.string.folder_sort),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        FilledTonalIconButton(
             onClick = onToggleView,
-        )
-        HyperIconButton(
-            icon = Icons.Filled.FolderOpen,
-            description = stringResource(R.string.action_refresh),
+            modifier = Modifier.size(44.dp),
+        ) {
+            Icon(
+                if (viewMode == ViewMode.GRID) Icons.Filled.List else Icons.Filled.GridView,
+                contentDescription = stringResource(
+                    if (viewMode == ViewMode.GRID) R.string.view_list else R.string.view_grid,
+                ),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        FilledTonalIconButton(
             onClick = onRefresh,
-        )
+            modifier = Modifier.size(44.dp),
+        ) {
+            Icon(
+                Icons.Filled.FolderOpen,
+                contentDescription = stringResource(R.string.action_refresh),
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
@@ -844,14 +875,18 @@ private fun SortMenuItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     label,
-                    color = if (prefs.sortField == field) Hyper.Accent else Hyper.Text,
+                    color = if (prefs.sortField == field) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 if (prefs.sortField == field) {
                     Icon(
                         Icons.Filled.Check,
                         contentDescription = null,
-                        tint = Hyper.Accent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -877,7 +912,11 @@ private fun Breadcrumbs(crumbs: List<Crumb>, onJump: (Int) -> Unit) {
             val last = index == crumbs.lastIndex
             Surface(
                 shape = CircleShape,
-                color = if (last) Hyper.AccentSoft else Hyper.Chip,
+                color = if (last) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
                 modifier = Modifier.clip(CircleShape).combinedClickable(
                     onClick = { onJump(index) },
                 ),
@@ -885,7 +924,11 @@ private fun Breadcrumbs(crumbs: List<Crumb>, onJump: (Int) -> Unit) {
                 Text(
                     text = crumb.name,
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (last) Hyper.Accent else Hyper.Text2,
+                    color = if (last) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     maxLines = 1,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 )
@@ -893,7 +936,7 @@ private fun Breadcrumbs(crumbs: List<Crumb>, onJump: (Int) -> Unit) {
             if (!last) {
                 Text(
                     "›",
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -919,10 +962,18 @@ private fun FilterChips(selected: String, onSelect: (String) -> Unit) {
             val active = value == selected
             Surface(
                 shape = CircleShape,
-                color = if (active) Hyper.AccentSoft else Hyper.Chip,
+                color = if (active) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
                 border = BorderStroke(
-                    0.8.dp,
-                    if (active) Hyper.AccentEdge else Hyper.Hairline,
+                    1.dp,
+                    if (active) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    },
                 ),
                 modifier = Modifier.clip(CircleShape).combinedClickable(
                     onClick = { onSelect(value) },
@@ -931,7 +982,11 @@ private fun FilterChips(selected: String, onSelect: (String) -> Unit) {
                 Text(
                     stringResource(label),
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (active) Hyper.Accent else Hyper.Text2,
+                    color = if (active) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
                 )
             }
@@ -943,8 +998,8 @@ private fun FilterChips(selected: String, onSelect: (String) -> Unit) {
 private fun OfflineBanner(text: String, hint: String) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = Hyper.Card,
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp, vertical = 6.dp),
@@ -956,13 +1011,21 @@ private fun OfflineBanner(text: String, hint: String) {
             Icon(
                 Icons.Filled.WifiOff,
                 contentDescription = null,
-                tint = Hyper.Warn,
+                tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(10.dp))
             Column {
-                Text(text, style = MaterialTheme.typography.labelLarge, color = Hyper.Text)
-                Text(hint, style = MaterialTheme.typography.bodySmall, color = Hyper.Text3)
+                Text(
+                    text,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
             }
         }
     }
@@ -1039,7 +1102,7 @@ private fun FileList(
                     Text(
                         stringResource(R.string.folder_loading_more),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Hyper.Text3,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
             }
@@ -1062,11 +1125,16 @@ private fun FileRow(
     val kind = item.fileKind()
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = if (selected) Hyper.AccentSoft else Hyper.Card,
-        border = BorderStroke(
-            if (selected) 1.dp else 0.8.dp,
-            if (selected) Hyper.AccentEdge else Hyper.Hairline,
-        ),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+        border = if (selected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+        } else {
+            null
+        },
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
@@ -1092,10 +1160,24 @@ private fun FileRow(
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconChip(
-                icon = kind.icon,
-                tint = if (item.isFolder) Hyper.Accent else Hyper.Text2,
-            )
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.size(32.dp),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        kind.icon,
+                        contentDescription = null,
+                        tint = if (item.isFolder) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
                 HighlightedText(text = item.name, query = query, selected = selected)
@@ -1107,7 +1189,7 @@ private fun FileRow(
                         "${kind.name.lowercase(Locale.ROOT)} · ${readableSize(item.size)}"
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1116,7 +1198,7 @@ private fun FileRow(
                 Icon(
                     Icons.Filled.Star,
                     contentDescription = stringResource(R.string.library_favorites),
-                    tint = Hyper.Accent,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(6.dp))
@@ -1125,15 +1207,24 @@ private fun FileRow(
                 Icon(
                     imageVector = if (selected) Icons.Filled.Check else Icons.Filled.Add,
                     contentDescription = stringResource(R.string.folder_selected_count, 1),
-                    tint = if (selected) Hyper.Accent else Hyper.Text3,
+                    tint = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    },
                     modifier = Modifier.size(20.dp),
                 )
             } else {
-                HyperIconButton(
-                    icon = Icons.Filled.Info,
-                    description = stringResource(R.string.action_details),
+                FilledTonalIconButton(
                     onClick = onMenu,
-                )
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Info,
+                        contentDescription = stringResource(R.string.action_details),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
     }
@@ -1155,7 +1246,7 @@ private fun HighlightedText(text: String, query: String, selected: Boolean) {
                     break
                 }
                 append(text.substring(start, index))
-                withStyle(SpanStyle(color = Hyper.Accent, fontWeight = FontWeight.SemiBold)) {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)) {
                     append(text.substring(index, index + lowered.length))
                 }
                 start = index + lowered.length
@@ -1165,7 +1256,7 @@ private fun HighlightedText(text: String, query: String, selected: Boolean) {
     Text(
         annotated,
         style = MaterialTheme.typography.bodyLarge,
-        color = if (selected) Hyper.Accent else Hyper.Text,
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
@@ -1249,11 +1340,12 @@ private fun GridCard(
     }
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = Hyper.Card,
-        border = BorderStroke(
-            if (selected) 1.dp else 0.8.dp,
-            if (selected) Hyper.Accent else Hyper.Hairline,
-        ),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = if (selected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            null
+        },
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
@@ -1264,14 +1356,14 @@ private fun GridCard(
                     .fillMaxWidth()
                     .aspectRatio(1.35f)
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(Hyper.CardRaised),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
                 if (item.isFolder) {
                     Icon(
                         Icons.Filled.Folder,
                         contentDescription = null,
-                        tint = Hyper.Accent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(34.dp),
                     )
                 } else if (kind == FileKind.IMAGE || kind == FileKind.VIDEO) {
@@ -1285,7 +1377,7 @@ private fun GridCard(
                     Icon(
                         kind.icon,
                         contentDescription = null,
-                        tint = Hyper.Text2,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(30.dp),
                     )
                 }
@@ -1293,7 +1385,7 @@ private fun GridCard(
                     Icon(
                         Icons.Filled.Star,
                         contentDescription = stringResource(R.string.library_favorites),
-                        tint = Hyper.Accent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
@@ -1307,15 +1399,21 @@ private fun GridCard(
                             .padding(6.dp)
                             .size(20.dp)
                             .clip(CircleShape)
-                            .background(if (selected) Hyper.Accent else Hyper.Card)
-                            .border(0.8.dp, Hyper.Hairline, CircleShape),
+                            .background(
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainer
+                                },
+                            )
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (selected) {
                             Icon(
                                 Icons.Filled.Check,
                                 contentDescription = null,
-                                tint = Hyper.AccentInk,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(14.dp),
                             )
                         }
@@ -1326,7 +1424,7 @@ private fun GridCard(
                 Text(
                     item.name,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1334,7 +1432,7 @@ private fun GridCard(
                 Text(
                     if (item.isFolder) stringResource(R.string.details_folder) else readableSize(item.size),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
             }
         }
@@ -1366,13 +1464,15 @@ private fun SwipeableRow(
             Icon(
                 Icons.Filled.Share,
                 contentDescription = stringResource(R.string.action_share),
-                tint = Hyper.Text3.copy(alpha = if (animated > 8f) 1f else 0f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    alpha = if (animated > 8f) 1f else 0f,
+                ),
                 modifier = Modifier.size(18.dp),
             )
             Icon(
                 Icons.Filled.Delete,
                 contentDescription = stringResource(R.string.action_delete),
-                tint = Hyper.Accent.copy(alpha = if (animated < -8f) 1f else 0f),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = if (animated < -8f) 1f else 0f),
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -1422,34 +1522,39 @@ private fun SelectionBar(
 ) {
     Surface(
         shape = RoundedCornerShape(26.dp),
-        color = Hyper.GlassFill,
-        border = BorderStroke(0.8.dp, Hyper.GlassEdge),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 10.dp,
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                HyperIconButton(
-                    icon = Icons.Filled.Close,
-                    description = stringResource(R.string.folder_selection_clear),
+                FilledTonalIconButton(
                     onClick = onClear,
-                )
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.folder_selection_clear),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
                 Text(
                     stringResource(R.string.folder_selected_count, count),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = onSelectAll) {
                     Text(
                         stringResource(R.string.folder_select_all),
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                     )
                 }
                 TextButton(onClick = onInvert) {
                     Text(
                         stringResource(R.string.folder_invert_selection),
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                     )
                 }
@@ -1482,9 +1587,19 @@ private fun BarAction(
             .combinedClickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
-        Icon(icon, contentDescription = label, tint = Hyper.Text, modifier = Modifier.size(20.dp))
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.height(3.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Hyper.Text2, fontSize = 10.sp)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp,
+        )
     }
 }
 
@@ -1496,17 +1611,26 @@ private fun MiniAction(
 ) {
     Surface(
         shape = CircleShape,
-        color = Hyper.Card,
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.clip(CircleShape).combinedClickable(onClick = onClick),
     ) {
         Row(
             Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, contentDescription = null, tint = Hyper.Accent, modifier = Modifier.size(18.dp))
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp),
+            )
             Spacer(Modifier.width(8.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, color = Hyper.Text)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
@@ -1515,8 +1639,8 @@ private fun MiniAction(
 private fun UndoBar(count: Int, onUndo: () -> Unit) {
     Surface(
         shape = CircleShape,
-        color = Hyper.Card,
-        border = BorderStroke(0.8.dp, Hyper.AccentEdge),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
         shadowElevation = 8.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -1527,13 +1651,13 @@ private fun UndoBar(count: Int, onUndo: () -> Unit) {
             Text(
                 stringResource(R.string.folder_undo_available, count),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onUndo) {
                 Text(
                     stringResource(R.string.action_undo),
-                    color = Hyper.Accent,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -1559,8 +1683,8 @@ private fun SkeletonList(reduceMotion: Boolean) {
         repeat(8) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
-                color = Hyper.Card,
-                border = BorderStroke(0.8.dp, Hyper.Hairline),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(62.dp)
@@ -1574,7 +1698,7 @@ private fun SkeletonList(reduceMotion: Boolean) {
                         Modifier
                             .size(34.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Hyper.CardRaised),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
@@ -1583,7 +1707,7 @@ private fun SkeletonList(reduceMotion: Boolean) {
                                 .fillMaxWidth(0.55f)
                                 .height(11.dp)
                                 .clip(CircleShape)
-                                .background(Hyper.CardRaised),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         )
                         Spacer(Modifier.height(7.dp))
                         Box(
@@ -1591,10 +1715,63 @@ private fun SkeletonList(reduceMotion: Boolean) {
                                 .fillMaxWidth(0.3f)
                                 .height(9.dp)
                                 .clip(CircleShape)
-                                .background(Hyper.CardRaised),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderEmptyState(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.padding(28.dp).widthIn(max = 420.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(76.dp),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            if (actionLabel != null && onAction != null) {
+                Spacer(Modifier.height(20.dp))
+                Button(
+                    onClick = onAction,
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.height(46.dp),
+                ) { Text(actionLabel) }
             }
         }
     }
@@ -1609,7 +1786,7 @@ private fun FolderEmpty(
     onUpload: () -> Unit,
 ) {
     when {
-        error != null -> EmptyState(
+        error != null -> FolderEmptyState(
             icon = Icons.Filled.WifiOff,
             title = stringResource(R.string.folder_error_title),
             body = error,
@@ -1618,14 +1795,14 @@ private fun FolderEmpty(
             modifier = Modifier.padding(top = 48.dp),
         )
 
-        searching -> EmptyState(
+        searching -> FolderEmptyState(
             icon = Icons.Filled.Search,
             title = stringResource(R.string.folder_search_empty_title, query.ifBlank { "…" }),
             body = stringResource(R.string.folder_search_empty_body),
             modifier = Modifier.padding(top = 48.dp),
         )
 
-        else -> EmptyState(
+        else -> FolderEmptyState(
             icon = Icons.Filled.Folder,
             title = stringResource(R.string.folder_empty_title),
             body = stringResource(R.string.folder_empty_body),
@@ -1659,7 +1836,7 @@ private fun ItemDetailsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Hyper.Card,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             Modifier
@@ -1671,7 +1848,11 @@ private fun ItemDetailsSheet(
                 Icon(
                     item.fileKind().icon,
                     contentDescription = null,
-                    tint = if (item.isFolder) Hyper.Accent else Hyper.Text2,
+                    tint = if (item.isFolder) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.size(26.dp),
                 )
                 Spacer(Modifier.width(12.dp))
@@ -1679,7 +1860,7 @@ private fun ItemDetailsSheet(
                     Text(
                         item.name,
                         style = MaterialTheme.typography.titleMedium,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -1687,16 +1868,21 @@ private fun ItemDetailsSheet(
                         if (item.isFolder) stringResource(R.string.details_folder)
                         else stringResource(R.string.details_file),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Hyper.Text3,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
-                HyperIconButton(
-                    icon = if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder,
-                    description = stringResource(
-                        if (favorite) R.string.folder_favorite_remove else R.string.folder_favorite_add,
-                    ),
+                FilledTonalIconButton(
                     onClick = onFavorite,
-                )
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                        contentDescription = stringResource(
+                            if (favorite) R.string.folder_favorite_remove else R.string.folder_favorite_add,
+                        ),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -1729,16 +1915,97 @@ private fun ItemDetailsSheet(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
             ) {
                 if (!item.isFolder) {
-                    HyperIconButton(Icons.Filled.Visibility, stringResource(R.string.preview_title_short), onPreview)
+                    FilledTonalIconButton(
+                        onClick = onPreview,
+                        modifier = Modifier.size(44.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Visibility,
+                            contentDescription = stringResource(R.string.preview_title_short),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
-                HyperIconButton(Icons.Filled.Download, stringResource(R.string.action_download), onDownload)
-                HyperIconButton(Icons.Filled.Share, stringResource(R.string.action_share), onShare)
-                HyperIconButton(Icons.Filled.Tune, stringResource(R.string.share_settings_title), onContentSettings)
-                HyperIconButton(Icons.Filled.ContentCopy, stringResource(R.string.details_copy_link), onCopyLink)
-                HyperIconButton(Icons.Filled.CreateNewFolder, stringResource(R.string.action_rename), onRename)
-                HyperIconButton(Icons.Filled.FolderOpen, stringResource(R.string.action_move), onMove)
-                HyperIconButton(Icons.Filled.ContentPaste, stringResource(R.string.action_copy), onCopy)
-                HyperIconButton(Icons.Filled.Delete, stringResource(R.string.action_delete), onDelete)
+                FilledTonalIconButton(
+                    onClick = onDownload,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Download,
+                        contentDescription = stringResource(R.string.action_download),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onShare,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Share,
+                        contentDescription = stringResource(R.string.action_share),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onContentSettings,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Tune,
+                        contentDescription = stringResource(R.string.share_settings_title),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onCopyLink,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.ContentCopy,
+                        contentDescription = stringResource(R.string.details_copy_link),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onRename,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.CreateNewFolder,
+                        contentDescription = stringResource(R.string.action_rename),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onMove,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.FolderOpen,
+                        contentDescription = stringResource(R.string.action_move),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onCopy,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.ContentPaste,
+                        contentDescription = stringResource(R.string.action_copy),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = stringResource(R.string.action_delete),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -1755,13 +2022,13 @@ private fun DetailRow(label: String, value: String, mono: Boolean = false) {
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = Hyper.Text3,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.width(92.dp),
         )
         Text(
             value,
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = if (mono) FontFamily.Monospace else null,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -1796,7 +2063,7 @@ private fun PickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Hyper.Card,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             Modifier
@@ -1809,7 +2076,7 @@ private fun PickerSheet(
                     if (mode == PickerMode.MOVE) R.string.picker_move_title else R.string.picker_copy_title,
                 ),
                 style = MaterialTheme.typography.titleLarge,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(8.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1817,10 +2084,10 @@ private fun PickerSheet(
                     Text(
                         crumb.name,
                         style = MaterialTheme.typography.labelMedium,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Hyper.Chip)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 }
@@ -1828,21 +2095,26 @@ private fun PickerSheet(
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (picker.crumbs.size > 1) {
-                    HyperIconButton(
-                        icon = Icons.AutoMirrored.Filled.ArrowBack,
-                        description = stringResource(R.string.root),
+                    FilledTonalIconButton(
                         onClick = onUp,
-                    )
+                        modifier = Modifier.size(44.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.root),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
                 TextButton(onClick = { newFolder = true }) {
                     Icon(
                         Icons.Filled.CreateNewFolder,
                         contentDescription = null,
-                        tint = Hyper.Accent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.picker_new_folder), color = Hyper.Accent)
+                    Text(stringResource(R.string.picker_new_folder), color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.weight(1f))
                 if (picker.busy) ExpressiveLoader(size = 20.dp, strokeOnly = true)
@@ -1851,7 +2123,7 @@ private fun PickerSheet(
                 Text(
                     stringResource(R.string.picker_no_subfolders),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(vertical = 18.dp),
                 )
             } else {
@@ -1861,12 +2133,30 @@ private fun PickerSheet(
                         .verticalScroll(rememberScrollState()),
                 ) {
                     picker.folders.forEach { folder ->
-                        HyperRow(
-                            title = folder.name,
-                            subtitle = stringResource(R.string.details_folder),
-                            icon = Icons.Filled.Folder,
-                            iconTint = Hyper.Accent,
-                            onClick = { onEnter(folder) },
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    folder.name,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            supportingContent = {
+                                Text(
+                                    stringResource(R.string.details_folder),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Filled.Folder,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            modifier = Modifier.clickable { onEnter(folder) },
                         )
                     }
                 }
@@ -1874,7 +2164,7 @@ private fun PickerSheet(
             Spacer(Modifier.height(12.dp))
             Surface(
                 shape = CircleShape,
-                color = Hyper.Accent,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(CircleShape)
@@ -1885,7 +2175,7 @@ private fun PickerSheet(
                         if (mode == PickerMode.MOVE) R.string.picker_here else R.string.picker_here_copy,
                     ),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Hyper.AccentInk,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(vertical = 14.dp),
                 )
@@ -1897,14 +2187,22 @@ private fun PickerSheet(
     if (newFolder) {
         AlertDialog(
             onDismissRequest = { newFolder = false },
-            containerColor = Hyper.Card,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(24.dp),
-            title = { Text(stringResource(R.string.folder_new_folder), color = Hyper.Text) },
+            title = {
+                Text(
+                    stringResource(R.string.folder_new_folder),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            },
             text = {
-                HyperTextField(
+                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = stringResource(R.string.folder_name_label),
+                    label = { Text(stringResource(R.string.folder_name_label)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
@@ -1915,11 +2213,11 @@ private fun PickerSheet(
                         name = ""
                     },
                     enabled = name.isNotBlank(),
-                ) { Text(stringResource(R.string.action_create), color = Hyper.Accent) }
+                ) { Text(stringResource(R.string.action_create), color = MaterialTheme.colorScheme.primary) }
             },
             dismissButton = {
                 TextButton(onClick = { newFolder = false }) {
-                    Text(stringResource(R.string.action_cancel), color = Hyper.Text2)
+                    Text(stringResource(R.string.action_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
         )
