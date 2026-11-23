@@ -1,6 +1,5 @@
 package com.nellecrzier.gofileexpressive.ui.preview
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,8 +25,11 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,13 +51,11 @@ import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperButton
-import com.nellecrzier.gofileexpressive.ui.IconChip
 
 /**
- * Tombol ikon 48dp di bilah atas. HyperSpring memakai 44dp di layar biasa,
- * tetapi pratinjau ini menargetkan sasaran sentuh 48dp agar tetap nyaman.
+ * Tombol ikon 48dp di bilah atas pratinjau. Material 3 memakai 40dp sebagai
+ * bawaan, tetapi pratinjau ini tetap menargetkan sasaran sentuh 48dp agar
+ * nyaman dipakai di atas media.
  */
 @Composable
 internal fun PreviewBarButton(
@@ -65,22 +65,16 @@ internal fun PreviewBarButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Surface(
+    FilledTonalIconButton(
         onClick = onClick,
         enabled = enabled,
-        shape = CircleShape,
-        color = Hyper.Card,
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
         modifier = modifier.size(48.dp),
     ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = description,
-                tint = if (enabled) Hyper.Text else Hyper.Text3,
-                modifier = Modifier.size(21.dp),
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            modifier = Modifier.size(21.dp),
+        )
     }
 }
 
@@ -93,11 +87,20 @@ internal fun PreviewActionPill(
     modifier: Modifier = Modifier,
     active: Boolean = false,
 ) {
+    val container = if (active) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val content = if (active) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
-        color = if (active) Hyper.AccentSoft else Hyper.Card.copy(alpha = 0.94f),
-        border = BorderStroke(0.8.dp, if (active) Hyper.AccentEdge else Hyper.Hairline),
+        color = container,
         modifier = modifier,
     ) {
         Row(
@@ -109,14 +112,14 @@ internal fun PreviewActionPill(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (active) Hyper.Accent else Hyper.Text,
+                tint = content,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (active) Hyper.Accent else Hyper.Text,
+                color = content,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -125,8 +128,8 @@ internal fun PreviewActionPill(
 }
 
 /**
- * Bilah atas pratinjau: kaca gelap dengan garis rambut, nama file di tengah,
- * aksi tambahan (nomor baris / layar penuh), lalu menu "⋮".
+ * Bilah atas pratinjau: permukaan tonal dengan nama file di tengah, aksi
+ * tambahan (nomor baris / layar penuh), lalu menu "⋮".
  */
 @Composable
 internal fun PreviewTopBar(
@@ -142,9 +145,8 @@ internal fun PreviewTopBar(
     extra: (@Composable () -> Unit)? = null,
 ) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = Hyper.Card.copy(alpha = 0.94f),
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
@@ -164,7 +166,7 @@ internal fun PreviewTopBar(
                     text = previewMiddleEllipsis(title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -238,12 +240,17 @@ private fun PreviewMenuItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         },
         onClick = onClick,
         leadingIcon = {
-            Icon(icon, contentDescription = null, tint = Hyper.Text2, modifier = Modifier.size(19.dp))
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(19.dp),
+            )
         },
     )
 }
@@ -257,13 +264,13 @@ internal fun PreviewDetailsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Hyper.Card,
-        shape = RoundedCornerShape(18.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(24.dp),
         title = {
             Text(
                 text = stringResource(R.string.preview_details_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         },
         text = {
@@ -293,21 +300,23 @@ internal fun PreviewDetailsDialog(
                     maxLines = 3,
                 )
                 Spacer(Modifier.height(10.dp))
-                HyperButton(
-                    text = stringResource(R.string.preview_details_copy_link),
+                FilledTonalButton(
                     onClick = onCopyLink,
-                    modifier = Modifier.fillMaxWidth(),
-                    primary = false,
-                    height = 48.dp,
-                )
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) {
+                    Text(stringResource(R.string.preview_details_copy_link))
+                }
             }
         },
         confirmButton = {
-            HyperButton(
-                text = stringResource(R.string.preview_details_close),
+            Button(
                 onClick = onDismiss,
-                height = 46.dp,
-            )
+                shape = RoundedCornerShape(percent = 50),
+                modifier = Modifier.height(46.dp),
+            ) {
+                Text(stringResource(R.string.preview_details_close))
+            }
         },
     )
 }
@@ -327,14 +336,14 @@ private fun PreviewDetailRow(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = Hyper.Text3,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.width(84.dp),
         )
         Spacer(Modifier.width(10.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = if (mono) FontFamily.Monospace else null,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
@@ -343,7 +352,7 @@ private fun PreviewDetailRow(
     }
 }
 
-/** Loader HyperSpring di tengah area konten. */
+/** Loader Material 3 di tengah area konten. */
 @Composable
 internal fun PreviewLoading(
     reduceMotion: Boolean,
@@ -355,13 +364,17 @@ internal fun PreviewLoading(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ExpressiveLoader(size = 46.dp, color = Hyper.Accent, reduceMotion = reduceMotion)
+        ExpressiveLoader(
+            size = 46.dp,
+            color = MaterialTheme.colorScheme.primary,
+            reduceMotion = reduceMotion,
+        )
         if (label != null) {
             Spacer(Modifier.height(14.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -382,54 +395,58 @@ internal fun PreviewFailure(
 ) {
     Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Hyper.Card,
-            border = BorderStroke(0.8.dp, Hyper.Hairline),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.widthIn(max = 420.dp),
         ) {
             Column(Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconChip(
-                        icon = Icons.Filled.ErrorOutline,
-                        tint = Hyper.Accent,
-                        fill = Hyper.AccentSoft,
-                        edge = Hyper.AccentEdge,
-                        size = 38.dp,
-                        iconSize = 21.dp,
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.size(38.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(21.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.width(12.dp))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (onRetry != null) {
                     Spacer(Modifier.height(18.dp))
-                    HyperButton(
-                        text = stringResource(R.string.preview_retry),
+                    Button(
                         onClick = onRetry,
-                        modifier = Modifier.fillMaxWidth(),
-                        reduceMotion = reduceMotion,
-                        height = 48.dp,
-                    )
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) {
+                        Text(stringResource(R.string.preview_retry))
+                    }
                 }
                 if (onOpenWith != null) {
                     Spacer(Modifier.height(10.dp))
-                    HyperButton(
-                        text = stringResource(R.string.preview_open_with),
+                    FilledTonalButton(
                         onClick = onOpenWith,
-                        modifier = Modifier.fillMaxWidth(),
-                        primary = false,
-                        reduceMotion = reduceMotion,
-                        height = 48.dp,
-                    )
+                        shape = RoundedCornerShape(percent = 50),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) {
+                        Text(stringResource(R.string.preview_open_with))
+                    }
                 }
             }
         }
@@ -444,26 +461,26 @@ internal fun PreviewNotice(
 ) {
     Surface(
         shape = CircleShape,
-        color = Hyper.CardRaised,
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
         )
     }
 }
 
-/** Bayangan gradasi hitam di bawah bilah atas agar judul terbaca di atas foto. */
+/** Bayangan gradasi di bawah/atas bilah agar judul terbaca di atas media. */
 @Composable
 internal fun PreviewScrim(
     top: Boolean,
     modifier: Modifier = Modifier,
     height: Dp = 132.dp,
 ) {
+    val scrim = MaterialTheme.colorScheme.scrim
     Box(
         modifier
             .fillMaxWidth()
@@ -471,11 +488,11 @@ internal fun PreviewScrim(
             .background(
                 if (top) {
                     Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = 0.78f), Color.Transparent),
+                        listOf(scrim.copy(alpha = 0.78f), Color.Transparent),
                     )
                 } else {
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.82f)),
+                        listOf(Color.Transparent, scrim.copy(alpha = 0.82f)),
                     )
                 },
             ),
@@ -491,8 +508,7 @@ internal fun PreviewPageCounter(
 ) {
     Surface(
         shape = CircleShape,
-        color = Color.Black.copy(alpha = 0.58f),
-        border = BorderStroke(0.8.dp, Hyper.Hairline),
+        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.58f),
         modifier = if (description != null) {
             modifier.semantics { contentDescription = description }
         } else {
@@ -503,7 +519,7 @@ internal fun PreviewPageCounter(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             fontFamily = FontFamily.Monospace,
-            color = Hyper.Text,
+            color = Color.White,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
