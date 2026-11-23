@@ -1,6 +1,7 @@
 package com.nellecrzier.gofileexpressive.ui.settings
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -63,6 +65,7 @@ import com.nellecrzier.gofileexpressive.ui.account.StorageBar
 import com.nellecrzier.gofileexpressive.ui.account.accountErrorOf
 import com.nellecrzier.gofileexpressive.ui.account.accountErrorRes
 import com.nellecrzier.gofileexpressive.ui.account.accountSnapshotOf
+import com.nellecrzier.gofileexpressive.ui.debug.MotionPlayground
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.vm.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +102,13 @@ internal fun SettingsScreen(
         mutableStateOf<AccountUiState>(AccountUiState.Loading)
     }
     var changelog by remember { mutableStateOf("") }
+
+    // Pintu debug ke laboratorium gerak. Signature layar ini sengaja tidak
+    // berubah: panorama dibuka sebagai hamparan penuh di dalam Setelan, bukan
+    // lewat callback baru dari AppUi.
+    var showPlayground by remember { mutableStateOf(false) }
+    val onOpenMotionPlayground: () -> Unit = { showPlayground = true }
+    BackHandler(enabled = showPlayground) { showPlayground = false }
 
     // Detail akun dimuat sekali per kunjungan (dan saat "Coba lagi" ditekan).
     LaunchedEffect(session.token, session.accountId, reload) {
@@ -210,6 +220,25 @@ internal fun SettingsScreen(
                     actions = actions,
                 )
                 SettingsAboutSection(actions = actions)
+
+                // Hanya di build debug, dan hanya baris ini yang ditambah.
+                if (BuildConfig.DEBUG) {
+                    Spacer(Modifier.height(16.dp))
+                    Surface(
+                        shape = RoundedCornerShape(26.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        SettingsActionRow(
+                            title = "Motion playground",
+                            subtitle = "Demonstrasi gerak Material 3 Expressive (build debug)",
+                            icon = Icons.Filled.PlayArrow,
+                            iconTint = MaterialTheme.colorScheme.tertiary,
+                            onClick = onOpenMotionPlayground,
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(8.dp))
             }
         }
@@ -225,6 +254,11 @@ internal fun SettingsScreen(
                 onDismiss = { sheet = "" },
                 onOpenLink = onOpenLink,
             )
+        }
+
+        // Hamparan penuh di atas Setelan, bukan layar baru di AppUi.
+        if (showPlayground) {
+            MotionPlayground(onClose = { showPlayground = false })
         }
     }
 }
