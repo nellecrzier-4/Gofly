@@ -1,7 +1,15 @@
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+)
+
 package com.nellecrzier.gofileexpressive.ui.account
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,12 +20,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,15 +40,22 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +66,7 @@ import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
 import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
 import com.nellecrzier.gofileexpressive.ui.components.connectedShape
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
 import com.nellecrzier.gofileexpressive.ui.readableSize
 
@@ -75,97 +89,131 @@ internal fun AccountScreen(
 
     BackHandler(enabled = true, onBack = onBack)
 
-    Column(
-        Modifier
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // Posisi gulir dibaca sebagai satu nilai turunan; hanya dua keadaan yang
+    // dipakai, jadi warna kontainer tidak perlu disimpan di state mana pun.
+    val collapsed by remember(scrollBehavior) {
+        derivedStateOf { scrollBehavior.state.collapsedFraction >= 0.5f }
+    }
+    val barColorSpec: AnimationSpec<Color> =
+        if (reduceMotion) tween(0) else motionScheme.defaultEffectsSpec<Color>()
+    val barContainer by animateColorAsState(
+        targetValue = if (collapsed) {
+            MaterialTheme.colorScheme.surfaceContainer
+        } else {
+            Color.Transparent
+        },
+        animationSpec = barColorSpec,
+        label = "accountTopBarContainer",
+    )
+
+    Scaffold(
+        modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scroll)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp),
-    ) {
-        Spacer(Modifier.height(8.dp))
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 52.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.settings_account_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = stringResource(R.string.settings_account_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FilledTonalIconButton(
-                    onClick = onRetry,
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Refresh,
-                        contentDescription = stringResource(R.string.settings_account_retry),
-                        modifier = Modifier.size(20.dp),
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.settings_account_title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                }
-                FilledTonalIconButton(
-                    onClick = onBack,
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.settings_account_back),
-                        modifier = Modifier.size(20.dp),
+                },
+                subtitle = {
+                    Text(
+                        text = stringResource(R.string.settings_account_subtitle),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
-            AccountHeader(session, state)
-
-            when (state) {
-                AccountUiState.Loading -> AccountLoadingCard(reduceMotion)
-
-                is AccountUiState.Failed -> {
-                    Spacer(Modifier.height(12.dp))
-                    AccountNotice(stringResource(accountErrorRes(state.error)))
-                    Spacer(Modifier.height(10.dp))
-                    FilledTonalButton(
-                        onClick = onRetry,
-                        shape = RoundedCornerShape(percent = 50),
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                },
+                navigationIcon = {
+                    FilledTonalIconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(44.dp),
                     ) {
-                        Text(stringResource(R.string.settings_account_retry))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.settings_account_back),
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
-                }
+                },
+                actions = {
+                    FilledTonalIconButton(
+                        onClick = onRetry,
+                        modifier = Modifier.size(44.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = stringResource(R.string.settings_account_retry),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = barContainer,
+                    scrolledContainerColor = barContainer,
+                ),
+                scrollBehavior = scrollBehavior,
+            )
+        },
+    ) { innerPadding ->
+        // Isi dibatasi 720.dp dan di tengah pada layar lebar; gulir tetap
+        // dimiliki kolom ini supaya bilah atas ikut mengecil.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Column(
+                Modifier
+                    .widthIn(max = 720.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(scroll)
+                    .padding(horizontal = 16.dp),
+            ) {
+                Spacer(Modifier.height(8.dp))
+                Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
+                    AccountHeader(session, state)
 
-                AccountUiState.Expired -> ExpiredSessionCard(
-                    onSignIn = { onSignOut(false) },
-                )
+                    when (state) {
+                        AccountUiState.Loading -> AccountLoadingCard(reduceMotion)
 
-                AccountUiState.Unavailable -> {
-                    Spacer(Modifier.height(12.dp))
-                    NoteCard(stringResource(R.string.settings_account_no_details))
-                }
+                        is AccountUiState.Failed -> {
+                            Spacer(Modifier.height(12.dp))
+                            AccountNotice(stringResource(accountErrorRes(state.error)))
+                            Spacer(Modifier.height(10.dp))
+                            FilledTonalButton(
+                                onClick = onRetry,
+                                shape = RoundedCornerShape(percent = 50),
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                            ) {
+                                Text(stringResource(R.string.settings_account_retry))
+                            }
+                        }
 
-                is AccountUiState.Ready -> {
-                    StorageSection(state.snapshot, reduceMotion)
-                    BreakdownSection(state.snapshot, reduceMotion)
+                        AccountUiState.Expired -> ExpiredSessionCard(
+                            onSignIn = { onSignOut(false) },
+                        )
+
+                        AccountUiState.Unavailable -> {
+                            Spacer(Modifier.height(12.dp))
+                            NoteCard(stringResource(R.string.settings_account_no_details))
+                        }
+
+                        is AccountUiState.Ready -> {
+                            StorageSection(state.snapshot, reduceMotion)
+                            BreakdownSection(state.snapshot, reduceMotion)
+                        }
+                    }
+
+                    IdentitySection(session, snapshot, reduceMotion)
+                    SignOutSection(onSignOut)
                 }
             }
-
-            IdentitySection(session, snapshot, reduceMotion)
-            SignOutSection(onSignOut)
         }
     }
 }

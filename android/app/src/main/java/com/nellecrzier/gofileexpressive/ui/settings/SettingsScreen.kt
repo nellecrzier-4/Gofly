@@ -1,7 +1,15 @@
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+)
+
 package com.nellecrzier.gofileexpressive.ui.settings
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -11,12 +19,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,11 +38,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +56,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +78,7 @@ import com.nellecrzier.gofileexpressive.ui.account.accountErrorOf
 import com.nellecrzier.gofileexpressive.ui.account.accountErrorRes
 import com.nellecrzier.gofileexpressive.ui.account.accountSnapshotOf
 import com.nellecrzier.gofileexpressive.ui.debug.MotionPlayground
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.vm.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
@@ -169,77 +182,113 @@ internal fun SettingsScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
+        // Bilah atas ekspresif: mengecil saat konten digulir, lalu berhenti
+        // tergulir penuh di tinggi baris tunggal. Warna kontainernya mengikuti
+        // posisi gulir, dibaca lewat derivedStateOf, bukan state tambahan.
+        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+        val collapsed by remember(scrollBehavior) {
+            derivedStateOf { scrollBehavior.state.collapsedFraction >= 0.5f }
+        }
+        val barColorSpec: AnimationSpec<Color> =
+            if (still) tween(0) else motionScheme.defaultEffectsSpec<Color>()
+        val barContainer by animateColorAsState(
+            targetValue = if (collapsed) {
+                MaterialTheme.colorScheme.surfaceContainer
+            } else {
+                Color.Transparent
+            },
+            animationSpec = barColorSpec,
+            label = "settingsTopBarContainer",
+        )
+
+        Scaffold(
+            modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(scroll)
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp),
-        ) {
-            Spacer(Modifier.height(8.dp))
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
-                SettingsAccountCard(
-                    session = session,
-                    state = accountState,
-                    reduceMotion = still,
-                    onOpen = { showAccount = true },
-                    onRetry = { reload += 1 },
-                    onSignIn = { signOut(false) },
-                )
-
-                SettingsAppearanceSection(prefs = prefs, vm = vm, reduceMotion = still)
-                SettingsFilesSection(prefs = prefs, vm = vm, reduceMotion = still)
-                SettingsNetworkSection(prefs = prefs, vm = vm, reduceMotion = still, actions = actions)
-                SettingsSecuritySection(prefs = prefs, vm = vm, actions = actions)
-                SettingsDataSection(
-                    prefs = prefs,
-                    vm = vm,
-                    cacheBytes = cacheBytes,
-                    actions = actions,
-                )
-                SettingsAboutSection(actions = actions)
-
-                // Hanya di build debug, dan hanya baris ini yang ditambah.
-                if (BuildConfig.DEBUG) {
-                    Spacer(Modifier.height(16.dp))
-                    Surface(
-                        shape = RoundedCornerShape(26.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        SettingsActionRow(
-                            title = "Motion playground",
-                            subtitle = "Demonstrasi gerak Material 3 Expressive (build debug)",
-                            icon = Icons.Filled.PlayArrow,
-                            iconTint = MaterialTheme.colorScheme.tertiary,
-                            onClick = onOpenMotionPlayground,
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                LargeFlexibleTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.settings_title),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                    },
+                    subtitle = {
+                        Text(
+                            text = stringResource(R.string.settings_subtitle),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = barContainer,
+                        scrolledContainerColor = barContainer,
+                    ),
+                    scrollBehavior = scrollBehavior,
+                )
+            },
+        ) { innerPadding ->
+            // Di layar lebar isi dibatasi 720.dp dan diletakkan di tengah; gulir
+            // vertikal tetap milik kolom ini supaya bilah atas ikut mengecil.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                Column(
+                    Modifier
+                        .widthIn(max = 720.dp)
+                        .fillMaxWidth()
+                        .verticalScroll(scroll)
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Spacer(Modifier.height(8.dp))
+                    Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
+                        SettingsAccountCard(
+                            session = session,
+                            state = accountState,
+                            reduceMotion = still,
+                            onOpen = { showAccount = true },
+                            onRetry = { reload += 1 },
+                            onSignIn = { signOut(false) },
+                        )
+
+                        SettingsAppearanceSection(prefs = prefs, vm = vm, reduceMotion = still)
+                        SettingsFilesSection(prefs = prefs, vm = vm, reduceMotion = still)
+                        SettingsNetworkSection(prefs = prefs, vm = vm, reduceMotion = still, actions = actions)
+                        SettingsSecuritySection(prefs = prefs, vm = vm, actions = actions)
+                        SettingsDataSection(
+                            prefs = prefs,
+                            vm = vm,
+                            cacheBytes = cacheBytes,
+                            actions = actions,
+                        )
+                        SettingsAboutSection(actions = actions)
+
+                        // Hanya di build debug, dan hanya baris ini yang ditambah.
+                        if (BuildConfig.DEBUG) {
+                            Spacer(Modifier.height(16.dp))
+                            Surface(
+                                shape = RoundedCornerShape(26.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                SettingsActionRow(
+                                    title = "Motion playground",
+                                    subtitle = "Demonstrasi gerak Material 3 Expressive (build debug)",
+                                    icon = Icons.Filled.PlayArrow,
+                                    iconTint = MaterialTheme.colorScheme.tertiary,
+                                    onClick = onOpenMotionPlayground,
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
-
-                Spacer(Modifier.height(8.dp))
             }
         }
 
