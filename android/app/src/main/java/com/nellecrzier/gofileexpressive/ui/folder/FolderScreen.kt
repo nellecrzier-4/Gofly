@@ -18,12 +18,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +49,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -109,6 +112,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -138,6 +142,9 @@ import com.nellecrzier.gofileexpressive.DeleteConfirm
 import com.nellecrzier.gofileexpressive.Density
 import com.nellecrzier.gofileexpressive.GofileApi
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
+import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
+import com.nellecrzier.gofileexpressive.ui.motion.pressScale
+import com.nellecrzier.gofileexpressive.ui.motion.staggeredEnter
 import com.nellecrzier.gofileexpressive.ui.preview.PreviewHost
 import com.nellecrzier.gofileexpressive.ui.preview.PreviewTarget
 import com.nellecrzier.gofileexpressive.ui.share.ContentSettingsSheet
@@ -416,6 +423,7 @@ fun FolderScreen(
                             onSwipeDelete = { pendingDelete = listOf(it) },
                             onLoadMore = { vm.loadMore(token) },
                             density = prefs.density,
+                            reduceMotion = reduceMotion,
                         )
                     }
                 }
@@ -1049,8 +1057,12 @@ private fun FileList(
     onSwipeDelete: (GItem) -> Unit,
     onLoadMore: () -> Unit,
     density: Density,
+    reduceMotion: Boolean = false,
 ) {
     val listState = rememberLazyListState()
+    // Masuk bertahap hanya pada komposisi pertama; bergulir tidak mengulanginya.
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
     val shouldLoadMore by remember(hasNextPage, items.size) {
         derivedStateOf {
             val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -1063,11 +1075,16 @@ private fun FileList(
     LazyColumn(
         state = listState,
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        items(items, key = { it.id }) { item ->
-            Box(Modifier.animateItem()) {
+        itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
+            val rowShape = animatedConnectedShape(index, items.size, reduceMotion)
+            Box(
+                Modifier
+                    .animateItem()
+                    .staggeredEnter(index, reduceMotion, entered || index >= 10),
+            ) {
                 SwipeableRow(
                     key = item.id,
                     enabled = !selectionMode,
@@ -1084,6 +1101,8 @@ private fun FileList(
                     onOpen = { onOpen(item) },
                     onLongPress = { onLongPress(item) },
                     onMenu = { onMenu(item) },
+                    shape = rowShape,
+                    reduceMotion = reduceMotion,
                 )
                 }
             }
@@ -1121,10 +1140,13 @@ private fun FileRow(
     onOpen: () -> Unit,
     onLongPress: () -> Unit,
     onMenu: () -> Unit,
+    shape: Shape = RoundedCornerShape(18.dp),
+    reduceMotion: Boolean = false,
 ) {
     val kind = item.fileKind()
+    val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = shape,
         color = if (selected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
@@ -1137,8 +1159,14 @@ private fun FileRow(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .combinedClickable(onClick = onOpen, onLongClick = onLongPress),
+            .clip(shape)
+            .pressScale(interactionSource, reduceMotion)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onOpen,
+                onLongClick = onLongPress,
+            ),
     ) {
         Row(
             Modifier
