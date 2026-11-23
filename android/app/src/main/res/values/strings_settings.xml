@@ -180,4 +180,7 @@
     <!-- shared -->
     <string name="settings_state_on">On</string>
     <string name="settings_state_off">Off</string>
+    <!-- tampilan -->
+    <string name="settings_amoled">Hitam AMOLED</string>
+    <string name="settings_amoled_body">Latar hitam murni saat mode gelap; warna dinamis dan aksen tetap dipakai.</string>
 </resources>

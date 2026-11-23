@@ -1,6 +1,8 @@
 package com.nellecrzier.gofileexpressive.ui.share
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import com.nellecrzier.gofileexpressive.ui.components.MorphIcon
+import com.nellecrzier.gofileexpressive.ui.components.DebouncedLoading
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -49,6 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -100,6 +104,7 @@ fun ContentSettingsSheet(
     onSaved: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     val hasSession = token.isNotBlank()
 
     var publicValue by remember(item.id) { mutableStateOf<Boolean?>(null) }
@@ -340,7 +345,10 @@ fun ContentSettingsSheet(
                     Spacer(Modifier.width(12.dp))
                     Switch(
                         checked = publicValue ?: false,
-                        onCheckedChange = { publicValue = it },
+                        onCheckedChange = { next ->
+                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            publicValue = next
+                        },
                         enabled = hasSession,
                     )
                 }
@@ -359,6 +367,7 @@ fun ContentSettingsSheet(
                     enabled = hasSession,
                     error = if (passwordError != null) stringResource(passwordError) else null,
                     hint = stringResource(R.string.share_settings_password_hint),
+                    reduceMotion = reduceMotion,
                 )
             }
 
@@ -493,13 +502,15 @@ fun ContentSettingsSheet(
                             enabled = hasSession && nameChanged && nameError == null && !renaming,
                             shape = RoundedCornerShape(percent = 50),
                         ) {
-                            if (renaming) {
-                                AppLoadingIndicator(
-                                    size = 18.dp,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion(),
-                                )
-                                Spacer(Modifier.width(10.dp))
+                            DebouncedLoading(loading = renaming) { busy ->
+                                if (busy) {
+                                    AppLoadingIndicator(
+                                        size = 18.dp,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion(),
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                }
                             }
                             Text(stringResource(R.string.share_settings_rename_row))
                         }
@@ -514,13 +525,15 @@ fun ContentSettingsSheet(
                 enabled = ready && !saving,
                 shape = RoundedCornerShape(percent = 50),
             ) {
-                if (saving) {
-                    AppLoadingIndicator(
-                        size = 18.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion(),
-                    )
-                    Spacer(Modifier.width(10.dp))
+                DebouncedLoading(loading = saving) { busy ->
+                    if (busy) {
+                        AppLoadingIndicator(
+                            size = 18.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion(),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                    }
                 }
                 Text(
                     stringResource(
@@ -676,6 +689,7 @@ private fun SharePasswordField(
     enabled: Boolean,
     error: String?,
     hint: String,
+    reduceMotion: Boolean,
 ) {
     var visible by remember { mutableStateOf(false) }
 
@@ -704,10 +718,13 @@ private fun SharePasswordField(
         ),
         trailingIcon = {
             IconButton(onClick = { visible = !visible }) {
-                Icon(
-                    imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                MorphIcon(
+                    first = Icons.Filled.Visibility,
+                    second = Icons.Filled.VisibilityOff,
+                    showSecond = visible,
                     contentDescription = stringResource(R.string.share_settings_password),
                     modifier = Modifier.size(19.dp),
+                    reduceMotion = reduceMotion,
                 )
             }
         },

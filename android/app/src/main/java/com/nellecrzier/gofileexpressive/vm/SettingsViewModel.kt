@@ -49,6 +49,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setThemeMode(mode: ThemeMode) = launch { prefs.setThemeMode(mode) }
     fun setAccent(accent: AccentChoice) = launch { prefs.setAccent(accent) }
     fun setDynamicColor(enabled: Boolean) = launch { prefs.setDynamicColor(enabled) }
+    fun setAmoled(enabled: Boolean) = launch { prefs.setAmoled(enabled) }
     fun setFontScale(scale: Float) = launch { prefs.setFontScale(scale) }
     fun setDensity(density: Density) = launch { prefs.setDensity(density) }
     fun setAnimations(pref: AnimPref) = launch { prefs.setAnimations(pref) }

@@ -1,5 +1,8 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui.share
 
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -197,12 +200,14 @@ fun ShareSheet(
             if (reduceMotion) {
                 if (detailsOpen) DetailsCard(item)
             } else {
+                val expandSpec = motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntSize>()
+                val detailsFade = motionScheme.fastEffectsSpec<Float>()
                 AnimatedVisibility(
                     visible = detailsOpen,
-                    enter = expandVertically(animationSpec = tween(230)) +
-                        fadeIn(animationSpec = tween(160)),
-                    exit = shrinkVertically(animationSpec = tween(180)) +
-                        fadeOut(animationSpec = tween(120)),
+                    enter = expandVertically(animationSpec = expandSpec) +
+                        fadeIn(animationSpec = detailsFade),
+                    exit = shrinkVertically(animationSpec = expandSpec) +
+                        fadeOut(animationSpec = detailsFade),
                 ) {
                     DetailsCard(item)
                 }

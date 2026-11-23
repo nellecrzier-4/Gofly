@@ -2,6 +2,7 @@
 
 package com.nellecrzier.gofileexpressive.ui.components
 
+import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -35,6 +37,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import kotlinx.coroutines.launch
+
+/**
+ * `HapticFeedbackType.Confirm` dan `Reject` dipetakan ke konstanta platform
+ * `HapticFeedbackConstants.CONFIRM`/`REJECT` yang baru ada di Android 11
+ * (API 30), jadi keduanya dijaga dengan [CONFIRM_REJECT_MIN_SDK].
+ *
+ * Di bawah API 30 konfirmasi tetap memakai LongPress seperti sebelumnya supaya
+ * perangkat lama tidak kehilangan umpan balik; penolakan tidak punya padanan
+ * lama, jadi dibiarkan senyap.
+ */
+private const val CONFIRM_REJECT_MIN_SDK = 30
+
+/** Getaran "berhasil" setelah konfirmasi tahan selesai (atau lewat TalkBack). */
+private fun HapticFeedback.confirmHaptic() {
+    if (Build.VERSION.SDK_INT >= CONFIRM_REJECT_MIN_SDK) {
+        performHapticFeedback(HapticFeedbackType.Confirm)
+    } else {
+        performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+}
+
+/** Getaran "ditolak" saat ketukan pendek tidak mencapai ambang tahan. */
+private fun HapticFeedback.rejectHaptic() {
+    if (Build.VERSION.SDK_INT >= CONFIRM_REJECT_MIN_SDK) {
+        performHapticFeedback(HapticFeedbackType.Reject)
+    }
+}
 
 /**
  * Tombol konfirmasi tahan untuk aksi merusak. Ketukan pendek ditolak; isi
@@ -69,6 +98,7 @@ fun HoldToConfirmButton(
                 .semantics {
                     contentDescription = label
                     onClick(label) {
+                        haptic.confirmHaptic()
                         onConfirm()
                         true
                     }
@@ -86,9 +116,10 @@ fun HoldToConfirmButton(
                             val released = tryAwaitRelease()
                             job.cancel()
                             if (released && progress.value >= 0.98f) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.confirmHaptic()
                                 onConfirm()
                             } else {
+                                if (released) haptic.rejectHaptic()
                                 progress.animateTo(0f, resetSpec)
                             }
                         },

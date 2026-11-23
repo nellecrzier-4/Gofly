@@ -62,6 +62,7 @@ import androidx.media3.ui.PlayerView
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GofileConfig
 import com.nellecrzier.gofileexpressive.R
+import com.nellecrzier.gofileexpressive.ui.components.MorphIcon
 import kotlinx.coroutines.delay
 
 /**
@@ -312,13 +313,16 @@ internal fun AudioPreview(
                         modifier = Modifier.size(64.dp),
                     ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            MorphIcon(
+                                first = Icons.Filled.PlayArrow,
+                                second = Icons.Filled.Pause,
+                                showSecond = playing,
                                 contentDescription = stringResource(
                                     if (playing) R.string.preview_audio_pause else R.string.preview_audio_play,
                                 ),
-                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(30.dp),
+                                reduceMotion = reduceMotion,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }

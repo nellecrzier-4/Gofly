@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storage
@@ -386,6 +387,13 @@ private fun DynamicColourRow(prefs: PrefsState, vm: SettingsViewModel) {
         icon = Icons.Filled.Palette,
         onChange = { vm.setDynamicColor(it) },
         modifier = if (supported) Modifier else Modifier.alpha(0.62f),
+    )
+    SettingsSwitchRow(
+        title = stringResource(R.string.settings_amoled),
+        subtitle = stringResource(R.string.settings_amoled_body),
+        checked = prefs.amoled,
+        icon = Icons.Filled.DarkMode,
+        onChange = { vm.setAmoled(it) },
     )
 }
 

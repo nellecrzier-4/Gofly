@@ -132,6 +132,7 @@ fun GofileTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
     accent: AccentChoice = AccentChoice.CORAL,
     dynamic: Boolean = true,
+    amoled: Boolean = false,
     fontScale: Float = 1f,
     reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
@@ -148,7 +149,20 @@ fun GofileTheme(
         dynamicAvailable -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         else -> schemeFor(dark, accent)
     }
-    val animated = animateScheme(scheme, reduceMotion)
+    val base = if (amoled && dark) {
+        scheme.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF070709),
+            surfaceContainer = Color(0xFF0C0C0E),
+            surfaceContainerHigh = Color(0xFF141416),
+            surfaceContainerHighest = Color(0xFF1C1C1F),
+        )
+    } else {
+        scheme
+    }
+    val animated = animateScheme(base, reduceMotion)
     val typography = if (fontScale == 1f) Typography() else Typography().scaled(fontScale)
     val shapes = Shapes(
         extraSmall = RoundedCornerShape(4.dp),

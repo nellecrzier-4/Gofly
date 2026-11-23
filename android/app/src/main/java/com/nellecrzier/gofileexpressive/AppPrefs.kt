@@ -36,6 +36,7 @@ data class PrefsState(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentChoice = AccentChoice.CORAL,
     val dynamicColor: Boolean = true,
+    val amoled: Boolean = false,
     val fontScale: Float = 1f,
     val density: Density = Density.COMFORT,
     val language: LanguageChoice = LanguageChoice.SYSTEM,
@@ -79,6 +80,7 @@ class AppPrefs(context: Context) {
             themeMode = enumOr(prefs[THEME_MODE], ThemeMode.DARK),
             accent = enumOr(prefs[ACCENT], AccentChoice.CORAL),
             dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
+            amoled = prefs[AMOLED] ?: false,
             fontScale = (prefs[FONT_SCALE] ?: 1f).coerceIn(0.85f, 1.3f),
             density = enumOr(prefs[DENSITY], Density.COMFORT),
             language = enumOr(prefs[LANGUAGE], LanguageChoice.SYSTEM),
@@ -111,6 +113,8 @@ class AppPrefs(context: Context) {
     suspend fun setThemeMode(mode: ThemeMode) = store.edit { it[THEME_MODE] = mode.name }
     suspend fun setAccent(accent: AccentChoice) = store.edit { it[ACCENT] = accent.name }
     suspend fun setDynamicColor(enabled: Boolean) = store.edit { it[DYNAMIC_COLOR] = enabled }
+
+    suspend fun setAmoled(enabled: Boolean) = store.edit { it[AMOLED] = enabled }
     suspend fun setFontScale(scale: Float) =
         store.edit { it[FONT_SCALE] = scale.coerceIn(0.85f, 1.3f) }
     suspend fun setDensity(density: Density) = store.edit { it[DENSITY] = density.name }
@@ -169,6 +173,7 @@ class AppPrefs(context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val AMOLED = booleanPreferencesKey("amoled")
         val FONT_SCALE = floatPreferencesKey("font_scale")
         val DENSITY = stringPreferencesKey("density")
         val LANGUAGE = stringPreferencesKey("language")

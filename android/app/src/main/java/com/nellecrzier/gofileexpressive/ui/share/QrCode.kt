@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.share
 
+import com.nellecrzier.gofileexpressive.ui.components.MorphIcon
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -216,9 +217,12 @@ fun ShareQrSheet(
                     .fillMaxWidth()
                     .height(56.dp),
             ) {
-                Icon(
-                    imageVector = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
+                MorphIcon(
+                    first = Icons.Filled.ContentCopy,
+                    second = Icons.Filled.Check,
+                    showSecond = copied,
                     contentDescription = null,
+                    reduceMotion = reduceMotion,
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))

@@ -138,6 +138,7 @@ import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import com.nellecrzier.gofileexpressive.ui.components.MorphIcon
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
 import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
@@ -226,6 +227,7 @@ fun GofileApp(activity: MainActivity) {
         mode = prefs.themeMode,
         accent = prefs.accent,
         dynamic = prefs.dynamicColor,
+        amoled = prefs.amoled,
         fontScale = prefs.fontScale,
         reduceMotion = reduceMotion,
     ) {
@@ -615,6 +617,7 @@ fun GofileApp(activity: MainActivity) {
                             AppToast(
                                 text = text,
                                 error = noticeIsError,
+                                reduceMotion = reduceMotion,
                                 onDismiss = { notice = null },
                             )
                         }
@@ -758,12 +761,16 @@ private fun AppToastOverlay(
             enter = if (reduceMotion) {
                 fadeIn(tween(120))
             } else {
-                slideInVertically(tween(240)) { it / 2 } + fadeIn(tween(180))
+                val toastSlide = motionScheme.fastSpatialSpec<androidx.compose.ui.unit.IntOffset>()
+                val toastFade = motionScheme.fastEffectsSpec<Float>()
+                slideInVertically(toastSlide) { it / 2 } + fadeIn(toastFade)
             },
             exit = if (reduceMotion) {
                 fadeOut(tween(100))
             } else {
-                slideOutVertically(tween(180)) { it / 3 } + fadeOut(tween(140))
+                val toastSlide = motionScheme.fastSpatialSpec<androidx.compose.ui.unit.IntOffset>()
+                val toastFade = motionScheme.fastEffectsSpec<Float>()
+                slideOutVertically(toastSlide) { it / 3 } + fadeOut(toastFade)
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -776,7 +783,7 @@ private fun AppToastOverlay(
 }
 
 @Composable
-private fun AppToast(text: String, error: Boolean, onDismiss: () -> Unit) {
+private fun AppToast(text: String, error: Boolean, reduceMotion: Boolean, onDismiss: () -> Unit) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -790,11 +797,14 @@ private fun AppToast(text: String, error: Boolean, onDismiss: () -> Unit) {
             Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = if (error) Icons.Filled.ErrorOutline else Icons.Filled.CheckCircle,
+            MorphIcon(
+                first = Icons.Filled.ErrorOutline,
+                second = Icons.Filled.CheckCircle,
+                showSecond = !error,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
+                reduceMotion = reduceMotion,
+                tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.width(10.dp))
             Text(

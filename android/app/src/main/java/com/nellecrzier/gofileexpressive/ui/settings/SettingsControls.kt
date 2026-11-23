@@ -40,6 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -61,6 +63,10 @@ import com.nellecrzier.gofileexpressive.R
  * Segmen setelan Material 3. `SingleChoiceSegmentedButtonRow` sudah mengumumkan
  * "radio button 1 dari 3" ke TalkBack dan menjaga sasaran sentuh 48dp, jadi
  * `reduceMotion` tidak lagi dipakai di sini.
+ *
+ * Perpindahan pilihan diberi getaran [HapticFeedbackType.ContextClick];
+ * mengetuk segmen yang sudah terpilih tidak mengubah apa pun, jadi tidak
+ * bergetar. Getaran ini sengaja terpisah dari `reduceMotion`.
  */
 @Composable
 internal fun SettingsSegmented(
@@ -70,11 +76,17 @@ internal fun SettingsSegmented(
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         options.forEachIndexed { index, (key, label) ->
             SegmentedButton(
                 selected = value == key,
-                onClick = { onChange(key) },
+                onClick = {
+                    if (value != key) {
+                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    }
+                    onChange(key)
+                },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 label = {
                     Text(
@@ -93,7 +105,8 @@ internal fun SettingsSegmented(
 
 /**
  * Baris dengan sakelar. Sakelar mendapat deskripsi + status baca layar karena
- * `Switch` sendiri tidak menempelkan `ToggleableState`.
+ * `Switch` sendiri tidak menempelkan `ToggleableState`. Setiap perubahan
+ * memberi getaran [HapticFeedbackType.ContextClick].
  */
 @Composable
 internal fun SettingsSwitchRow(
@@ -106,6 +119,7 @@ internal fun SettingsSwitchRow(
     icon: ImageVector? = null,
     iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
+    val haptic = LocalHapticFeedback.current
     val stateText = stringResource(
         if (checked) R.string.settings_state_on else R.string.settings_state_off,
     )
@@ -136,7 +150,10 @@ internal fun SettingsSwitchRow(
         trailingContent = {
             Switch(
                 checked = checked,
-                onCheckedChange = onChange,
+                onCheckedChange = { next ->
+                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    onChange(next)
+                },
                 enabled = enabled,
                 modifier = Modifier
                     .heightIn(min = 48.dp)
@@ -288,7 +305,8 @@ private fun accentName(choice: AccentChoice): String = stringResource(
 
 /**
  * Lima bulatan aksen. Pilihan ditandai cincin + nama aksen yang terpilih, jadi
- * status tidak hanya dibedakan warna.
+ * status tidak hanya dibedakan warna. Memilih aksen lain memberi getaran
+ * [HapticFeedbackType.ContextClick], sama seperti segmen.
  */
 @Composable
 internal fun AccentSwatches(
@@ -296,6 +314,7 @@ internal fun AccentSwatches(
     onChange: (AccentChoice) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     val selectedName = accentName(value)
     Column(modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -326,7 +345,12 @@ internal fun AccentSwatches(
                         .selectable(
                             selected = selected,
                             role = Role.RadioButton,
-                            onClick = { onChange(choice) },
+                            onClick = {
+                                if (!selected) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                }
+                                onChange(choice)
+                            },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
