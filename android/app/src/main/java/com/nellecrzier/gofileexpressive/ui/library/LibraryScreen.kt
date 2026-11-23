@@ -219,13 +219,46 @@ fun LibraryScreen(
             }
 
             item {
-                SearchBar(
-                    state = searchBarState,
-                    inputField = searchInputField,
+                // Bar kolaps saja. Permukaan input penuh layar dirender sekali
+                // di root Box; menaruh SearchBar di dalam LazyColumn membuat
+                // versi expanded-nya ikut terukur di dalam item sehingga teks
+                // lama dan baru saling menimpa.
+                Surface(
+                    onClick = {
+                        scope.launch { searchBarState.animateToExpanded() }
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                )
+                        .height(56.dp)
+                        .padding(bottom = 0.dp),
+                ) {
+                    Row(
+                        Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = query.ifBlank { stringResource(R.string.library_search_hint) },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (query.isBlank()) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
             }
 
             item {
