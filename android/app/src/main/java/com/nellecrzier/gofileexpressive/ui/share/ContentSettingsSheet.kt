@@ -1,6 +1,8 @@
 package com.nellecrzier.gofileexpressive.ui.share
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,20 +14,29 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -37,7 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -50,14 +61,6 @@ import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GoFileException
 import com.nellecrzier.gofileexpressive.GofileApi
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperButton
-import com.nellecrzier.gofileexpressive.ui.HyperCard
-import com.nellecrzier.gofileexpressive.ui.HyperIconButton
-import com.nellecrzier.gofileexpressive.ui.HyperTextField
-import com.nellecrzier.gofileexpressive.ui.HyperToggle
-import com.nellecrzier.gofileexpressive.ui.NoticeBanner
-import com.nellecrzier.gofileexpressive.ui.SectionLabel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -251,26 +254,31 @@ fun ContentSettingsSheet(
                     Text(
                         text = stringResource(R.string.share_settings_title),
                         style = MaterialTheme.typography.titleLarge,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = middleEllipsis(item.name, 42),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                HyperIconButton(
-                    icon = Icons.Filled.Close,
-                    description = stringResource(R.string.share_close),
+                FilledTonalIconButton(
                     onClick = onDismiss,
-                )
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.share_close),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            NoticeBanner(
+            ShareNotice(
                 text = stringResource(R.string.share_settings_no_links_notice),
                 error = false,
                 icon = Icons.Filled.Info,
@@ -278,7 +286,7 @@ fun ContentSettingsSheet(
 
             if (!hasSession) {
                 Spacer(Modifier.height(10.dp))
-                NoticeBanner(
+                ShareNotice(
                     text = stringResource(R.string.share_settings_no_session),
                     error = true,
                 )
@@ -287,7 +295,7 @@ fun ContentSettingsSheet(
             val failure = errorRes
             if (failure != null) {
                 Spacer(Modifier.height(10.dp))
-                NoticeBanner(
+                ShareNotice(
                     text = stringResource(failure),
                     error = true,
                     actionLabel = if (retryKind != RETRY_NONE) {
@@ -306,8 +314,8 @@ fun ContentSettingsSheet(
                 )
             }
 
-            SectionLabel(stringResource(R.string.share_settings_section_access))
-            HyperCard {
+            SheetSectionHeader(stringResource(R.string.share_settings_section_access))
+            ShareSettingsCard {
                 Row(
                     Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -316,7 +324,7 @@ fun ContentSettingsSheet(
                         Text(
                             text = stringResource(R.string.share_settings_visibility),
                             style = MaterialTheme.typography.titleSmall,
-                            color = Hyper.Text,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = when (publicValue) {
@@ -325,21 +333,21 @@ fun ContentSettingsSheet(
                                 null -> stringResource(R.string.share_settings_visibility_keep)
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (publicValue == null) Hyper.Text3 else Hyper.Accent,
+                            color = if (publicValue == null) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                     Spacer(Modifier.width(12.dp))
-                    HyperToggle(
+                    Switch(
                         checked = publicValue ?: false,
-                        onChange = { publicValue = it },
+                        onCheckedChange = { publicValue = it },
                         enabled = hasSession,
                     )
                 }
                 Text(
                     text = stringResource(R.string.share_settings_visibility_note),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 10.dp),
                 )
                 SharePasswordField(
@@ -354,8 +362,8 @@ fun ContentSettingsSheet(
                 )
             }
 
-            SectionLabel(stringResource(R.string.share_settings_section_expiry))
-            HyperCard {
+            SheetSectionHeader(stringResource(R.string.share_settings_section_expiry))
+            ShareSettingsCard {
                 ShareActionRow(
                     icon = Icons.Filled.DateRange,
                     title = stringResource(R.string.share_settings_expire_row),
@@ -385,58 +393,72 @@ fun ContentSettingsSheet(
                         stringResource(R.string.share_settings_expire_note)
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (expireError != null) Hyper.Accent else Hyper.Text3,
+                    color = if (expireError != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 2.dp, bottom = 10.dp),
                 )
             }
 
-            SectionLabel(stringResource(R.string.share_settings_section_meta))
-            HyperCard {
+            SheetSectionHeader(stringResource(R.string.share_settings_section_meta))
+            ShareSettingsCard {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                    HyperTextField(
+                    OutlinedTextField(
                         value = description,
                         onValueChange = {
                             description = it
                             descriptionEdited = true
                         },
-                        label = stringResource(R.string.share_settings_description),
-                        placeholder = stringResource(R.string.share_settings_description_hint),
-                        supporting = if (descriptionError != null) {
-                            stringResource(descriptionError)
-                        } else {
-                            stringResource(R.string.share_settings_description_support, DESCRIPTION_MAX)
+                        label = { Text(stringResource(R.string.share_settings_description)) },
+                        placeholder = {
+                            Text(stringResource(R.string.share_settings_description_hint))
+                        },
+                        supportingText = {
+                            Text(
+                                if (descriptionError != null) {
+                                    stringResource(descriptionError)
+                                } else {
+                                    stringResource(R.string.share_settings_description_support, DESCRIPTION_MAX)
+                                },
+                            )
                         },
                         isError = descriptionError != null,
                         enabled = hasSession,
                         singleLine = false,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(12.dp))
-                    HyperTextField(
+                    OutlinedTextField(
                         value = tagsText,
                         onValueChange = {
                             tagsText = it
                             tagsEdited = true
                         },
-                        label = stringResource(R.string.share_settings_tags),
-                        placeholder = stringResource(R.string.share_settings_tags_hint),
-                        supporting = if (tagsError != null) {
-                            stringResource(tagsError)
-                        } else {
-                            stringResource(R.string.share_settings_tags_support)
+                        label = { Text(stringResource(R.string.share_settings_tags)) },
+                        placeholder = { Text(stringResource(R.string.share_settings_tags_hint)) },
+                        supportingText = {
+                            Text(
+                                if (tagsError != null) {
+                                    stringResource(tagsError)
+                                } else {
+                                    stringResource(R.string.share_settings_tags_support)
+                                },
+                            )
                         },
                         isError = tagsError != null,
                         enabled = hasSession,
+                        shape = RoundedCornerShape(16.dp),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             capitalization = KeyboardCapitalization.None,
                             imeAction = ImeAction.Done,
                         ),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
 
-            SectionLabel(stringResource(R.string.share_settings_section_name))
-            HyperCard {
+            SheetSectionHeader(stringResource(R.string.share_settings_section_name))
+            ShareSettingsCard {
                 ShareActionRow(
                     icon = Icons.Filled.Edit,
                     title = stringResource(R.string.share_settings_rename_row),
@@ -446,49 +468,71 @@ fun ContentSettingsSheet(
                 )
                 if (renameOpen) {
                     Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 2.dp, bottom = 12.dp)) {
-                        HyperTextField(
+                        OutlinedTextField(
                             value = newName,
                             onValueChange = { newName = it.take(NAME_MAX + 1) },
-                            label = stringResource(R.string.share_settings_rename_hint),
-                            supporting = if (nameError != null) {
-                                stringResource(nameError)
-                            } else {
-                                stringResource(R.string.share_settings_rename_note)
+                            label = { Text(stringResource(R.string.share_settings_rename_hint)) },
+                            supportingText = {
+                                Text(
+                                    if (nameError != null) {
+                                        stringResource(nameError)
+                                    } else {
+                                        stringResource(R.string.share_settings_rename_note)
+                                    },
+                                )
                             },
                             isError = nameError != null,
                             enabled = hasSession,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(Modifier.height(10.dp))
-                        HyperButton(
-                            text = stringResource(R.string.share_settings_rename_row),
+                        FilledTonalButton(
                             onClick = { applyRename() },
-                            modifier = Modifier.fillMaxWidth(),
-                            primary = false,
-                            enabled = hasSession && nameChanged && nameError == null,
-                            loading = renaming,
-                            reduceMotion = reduceMotion,
-                            height = 46.dp,
-                        )
+                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                            enabled = hasSession && nameChanged && nameError == null && !renaming,
+                            shape = RoundedCornerShape(percent = 50),
+                        ) {
+                            if (renaming) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                                Spacer(Modifier.width(10.dp))
+                            }
+                            Text(stringResource(R.string.share_settings_rename_row))
+                        }
                     }
                 }
             }
 
             Spacer(Modifier.height(18.dp))
-            HyperButton(
-                text = stringResource(
-                    if (saving) R.string.share_settings_saving else R.string.share_settings_save,
-                ),
+            Button(
                 onClick = { persist() },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = ready,
-                loading = saving,
-                reduceMotion = reduceMotion,
-            )
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                enabled = ready && !saving,
+                shape = RoundedCornerShape(percent = 50),
+            ) {
+                if (saving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                }
+                Text(
+                    stringResource(
+                        if (saving) R.string.share_settings_saving else R.string.share_settings_save,
+                    ),
+                )
+            }
             if (!pending) {
                 Text(
                     text = stringResource(R.string.share_settings_no_changes),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 6.dp),
@@ -515,7 +559,7 @@ fun ContentSettingsSheet(
                 ) {
                     Text(
                         text = stringResource(R.string.share_action_save_date),
-                        color = Hyper.Accent,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             },
@@ -523,7 +567,7 @@ fun ContentSettingsSheet(
                 TextButton(onClick = { pickDate = false }) {
                     Text(
                         text = stringResource(R.string.share_action_cancel),
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
@@ -535,7 +579,96 @@ fun ContentSettingsSheet(
 
 /* ------------------------------- komponen ------------------------------- */
 
-/** Bidang kata sandi bertitik dengan tombol lihat/sembunyikan (gaya HyperTextField). */
+/** Judul bagian Material 3: kapital, tanpa garis aksen. */
+@Composable
+private fun SheetSectionHeader(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 20.dp, bottom = 8.dp),
+    )
+}
+
+/** Kartu bagian lembar: permukaan Material 3 datar, tanpa efek kaca. */
+@Composable
+private fun ShareSettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(Modifier.padding(vertical = 2.dp), content = content)
+    }
+}
+
+/** Pemberitahuan Material 3: ikon, teks, aksi teks, dan tombol tutup. */
+@Composable
+private fun ShareNotice(
+    text: String,
+    modifier: Modifier = Modifier,
+    error: Boolean = true,
+    icon: ImageVector? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon ?: if (error) {
+                    Icons.Filled.ErrorOutline
+                } else {
+                    Icons.Filled.CheckCircle
+                },
+                contentDescription = null,
+                tint = if (error) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                },
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            if (actionLabel != null && onAction != null) {
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = onAction) {
+                    Text(actionLabel, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+            if (onDismiss != null) {
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.share_close),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Bidang kata sandi bertitik dengan tombol lihat/sembunyikan bergaya Material 3. */
 @Composable
 private fun SharePasswordField(
     value: String,
@@ -554,20 +687,9 @@ private fun SharePasswordField(
             Text(
                 text = hint,
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text3,
             )
         },
-        supportingText = if (error != null) {
-            {
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Accent,
-                )
-            }
-        } else {
-            null
-        },
+        supportingText = error?.let { { Text(it) } },
         isError = error != null,
         enabled = enabled,
         singleLine = true,
@@ -585,28 +707,11 @@ private fun SharePasswordField(
                 Icon(
                     imageVector = if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                     contentDescription = stringResource(R.string.share_settings_password),
-                    tint = Hyper.Text2,
                     modifier = Modifier.size(19.dp),
                 )
             }
         },
-        shape = RoundedCornerShape(18.dp),
-        textStyle = MaterialTheme.typography.bodyLarge,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Hyper.Text,
-            unfocusedTextColor = Hyper.Text,
-            disabledTextColor = Hyper.Text3,
-            focusedBorderColor = Hyper.Accent,
-            unfocusedBorderColor = Hyper.HairlineStrong,
-            disabledBorderColor = Hyper.Hairline,
-            errorBorderColor = Hyper.Accent,
-            focusedLabelColor = Hyper.Accent,
-            unfocusedLabelColor = Hyper.Text2,
-            cursorColor = Hyper.Accent,
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent,
-            disabledContainerColor = Color.Transparent,
-        ),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp, vertical = 4.dp),
