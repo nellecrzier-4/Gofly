@@ -3,11 +3,14 @@
 package com.nellecrzier.gofileexpressive.ui.home
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GSession
@@ -79,23 +84,6 @@ internal fun HomeScreen(
     val folderCount = remember(items) { items.count { it.isFolder } }
     val fileCount = remember(items) { items.size - folderCount }
     val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
-    val countSpec = motionScheme.defaultEffectsSpec<Int>()
-    val sizeSpec = motionScheme.defaultEffectsSpec<Float>()
-    val shownFolders by animateIntAsState(
-        targetValue = folderCount,
-        animationSpec = if (reduceMotion) tween(0) else countSpec,
-        label = "folderCount",
-    )
-    val shownFiles by animateIntAsState(
-        targetValue = fileCount,
-        animationSpec = if (reduceMotion) tween(0) else countSpec,
-        label = "fileCount",
-    )
-    val shownSize by animateFloatAsState(
-        targetValue = totalSize.toFloat(),
-        animationSpec = if (reduceMotion) tween(0) else sizeSpec,
-        label = "totalSize",
-    )
 
     Column(
         Modifier
@@ -185,9 +173,30 @@ internal fun HomeScreen(
 
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile("Folder", shownFolders.toString(), Icons.Filled.FolderOpen, Modifier.weight(1f))
-            StatTile("Berkas", shownFiles.toString(), Icons.AutoMirrored.Filled.InsertDriveFile, Modifier.weight(1f))
-            StatTile("Ukuran", readableSize(shownSize.toLong()), Icons.Filled.SwapVert, Modifier.weight(1f))
+            StatTile(
+                label = "Folder",
+                value = folderCount.toString(),
+                icon = Icons.Filled.FolderOpen,
+                modifier = Modifier.weight(1f),
+                rollValue = folderCount.toLong(),
+                reduceMotion = reduceMotion,
+            )
+            StatTile(
+                label = "Berkas",
+                value = fileCount.toString(),
+                icon = Icons.AutoMirrored.Filled.InsertDriveFile,
+                modifier = Modifier.weight(1f),
+                rollValue = fileCount.toLong(),
+                reduceMotion = reduceMotion,
+            )
+            StatTile(
+                label = "Ukuran",
+                value = readableSize(totalSize),
+                icon = Icons.Filled.SwapVert,
+                modifier = Modifier.weight(1f),
+                rollValue = totalSize,
+                reduceMotion = reduceMotion,
+            )
         }
 
         Spacer(Modifier.height(16.dp))
@@ -248,7 +257,14 @@ internal fun HomeScreen(
 }
 
 @Composable
-private fun StatTile(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+private fun StatTile(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    rollValue: Long? = null,
+    reduceMotion: Boolean = false,
+) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
@@ -259,9 +275,48 @@ private fun StatTile(label: String, value: String, icon: ImageVector, modifier: 
         Column(Modifier.padding(14.dp)) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.height(10.dp))
-            Text(value, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            // Angka bergulir (digit roll); diredupkan gerak → teks biasa.
+            if (rollValue == null || reduceMotion) {
+                Text(value, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            } else {
+                StatDigitRoll(number = rollValue, text = value)
+            }
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/**
+ * Gulirkan angka statistik: naik → teks baru masuk dari bawah, turun → dari
+ * atas. Spesifikasi sama dengan gulir angka di panel transfer.
+ */
+@Composable
+private fun StatDigitRoll(number: Long, text: String) {
+    val effectsSpec = motionScheme.fastEffectsSpec<Float>()
+    val slideSpec = motionScheme.fastSpatialSpec<IntOffset>()
+    AnimatedContent(
+        targetState = number to text,
+        transitionSpec = {
+            val rising = targetState.first > initialState.first
+            (
+                slideInVertically(slideSpec) { height -> if (rising) height else -height } +
+                    fadeIn(effectsSpec)
+                ) togetherWith (
+                slideOutVertically(slideSpec) { height -> if (rising) -height else height } +
+                    fadeOut(effectsSpec)
+                )
+        },
+        contentAlignment = Alignment.CenterStart,
+        label = "statDigitRoll",
+    ) { (_, shownText) ->
+        Text(
+            text = shownText,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

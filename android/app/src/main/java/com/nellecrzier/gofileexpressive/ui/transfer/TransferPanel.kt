@@ -3,8 +3,18 @@
 package com.nellecrzier.gofileexpressive.ui.transfer
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -61,17 +71,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.nellecrzier.gofileexpressive.R
@@ -84,6 +98,7 @@ import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
 import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
 import com.nellecrzier.gofileexpressive.ui.components.connectedShape
 import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 import java.text.DateFormat
 import java.util.Date
@@ -99,6 +114,9 @@ private const val FILTER_FAILED = "failed"
 private const val FILTER_CANCELLED = "cancelled"
 
 private const val MAX_ROWS = 40
+
+/** Batas laju teks angka langsung: paling cepat 4 kali per detik. */
+private const val LIVE_TEXT_INTERVAL_MS = 250L
 
 /* ============================== panel ================================== */
 
@@ -435,11 +453,46 @@ private fun TransferRow(
         label = "transferWaveAmplitude",
     )
 
+    // Umpan balik status: centang membesar dengan sedikit melewati 1.0 lalu
+    // mengendap saat selesai, atau satu kali getar mendatar saat gagal.
+    // Keduanya hanya dipicu saat state benar-benar berubah (bukan tiap
+    // recomposition) dan tidak berjalan saat gerak diredupkan.
+    val spatialSpec = motionScheme.fastSpatialSpec<Float>()
+    val density = LocalDensity.current
+    val checkScale = remember(info.id) { Animatable(1f) }
+    val shakeX = remember(info.id) { Animatable(0f) }
+    var lastState by remember(info.id) { mutableStateOf(info.state) }
+
+    LaunchedEffect(info.id, info.state) {
+        if (lastState == info.state) return@LaunchedEffect
+        lastState = info.state
+        if (reduceMotion) return@LaunchedEffect
+        when (info.state) {
+            TransferInfo.STATE_SUCCESS -> {
+                checkScale.snapTo(0.7f)
+                checkScale.animateTo(1.08f, spatialSpec) // sedikit melewati ukuran penuh
+                checkScale.animateTo(1f, spatialSpec) // lalu mengendap
+            }
+            TransferInfo.STATE_ERROR -> {
+                // Dua siklus ±3.dp, 5 langkah × 48 ms = 240 ms, kembali ke tengah.
+                val amplitude = with(density) { 3.dp.toPx() }
+                shakeX.snapTo(0f)
+                repeat(2) {
+                    shakeX.animateTo(amplitude, tween(48, easing = LinearEasing))
+                    shakeX.animateTo(-amplitude, tween(48, easing = LinearEasing))
+                }
+                shakeX.animateTo(0f, tween(48, easing = LinearEasing))
+            }
+        }
+    }
+
     Surface(
         onClick = onDetails,
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { translationX = shakeX.value },
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -457,7 +510,14 @@ private fun TransferRow(
                             R.string.transfer_type_upload
                         },
                     ),
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier
+                        .size(16.dp)
+                        .graphicsLayer {
+                            if (finished) {
+                                scaleX = checkScale.value
+                                scaleY = checkScale.value
+                            }
+                        },
                     tint = when {
                         finished -> MaterialTheme.colorScheme.tertiary
                         failed -> MaterialTheme.colorScheme.primary
@@ -476,16 +536,14 @@ private fun TransferRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = statusLine(info),
-                        style = MaterialTheme.typography.labelMedium,
+                    TransferStatusLine(
+                        info = info,
+                        reduceMotion = reduceMotion,
                         color = when {
                             failed -> MaterialTheme.colorScheme.primary
                             paused -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (info.isActive) {
@@ -556,6 +614,180 @@ private fun RowAction(
             modifier = Modifier.size(16.dp),
         )
     }
+}
+
+/**
+ * Teks status satu baris dengan fade-through per state.
+ *
+ * Yang lama memudar keluar sambil mengecil dan yang baru muncul dari 92%,
+ * memakai spesifikasi effects untuk alfa dan spatial untuk skala. Saat gerak
+ * diredupkan hanya silang-memudar 100 ms tanpa skala.
+ */
+@Composable
+private fun TransferStatusLine(
+    info: TransferInfo,
+    reduceMotion: Boolean,
+    color: Color,
+) {
+    val effectsSpec = motionScheme.fastEffectsSpec<Float>()
+    val spatialSpec = motionScheme.fastSpatialSpec<Float>()
+    val style = MaterialTheme.typography.labelMedium
+    AnimatedContent(
+        targetState = info.state,
+        transitionSpec = {
+            if (reduceMotion) {
+                fadeIn(tween(100)) togetherWith fadeOut(tween(100))
+            } else {
+                (
+                    fadeIn(effectsSpec) +
+                        scaleIn(spatialSpec, initialScale = 0.92f)
+                    ) togetherWith (
+                    fadeOut(effectsSpec) +
+                        scaleOut(spatialSpec, targetScale = 1.06f)
+                    )
+            }
+        },
+        contentAlignment = Alignment.CenterStart,
+        label = "transferStatus",
+    ) { state ->
+        if (state == TransferInfo.STATE_RUNNING && info.progress >= 0) {
+            RunningStatusLine(
+                info = info,
+                reduceMotion = reduceMotion,
+                color = color,
+                style = style,
+            )
+        } else {
+            // Baris yang sedang memudar menyimpan teksnya sendiri supaya tidak
+            // ikut membaca info terbaru di tengah transisi.
+            val line = statusLine(info)
+            val frozen = remember(state) { line }
+            Text(
+                text = frozen,
+                style = style,
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * Persen · kecepatan · ETA saat berjalan. Tiap angka digulirkan sendiri dan
+ * nilainya diperbarui paling cepat 4 kali per detik.
+ */
+@Composable
+private fun RunningStatusLine(
+    info: TransferInfo,
+    reduceMotion: Boolean,
+    color: Color,
+    style: TextStyle,
+) {
+    val context = LocalContext.current
+    val percent = rememberThrottledValue(info.progress, info.id)
+    val speed = rememberThrottledValue(info.bytesPerSecond, info.id)
+    val eta = rememberThrottledValue(info.etaSeconds, info.id)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        DigitRoll(
+            number = percent.toLong(),
+            text = context.getString(R.string.transfer_panel_percent, percent),
+            reduceMotion = reduceMotion,
+            style = style,
+            color = color,
+        )
+        if (speed > 0) {
+            Text(" · ", style = style, color = color, maxLines = 1)
+            DigitRoll(
+                number = speed,
+                text = TransferFormat.speedShort(context, speed),
+                reduceMotion = reduceMotion,
+                style = style,
+                color = color,
+            )
+        }
+        if (eta >= 0) {
+            Text(" · ", style = style, color = color, maxLines = 1)
+            DigitRoll(
+                number = eta.toLong(),
+                text = TransferFormat.eta(context, eta),
+                reduceMotion = reduceMotion,
+                style = style,
+                color = color,
+            )
+        }
+    }
+}
+
+/**
+ * Gulirkan satu angka: naik → teks baru masuk dari bawah, turun → dari atas.
+ * Alfa memakai spesifikasi effects, geseran memakai spesifikasi spatial.
+ * Saat gerak diredupkan angkanya hanya teks biasa tanpa gulir.
+ */
+@Composable
+private fun DigitRoll(
+    number: Long,
+    text: String,
+    reduceMotion: Boolean,
+    style: TextStyle,
+    color: Color,
+) {
+    if (reduceMotion) {
+        Text(
+            text = text,
+            style = style,
+            color = color,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
+        return
+    }
+    val effectsSpec = motionScheme.fastEffectsSpec<Float>()
+    val slideSpec = motionScheme.fastSpatialSpec<IntOffset>()
+    AnimatedContent(
+        targetState = number to text,
+        transitionSpec = {
+            val rising = targetState.first > initialState.first
+            (
+                slideInVertically(slideSpec) { height -> if (rising) height else -height } +
+                    fadeIn(effectsSpec)
+                ) togetherWith (
+                slideOutVertically(slideSpec) { height -> if (rising) -height else height } +
+                    fadeOut(effectsSpec)
+                )
+        },
+        contentAlignment = Alignment.CenterStart,
+        label = "digitRoll",
+    ) { (_, shownText) ->
+        Text(
+            text = shownText,
+            style = style,
+            color = color,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** Nilai yang tampil dibatasi paling cepat 4 kali per detik (250 ms). */
+@Composable
+private fun <T> rememberThrottledValue(
+    value: T,
+    key: Any? = Unit,
+    periodMillis: Long = LIVE_TEXT_INTERVAL_MS,
+): T {
+    var shown by remember(key) { mutableStateOf(value) }
+    val latest = remember(key) { mutableStateOf(value) }
+    latest.value = value
+    LaunchedEffect(key, periodMillis) {
+        while (true) {
+            delay(periodMillis)
+            if (latest.value != shown) shown = latest.value
+        }
+    }
+    return shown
 }
 
 /** Baris status satu kalimat: persen, kecepatan, dan ETA saat berjalan. */
