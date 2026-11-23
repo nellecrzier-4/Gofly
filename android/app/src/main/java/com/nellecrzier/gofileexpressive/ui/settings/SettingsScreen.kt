@@ -203,8 +203,7 @@ internal fun SettingsScreen(
 
         Scaffold(
             modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                .fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 LargeFlexibleTopAppBar(
@@ -242,11 +241,17 @@ internal fun SettingsScreen(
                     Modifier
                         .widthIn(max = 720.dp)
                         .fillMaxWidth()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
                         .verticalScroll(scroll)
                         .padding(horizontal = 16.dp),
                 ) {
                     Spacer(Modifier.height(8.dp))
-                    Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
+                    Column(
+                        Modifier.padding(
+                            top = 4.dp,
+                            bottom = 24.dp + com.nellecrzier.gofileexpressive.ui.components.LocalBottomChromeHeight.current,
+                        ),
+                    ) {
                         SettingsAccountCard(
                             session = session,
                             state = accountState,

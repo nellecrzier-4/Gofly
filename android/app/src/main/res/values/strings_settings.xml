@@ -2,7 +2,7 @@
     <!-- settings screen -->
     <string name="settings_title">Settings</string>
     <string name="settings_app_name">Gofile Expressive</string>
-    <string name="settings_subtitle">Account, appearance, and everything the app remembers.</string>
+    <string name="settings_subtitle">Account, appearance, and storage.</string>
 
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_section_files">Files</string>
@@ -181,6 +181,6 @@
     <string name="settings_state_on">On</string>
     <string name="settings_state_off">Off</string>
     <!-- tampilan -->
-    <string name="settings_amoled">Hitam AMOLED</string>
-    <string name="settings_amoled_body">Latar hitam murni saat mode gelap; warna dinamis dan aksen tetap dipakai.</string>
+    <string name="settings_amoled">Pure black (AMOLED)</string>
+    <string name="settings_amoled_body">Pure black background in dark mode; dynamic colour and the accent still apply.</string>
 </resources>

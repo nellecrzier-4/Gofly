@@ -138,7 +138,9 @@ private fun SettingsGroup(
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                item()
+                // Satu item bisa berisi beberapa composable; Column mencegah
+                // mereka saling menumpuk di dalam Box milik Surface.
+                Column(Modifier.fillMaxWidth()) { item() }
             }
         }
     }
@@ -310,6 +312,7 @@ internal fun SettingsAppearanceSection(
             )
         },
         { DynamicColourRow(prefs = prefs, vm = vm) },
+        { AmoledRow(prefs = prefs, vm = vm) },
         {
             SettingsBlock(
                 title = stringResource(R.string.settings_language),
@@ -388,6 +391,10 @@ private fun DynamicColourRow(prefs: PrefsState, vm: SettingsViewModel) {
         onChange = { vm.setDynamicColor(it) },
         modifier = if (supported) Modifier else Modifier.alpha(0.62f),
     )
+}
+
+@Composable
+private fun AmoledRow(prefs: PrefsState, vm: SettingsViewModel) {
     SettingsSwitchRow(
         title = stringResource(R.string.settings_amoled),
         subtitle = stringResource(R.string.settings_amoled_body),

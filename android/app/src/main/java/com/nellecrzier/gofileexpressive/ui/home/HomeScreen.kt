@@ -88,8 +88,8 @@ internal fun HomeScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
     ) {
         Spacer(Modifier.height(8.dp))

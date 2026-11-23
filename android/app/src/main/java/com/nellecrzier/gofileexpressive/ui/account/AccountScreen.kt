@@ -176,7 +176,12 @@ internal fun AccountScreen(
                     .padding(horizontal = 16.dp),
             ) {
                 Spacer(Modifier.height(8.dp))
-                Column(Modifier.padding(top = 4.dp, bottom = 24.dp)) {
+                Column(
+                        Modifier.padding(
+                            top = 4.dp,
+                            bottom = 24.dp + com.nellecrzier.gofileexpressive.ui.components.LocalBottomChromeHeight.current,
+                        ),
+                    ) {
                     AccountHeader(session, state)
 
                     when (state) {

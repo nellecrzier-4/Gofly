@@ -2,7 +2,7 @@
     <!-- layar setelan -->
     <string name="settings_title">Setelan</string>
     <string name="settings_app_name">Gofile Expressive</string>
-    <string name="settings_subtitle">Akun, tampilan, dan semua yang diingat aplikasi.</string>
+    <string name="settings_subtitle">Akun, tampilan, dan penyimpanan.</string>
 
     <string name="settings_section_appearance">Tampilan</string>
     <string name="settings_section_files">Berkas</string>

@@ -96,6 +96,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -138,6 +139,7 @@ import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import com.nellecrzier.gofileexpressive.ui.components.LocalBottomChromeHeight
 import com.nellecrzier.gofileexpressive.ui.components.MorphIcon
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
 import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
@@ -452,6 +454,9 @@ fun GofileApp(activity: MainActivity) {
 
                 // Rel duduk sebagai saudara konten, jadi konten bergeser sejauh lebar
                 // rel (padding awal) dan toast tetap rata pada area konten.
+                CompositionLocalProvider(
+                    LocalBottomChromeHeight provides if (showNavigation && !wideLayout) 80.dp else 0.dp,
+                ) {
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                     AnimatedContent(
                         targetState = loginStep == "ready",
@@ -485,6 +490,7 @@ fun GofileApp(activity: MainActivity) {
                                 )
                             }
                         } else {
+                            Box(Modifier.fillMaxSize()) {
                             Box(Modifier.fillMaxSize()) {
                                 // Halaman bergeser mengikuti gestur back prediktif.
                                 Box(
@@ -601,6 +607,7 @@ fun GofileApp(activity: MainActivity) {
                                     onSelect = { key -> selectTab(key) },
                                 )
                             }
+                            }
                         }
                     } else {
                         LoginScreen(
@@ -636,6 +643,7 @@ fun GofileApp(activity: MainActivity) {
                             )
                         }
                     }
+                }
                 }
             }
         }
