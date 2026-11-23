@@ -1,12 +1,16 @@
 package com.nellecrzier.gofileexpressive.ui.settings
 
 import android.os.Build
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
@@ -23,7 +27,13 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,9 +43,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.AnimPref
 import com.nellecrzier.gofileexpressive.BuildConfig
@@ -46,11 +61,7 @@ import com.nellecrzier.gofileexpressive.PrefsState
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ThemeMode
 import com.nellecrzier.gofileexpressive.ViewMode
-import com.nellecrzier.gofileexpressive.ui.HoldToConfirm
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperGroup
-import com.nellecrzier.gofileexpressive.ui.HyperRow
-import com.nellecrzier.gofileexpressive.ui.SectionLabel
+import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.vm.SettingsViewModel
 import kotlinx.coroutines.delay
@@ -68,19 +79,122 @@ internal fun SettingsBlock(
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
-            color = Hyper.Text,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         if (subtitle != null) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 1.dp),
             )
         }
         Spacer(Modifier.height(8.dp))
         content()
     }
+}
+
+/** Judul bagian Material 3: kapital, tanpa garis aksen. */
+@Composable
+private fun SettingsSectionHeader(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 20.dp, bottom = 8.dp),
+    )
+}
+
+/** Wadah grup setelan: kartu Material 3 datar tanpa efek kaca. */
+@Composable
+private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(Modifier.padding(vertical = 2.dp), content = content)
+    }
+}
+
+/** Nilai ringkas di kanan baris. */
+@Composable
+private fun SettingsValuePill(text: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+        )
+    }
+}
+
+/** Baris setelan berbasis [ListItem]: ikon, judul, subjudul, nilai, aksi kanan. */
+@Composable
+private fun SettingsRow(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    value: String? = null,
+    icon: ImageVector? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = subtitle?.let {
+            {
+                Text(
+                    text = it,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        leadingContent = icon?.let {
+            {
+                Icon(
+                    imageVector = it,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (value != null) SettingsValuePill(value)
+                trailing?.invoke()
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            ),
+    )
 }
 
 @Composable
@@ -151,8 +265,8 @@ internal fun SettingsAppearanceSection(
     vm: SettingsViewModel,
     reduceMotion: Boolean,
 ) {
-    SectionLabel(stringResource(R.string.settings_section_appearance))
-    HyperGroup {
+    SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
+    SettingsGroup {
         SettingsBlock(
             title = stringResource(R.string.settings_theme),
             subtitle = stringResource(R.string.settings_theme_body),
@@ -254,8 +368,8 @@ internal fun SettingsFilesSection(
     vm: SettingsViewModel,
     reduceMotion: Boolean,
 ) {
-    SectionLabel(stringResource(R.string.settings_section_files))
-    HyperGroup {
+    SettingsSectionHeader(stringResource(R.string.settings_section_files))
+    SettingsGroup {
         SettingsBlock(title = stringResource(R.string.settings_view_mode)) {
             SettingsSegmented(
                 options = viewOptions(),
@@ -341,8 +455,8 @@ internal fun SettingsNetworkSection(
     val defaultLabel = stringResource(R.string.settings_download_default)
     val changeLabel = stringResource(R.string.settings_download_change)
 
-    SectionLabel(stringResource(R.string.settings_section_network))
-    HyperGroup {
+    SettingsSectionHeader(stringResource(R.string.settings_section_network))
+    SettingsGroup {
         SettingsSwitchRow(
             title = stringResource(R.string.settings_wifi_only),
             subtitle = stringResource(R.string.settings_wifi_only_body),
@@ -363,24 +477,24 @@ internal fun SettingsNetworkSection(
             )
         }
         SettingsDivider()
-        HyperRow(
+        SettingsRow(
             title = stringResource(R.string.settings_download_location),
             subtitle = folder ?: defaultLabel,
             icon = Icons.Filled.Download,
-            iconTint = Hyper.Accent,
+            iconTint = MaterialTheme.colorScheme.primary,
             onClick = actions.onPickDownloadFolder,
             trailing = {
                 Text(
                     text = changeLabel,
                     style = MaterialTheme.typography.labelLarge,
-                    color = Hyper.Accent,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             },
         )
         Text(
             text = stringResource(R.string.settings_download_body),
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text3,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 12.dp),
         )
         SettingsDivider()
@@ -418,8 +532,8 @@ internal fun SettingsSecuritySection(
         }
     }
 
-    SectionLabel(stringResource(R.string.settings_section_security))
-    HyperGroup {
+    SettingsSectionHeader(stringResource(R.string.settings_section_security))
+    SettingsGroup {
         SettingsSwitchRow(
             title = stringResource(R.string.settings_app_lock),
             subtitle = stringResource(R.string.settings_app_lock_body),
@@ -431,7 +545,7 @@ internal fun SettingsSecuritySection(
             Text(
                 text = stringResource(R.string.settings_app_lock_note),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text3,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 12.dp),
             )
         }
@@ -449,7 +563,7 @@ internal fun SettingsSecuritySection(
             Text(
                 text = stringResource(R.string.settings_tips_done),
                 style = MaterialTheme.typography.labelMedium,
-                color = Hyper.Accent,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 10.dp),
             )
         }
@@ -487,17 +601,17 @@ internal fun SettingsDataSection(
         }
     }
 
-    SectionLabel(stringResource(R.string.settings_section_data))
-    HyperGroup {
-        HyperRow(
+    SettingsSectionHeader(stringResource(R.string.settings_section_data))
+    SettingsGroup {
+        SettingsRow(
             title = stringResource(R.string.settings_cache),
             subtitle = stringResource(R.string.settings_cache_body),
             value = readableSize(cacheBytes),
             icon = Icons.Filled.Storage,
-            iconTint = Hyper.Text2,
+            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
-            HoldToConfirm(
+            HoldToConfirmButton(
                 label = stringResource(R.string.settings_cache_clear),
                 hint = if (cacheCleared) {
                     stringResource(R.string.settings_cache_cleared)
@@ -511,11 +625,11 @@ internal fun SettingsDataSection(
             )
         }
         SettingsDivider()
-        HyperRow(
+        SettingsRow(
             title = stringResource(R.string.settings_library),
             subtitle = stringResource(R.string.settings_library_body),
             icon = Icons.Filled.Star,
-            iconTint = Hyper.Accent,
+            iconTint = MaterialTheme.colorScheme.primary,
         )
         Text(
             text = stringResource(
@@ -524,11 +638,11 @@ internal fun SettingsDataSection(
                 prefs.recent.size,
             ),
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text3,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 10.dp),
         )
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
-            HoldToConfirm(
+            HoldToConfirmButton(
                 label = stringResource(R.string.settings_library_clear),
                 hint = if (libraryCleared) {
                     stringResource(R.string.settings_library_cleared)
@@ -555,22 +669,22 @@ internal fun SettingsDataSection(
 
 @Composable
 internal fun SettingsAboutSection(actions: SettingsActions) {
-    SectionLabel(stringResource(R.string.settings_section_about))
-    HyperGroup {
+    SettingsSectionHeader(stringResource(R.string.settings_section_about))
+    SettingsGroup {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
                 text = stringResource(R.string.settings_app_name),
                 style = MaterialTheme.typography.titleSmall,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = stringResource(R.string.settings_built_with),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         SettingsDivider()
-        HyperRow(
+        SettingsRow(
             title = stringResource(R.string.settings_version),
             value = stringResource(
                 R.string.settings_version_value,
@@ -578,7 +692,7 @@ internal fun SettingsAboutSection(actions: SettingsActions) {
                 BuildConfig.VERSION_CODE,
             ),
             icon = Icons.Filled.Info,
-            iconTint = Hyper.Text2,
+            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         SettingsDivider()
         SettingsActionRow(
@@ -599,7 +713,7 @@ internal fun SettingsAboutSection(actions: SettingsActions) {
             title = stringResource(R.string.settings_whats_new),
             subtitle = stringResource(R.string.settings_whats_new_body),
             icon = Icons.Filled.Star,
-            iconTint = Hyper.Accent,
+            iconTint = MaterialTheme.colorScheme.primary,
             onClick = actions.onShowWhatsNew,
         )
     }
