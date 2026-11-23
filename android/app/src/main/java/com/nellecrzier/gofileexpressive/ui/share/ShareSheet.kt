@@ -6,9 +6,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,8 +26,12 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,11 +49,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperCard
-import com.nellecrzier.gofileexpressive.ui.HyperExpoOut
-import com.nellecrzier.gofileexpressive.ui.HyperIconButton
-import com.nellecrzier.gofileexpressive.ui.IconChip
 import com.nellecrzier.gofileexpressive.ui.components.fileKind
 import kotlinx.coroutines.delay
 
@@ -100,21 +101,26 @@ fun ShareSheet(
                     Text(
                         text = stringResource(R.string.share_title),
                         style = MaterialTheme.typography.titleLarge,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = stringResource(
                             if (item.isFolder) R.string.share_kind_folder else R.string.share_kind_file,
                         ),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Hyper.Text3,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                 }
-                HyperIconButton(
-                    icon = Icons.Filled.Close,
-                    description = stringResource(R.string.share_close),
+                FilledTonalIconButton(
                     onClick = onDismiss,
-                )
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.share_close),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -127,12 +133,17 @@ fun ShareSheet(
                 HintLine(
                     text = stringResource(R.string.share_no_link),
                     extra = stringResource(R.string.share_no_link_hint),
-                    color = Hyper.Warn,
+                    color = MaterialTheme.colorScheme.secondary,
                 )
             }
 
             Spacer(Modifier.height(14.dp))
-            HyperCard {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            ) {
                 ShareActionRow(
                     icon = Icons.Filled.ContentCopy,
                     title = stringResource(R.string.share_action_copy),
@@ -188,7 +199,7 @@ fun ShareSheet(
             } else {
                 AnimatedVisibility(
                     visible = detailsOpen,
-                    enter = expandVertically(animationSpec = tween(230, easing = HyperExpoOut)) +
+                    enter = expandVertically(animationSpec = tween(230)) +
                         fadeIn(animationSpec = tween(160)),
                     exit = shrinkVertically(animationSpec = tween(180)) +
                         fadeOut(animationSpec = tween(120)),
@@ -198,10 +209,16 @@ fun ShareSheet(
             }
 
             if (clipboardFailed) {
-                HintLine(text = stringResource(R.string.share_clipboard_unavailable), color = Hyper.Accent)
+                HintLine(
+                    text = stringResource(R.string.share_clipboard_unavailable),
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
             if (token.isBlank()) {
-                HintLine(text = stringResource(R.string.share_no_session), color = Hyper.Text3)
+                HintLine(
+                    text = stringResource(R.string.share_no_session),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
             }
         }
     }
@@ -240,23 +257,40 @@ private fun PreviewCard(item: GItem) {
         )
     }
 
-    HyperCard(shape = RoundedCornerShape(22.dp)) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconChip(
-                icon = kind.icon,
-                size = 46.dp,
-                iconSize = 22.dp,
-                tint = if (item.isFolder) Hyper.Accent else Hyper.Text,
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.size(46.dp),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        kind.icon,
+                        contentDescription = null,
+                        tint = if (item.isFolder) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     text = middleEllipsis(item.name, 46),
                     style = MaterialTheme.typography.titleMedium,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -264,7 +298,7 @@ private fun PreviewCard(item: GItem) {
                 Text(
                     text = meta,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -275,16 +309,18 @@ private fun PreviewCard(item: GItem) {
 
 @Composable
 private fun LinkCard(link: String, folder: Boolean) {
-    HyperCard(
+    Card(
         shape = RoundedCornerShape(18.dp),
-        fill = Hyper.CardRaised,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Text(
                 text = link,
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = FontFamily.Monospace,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -292,7 +328,7 @@ private fun LinkCard(link: String, folder: Boolean) {
                 Text(
                     text = stringResource(R.string.share_folder_link_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -327,7 +363,7 @@ private fun HintLine(text: String, color: androidx.compose.ui.graphics.Color, ex
                 Text(
                     text = extra,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Text3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -337,7 +373,13 @@ private fun HintLine(text: String, color: androidx.compose.ui.graphics.Color, ex
 
 @Composable
 private fun DetailsCard(item: GItem) {
-    HyperCard(modifier = Modifier.padding(top = 10.dp)) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.padding(top = 10.dp),
+    ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
             DetailLine(stringResource(R.string.share_detail_id), item.id, mono = true)
             DetailLine(
@@ -376,13 +418,13 @@ private fun DetailLine(label: String, value: String, mono: Boolean = false) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = Hyper.Text3,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.width(96.dp),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            color = Hyper.Text2,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = if (mono) FontFamily.Monospace else null,
             maxLines = 4,
             overflow = TextOverflow.Ellipsis,
