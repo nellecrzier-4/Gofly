@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
 
 /** Lencana tier GoFile: kapsul kecil, teks monospace, bukan warna saja. */
 @Composable
@@ -21,8 +20,8 @@ internal fun AccountTierBadge(tier: String, modifier: Modifier = Modifier) {
     if (tier.isBlank()) return
     Surface(
         shape = CircleShape,
-        color = Hyper.Card,
-        border = BorderStroke(0.8.dp, Hyper.AccentEdge),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
         modifier = modifier,
     ) {
         Text(
@@ -30,7 +29,7 @@ internal fun AccountTierBadge(tier: String, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelSmall,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
-            color = Hyper.Accent,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
         )
     }

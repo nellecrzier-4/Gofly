@@ -1,8 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.account
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -37,12 +35,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
+import com.nellecrzier.gofileexpressive.ui.expressive.motionScheme
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import kotlin.math.roundToInt
 
 /**
- * Bilah penyimpanan HyperSpring: rel rambut tipis, isi aksen membulat. Tidak
+ * Bilah penyimpanan Material 3: rel track membulat, isi aksen membulat. Tidak
  * memakai pustaka grafik — satu Canvas, dua bentuk.
  */
 @Composable
@@ -54,14 +52,19 @@ internal fun StorageBar(
 ) {
     val target = fraction?.coerceIn(0f, 1f) ?: 0f
     val reveal = remember { Animatable(if (reduceMotion) target else 0f) }
+    val spec = motionScheme.defaultSpatialSpec<Float>()
 
     LaunchedEffect(target, reduceMotion) {
         if (reduceMotion) {
             reveal.snapTo(target)
         } else {
-            reveal.animateTo(target, tween(720, easing = FastOutSlowInEasing))
+            reveal.animateTo(target, spec)
         }
     }
+
+    val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    val outline = MaterialTheme.colorScheme.outline
+    val accent = MaterialTheme.colorScheme.primary
 
     Canvas(
         modifier
@@ -72,14 +75,14 @@ internal fun StorageBar(
             },
     ) {
         val radius = CornerRadius(size.height / 2f)
-        // Rel: garis rambut di atas track gelap, bukan bayangan.
+        // Rel: satu bidang track, tanpa lapisan tambahan.
         drawRoundRect(
-            color = Hyper.Track,
+            color = track,
             cornerRadius = radius,
             size = Size(size.width, size.height),
         )
         drawRoundRect(
-            color = Hyper.HairlineStrong,
+            color = outline,
             cornerRadius = radius,
             size = Size(size.width, size.height),
             style = Stroke(width = 0.8.dp.toPx()),
@@ -87,7 +90,7 @@ internal fun StorageBar(
         val filled = size.width * reveal.value
         if (filled > 0.5f) {
             drawRoundRect(
-                color = Hyper.Accent,
+                color = accent,
                 cornerRadius = radius,
                 size = Size(filled.coerceAtLeast(size.height), size.height),
             )
@@ -96,7 +99,7 @@ internal fun StorageBar(
 }
 
 /** Warna potongan: satu aksen dengan alfa bertingkat, bukan pelangi. */
-internal fun sliceColor(index: Int): Color = Hyper.Accent.copy(
+internal fun sliceColor(index: Int, accent: Color): Color = accent.copy(
     alpha = when (index) {
         0 -> 1f
         1 -> 0.74f
@@ -120,9 +123,16 @@ internal fun TypeBreakdownChart(
 ) {
     val total = slices.sumOf { it.bytes }.coerceAtLeast(1L)
     val reveal = remember { Animatable(if (reduceMotion) 1f else 0f) }
+    val spec = motionScheme.defaultSpatialSpec<Float>()
 
     LaunchedEffect(reduceMotion) {
-        if (reduceMotion) reveal.snapTo(1f) else reveal.animateTo(1f, tween(680, easing = FastOutSlowInEasing))
+        if (reduceMotion) reveal.snapTo(1f) else reveal.animateTo(1f, spec)
+    }
+
+    val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    val accent = MaterialTheme.colorScheme.primary
+    val sliceColors = remember(slices, accent) {
+        List(slices.size) { index -> sliceColor(index, accent) }
     }
 
     Canvas(
@@ -146,13 +156,13 @@ internal fun TypeBreakdownChart(
             )
         }
         clipPath(clip) {
-            drawRect(color = Hyper.Track, size = size)
+            drawRect(color = track, size = size)
             var x = 0f
             slices.forEachIndexed { index, slice ->
                 val width = size.width * (slice.bytes.toFloat() / total.toFloat()) * reveal.value
                 if (width <= 0f) return@forEachIndexed
                 drawRect(
-                    color = sliceColor(index),
+                    color = sliceColors.getOrElse(index) { accent },
                     topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
                     size = Size(width, size.height),
                 )
@@ -169,6 +179,7 @@ internal fun BreakdownLegend(
     modifier: Modifier = Modifier,
 ) {
     val total = slices.sumOf { it.bytes }.coerceAtLeast(1L)
+    val accent = MaterialTheme.colorScheme.primary
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         slices.forEachIndexed { index, slice ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -176,13 +187,13 @@ internal fun BreakdownLegend(
                     Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(sliceColor(index)),
+                        .background(sliceColor(index, accent)),
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = slice.label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
@@ -192,7 +203,7 @@ internal fun BreakdownLegend(
                     ),
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = FontFamily.Monospace,
-                    color = Hyper.Text2,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
@@ -200,7 +211,7 @@ internal fun BreakdownLegend(
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = Hyper.Text,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
