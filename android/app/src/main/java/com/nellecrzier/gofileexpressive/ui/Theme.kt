@@ -163,7 +163,8 @@ fun GofileTheme(
         scheme
     }
     val animated = animateScheme(base, reduceMotion)
-    val typography = if (fontScale == 1f) Typography() else Typography().scaled(fontScale)
+    val baseType = expressiveTypeScale()
+    val typography = if (fontScale == 1f) baseType else baseType.scaled(fontScale)
     val shapes = Shapes(
         extraSmall = RoundedCornerShape(4.dp),
         small = RoundedCornerShape(8.dp),
@@ -178,6 +179,21 @@ fun GofileTheme(
         typography = typography,
         shapes = shapes,
         content = content,
+    )
+}
+
+/** Skala tipe M3 Expressive: peran judul memakai gaya emphasized. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun expressiveTypeScale(): Typography {
+    val base = Typography()
+    return base.copy(
+        displayLarge = base.displayLargeEmphasized,
+        displayMedium = base.displayMediumEmphasized,
+        displaySmall = base.displaySmallEmphasized,
+        headlineLarge = base.headlineLargeEmphasized,
+        headlineMedium = base.headlineMediumEmphasized,
+        headlineSmall = base.headlineSmallEmphasized,
+        titleLarge = base.titleLargeEmphasized,
     )
 }
 
