@@ -1,11 +1,20 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.nellecrzier.gofileexpressive.ui.login
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,8 +65,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GofileApi
+import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
+import com.nellecrzier.gofileexpressive.ui.motion.staggeredEnter
 
 private const val PAGE_WELCOME = 0
 private const val PAGE_EMAIL = 1
@@ -69,6 +81,11 @@ private const val PAGE_TOKEN = 2
  * Alur: sambutan → email → tautan. Halaman tautan bisa dibuka langsung dari
  * halaman email, tombol tempel membaca clipboard, dan tombol utama meneruskan
  * token yang sudah di-trim ke ViewModel (tidak membaca state lama).
+ *
+ * Gerak: pergantian halaman memudar dengan spesifikasi effects dari
+ * `motionScheme`, isi halaman masuk bertahap (`staggeredEnter`), pesan
+ * galat/notis membuka ruang dengan `expandVertically` + `fadeIn`, dan label
+ * tombol utama berpindah lebar/alfa dengan spesifikasi spatial + effects.
  */
 @Composable
 internal fun LoginScreen(
@@ -145,6 +162,22 @@ internal fun LoginScreen(
         }
     }
 
+    // Spesifikasi gerak dari skema tema; saat gerak diredupkan semua menjadi snap.
+    val fadeSpec = if (reduceMotion) tween<Float>(0) else motionScheme.fastEffectsSpec<Float>()
+    val expandSpec = if (reduceMotion) tween<IntSize>(0) else motionScheme.fastSpatialSpec<IntSize>()
+    val pageEnterSpec = if (reduceMotion) tween<Float>(0) else motionScheme.slowEffectsSpec<Float>()
+    val pageExitSpec = if (reduceMotion) tween<Float>(0) else motionScheme.fastEffectsSpec<Float>()
+    // Ukuran label tombol ikut spesifikasi spatial, bukan tween tetap.
+    val labelSizeSpec = if (reduceMotion) tween<IntSize>(0) else motionScheme.fastSpatialSpec<IntSize>()
+
+    val submitLabel = when {
+        busy && page == PAGE_EMAIL -> "Mengirim…"
+        busy && page == PAGE_TOKEN -> "Memeriksa…"
+        page == PAGE_TOKEN -> "Masuk"
+        page == PAGE_EMAIL -> "Kirim tautan"
+        else -> "Lanjut"
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -183,8 +216,7 @@ internal fun LoginScreen(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             label = "loginPage",
             transitionSpec = {
-                if (reduceMotion) fadeIn(tween(120)) togetherWith fadeOut(tween(120))
-                else fadeIn(tween(220)) togetherWith fadeOut(tween(160))
+                fadeIn(pageEnterSpec) togetherWith fadeOut(pageExitSpec)
             },
         ) { current ->
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -197,7 +229,7 @@ internal fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     when (current) {
-                        PAGE_WELCOME -> WelcomePage()
+                        PAGE_WELCOME -> WelcomePage(reduceMotion = reduceMotion)
                         PAGE_EMAIL -> EmailPage(
                             email = email,
                             emailInvalid = emailInvalid,
@@ -206,6 +238,7 @@ internal fun LoginScreen(
                             onEmailChange = onEmailChange,
                             onGuest = onGuest,
                             onPasteLink = { paste(); page = PAGE_TOKEN },
+                            reduceMotion = reduceMotion,
                         )
                         else -> TokenPage(
                             tokenInput = tokenInput,
@@ -217,6 +250,7 @@ internal fun LoginScreen(
                             onPaste = { paste() },
                             onResend = onSend,
                             onChangeEmail = { page = PAGE_EMAIL; onBackToEmail() },
+                            reduceMotion = reduceMotion,
                         )
                     }
                 }
@@ -249,7 +283,13 @@ internal fun LoginScreen(
                 shape = RoundedCornerShape(28.dp),
                 modifier = Modifier.weight(1f).height(56.dp),
             ) {
-                if (busy) {
+                // Indikator tetap di dalam tombol; lebarnya dibuka dengan
+                // spesifikasi spatial, alfanya dengan spesifikasi effects.
+                AnimatedVisibility(
+                    visible = busy,
+                    enter = fadeIn(fadeSpec) + expandHorizontally(expandSpec),
+                    exit = fadeOut(fadeSpec) + shrinkHorizontally(expandSpec),
+                ) {
                     AppLoadingIndicator(
                         size = 18.dp,
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -257,28 +297,73 @@ internal fun LoginScreen(
                     )
                     Spacer(Modifier.width(10.dp))
                 }
-                Text(
-                    when {
-                        busy && page == PAGE_EMAIL -> "Mengirim…"
-                        busy && page == PAGE_TOKEN -> "Memeriksa…"
-                        page == PAGE_TOKEN -> "Masuk"
-                        page == PAGE_EMAIL -> "Kirim tautan"
-                        else -> "Lanjut"
+                AnimatedContent(
+                    targetState = submitLabel,
+                    transitionSpec = {
+                        ContentTransform(
+                            fadeIn(fadeSpec),
+                            fadeOut(fadeSpec),
+                            0f,
+                            SizeTransform(clip = false) { _, _ -> labelSizeSpec },
+                        )
                     },
-                )
+                    contentAlignment = Alignment.Center,
+                    label = "loginSubmitLabel",
+                ) { label ->
+                    Text(label)
+                }
             }
         }
     }
 }
 
+/**
+ * Pesan bantuan di bawah kolom: satu pesan tampil pada satu waktu, tetapi
+ * perpindahan antara petunjuk netral dan galat/notis dianimasikan dengan
+ * `expandVertically` + `fadeIn` (dan kebalikannya saat hilang).
+ */
 @Composable
-private fun WelcomePage() {
+private fun AnimatedSupportingText(
+    hint: String,
+    issue: String?,
+    reduceMotion: Boolean,
+) {
+    val fadeSpec = if (reduceMotion) tween<Float>(0) else motionScheme.fastEffectsSpec<Float>()
+    val expandSpec = if (reduceMotion) tween<IntSize>(0) else motionScheme.fastSpatialSpec<IntSize>()
+    // Teks galat terakhir dipertahankan agar animasi keluar tidak mengosongkan ruang.
+    var lastIssue by remember { mutableStateOf("") }
+    LaunchedEffect(issue) { if (issue != null) lastIssue = issue }
+
+    Column(Modifier.fillMaxWidth()) {
+        AnimatedVisibility(
+            visible = issue != null,
+            enter = fadeIn(fadeSpec) + expandVertically(expandSpec),
+            exit = fadeOut(fadeSpec) + shrinkVertically(expandSpec),
+        ) {
+            Text(issue ?: lastIssue)
+        }
+        AnimatedVisibility(
+            visible = issue == null,
+            enter = fadeIn(fadeSpec) + expandVertically(expandSpec),
+            exit = fadeOut(fadeSpec) + shrinkVertically(expandSpec),
+        ) {
+            Text(hint)
+        }
+    }
+}
+
+@Composable
+private fun WelcomePage(reduceMotion: Boolean) {
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+
     Text(
         text = "Gofile Expressive",
         style = MaterialTheme.typography.displaySmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(0, reduceMotion, entered),
     )
     Spacer(Modifier.height(10.dp))
     Text(
@@ -286,17 +371,24 @@ private fun WelcomePage() {
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(1, reduceMotion, entered),
     )
     Spacer(Modifier.height(24.dp))
-    AssistChip(onClick = {}, label = { Text("Native · Jetpack Compose") }, leadingIcon = {
-        Icon(Icons.Filled.CloudQueue, contentDescription = null, modifier = Modifier.size(18.dp))
-    })
+    AssistChip(
+        onClick = {},
+        label = { Text("Native · Jetpack Compose") },
+        leadingIcon = {
+            Icon(Icons.Filled.CloudQueue, contentDescription = null, modifier = Modifier.size(18.dp))
+        },
+        modifier = Modifier.staggeredEnter(2, reduceMotion, entered),
+    )
     Spacer(Modifier.height(18.dp))
     Text(
         text = "Masuk dengan tautan email, tempel tautan yang sudah kamu punya, atau coba sebagai tamu.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(3, reduceMotion, entered),
     )
 }
 
@@ -309,12 +401,17 @@ private fun EmailPage(
     onEmailChange: (String) -> Unit,
     onGuest: () -> Unit,
     onPasteLink: () -> Unit,
+    reduceMotion: Boolean,
 ) {
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+
     Text(
         text = "Masuk ke GoFile",
         style = MaterialTheme.typography.headlineMedium,
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(0, reduceMotion, entered),
     )
     Spacer(Modifier.height(8.dp))
     Text(
@@ -322,6 +419,7 @@ private fun EmailPage(
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(1, reduceMotion, entered),
     )
     Spacer(Modifier.height(20.dp))
     OutlinedTextField(
@@ -330,12 +428,14 @@ private fun EmailPage(
         label = { Text("Alamat email") },
         leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
         supportingText = {
-            Text(
-                when {
+            AnimatedSupportingText(
+                hint = "Tautan login hanya dikirim ke alamat ini.",
+                issue = when {
                     emailInvalid -> "Format email belum benar."
                     notice != null -> notice
-                    else -> "Tautan login hanya dikirim ke alamat ini."
+                    else -> null
                 },
+                reduceMotion = reduceMotion,
             )
         },
         isError = emailInvalid,
@@ -344,10 +444,18 @@ private fun EmailPage(
         shape = RoundedCornerShape(16.dp),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
         keyboardActions = KeyboardActions(onSend = { if (!busy) onGuest }),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .staggeredEnter(2, reduceMotion, entered),
     )
     Spacer(Modifier.height(4.dp))
-    TextButton(onClick = onPasteLink, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+    TextButton(
+        onClick = onPasteLink,
+        enabled = !busy,
+        modifier = Modifier
+            .fillMaxWidth()
+            .staggeredEnter(3, reduceMotion, entered),
+    ) {
         Icon(Icons.Filled.Link, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
         Text("Sudah punya tautan? Tempel di sini")
@@ -357,7 +465,10 @@ private fun EmailPage(
         onClick = onGuest,
         enabled = !busy,
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth().height(52.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .staggeredEnter(4, reduceMotion, entered),
     ) {
         Icon(Icons.Filled.CloudQueue, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(8.dp))
@@ -376,12 +487,17 @@ private fun TokenPage(
     onPaste: () -> Unit,
     onResend: () -> Unit,
     onChangeEmail: () -> Unit,
+    reduceMotion: Boolean,
 ) {
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+
     Text(
         text = "Cek email kamu",
         style = MaterialTheme.typography.headlineMedium,
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(0, reduceMotion, entered),
     )
     Spacer(Modifier.height(8.dp))
     Text(
@@ -389,6 +505,7 @@ private fun TokenPage(
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
+        modifier = Modifier.staggeredEnter(1, reduceMotion, entered),
     )
     Spacer(Modifier.height(20.dp))
     OutlinedTextField(
@@ -402,13 +519,18 @@ private fun TokenPage(
             }
         },
         supportingText = {
-            Text(
-                when {
+            AnimatedSupportingText(
+                hint = if (tokenValid) {
+                    "Tautan dikenali."
+                } else {
+                    "Bisa juga tempel token 32 karakter."
+                },
+                issue = when {
                     notice != null -> notice
                     tokenInput.isNotBlank() && !tokenValid -> "Belum dikenali sebagai tautan GoFile."
-                    tokenValid -> "Tautan dikenali."
-                    else -> "Bisa juga tempel token 32 karakter."
+                    else -> null
                 },
+                reduceMotion = reduceMotion,
             )
         },
         isError = tokenInput.isNotBlank() && !tokenValid,
@@ -416,10 +538,17 @@ private fun TokenPage(
         singleLine = true,
         shape = RoundedCornerShape(16.dp),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .staggeredEnter(2, reduceMotion, entered),
     )
     Spacer(Modifier.height(4.dp))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .staggeredEnter(3, reduceMotion, entered),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
         TextButton(onClick = onResend, enabled = email.isNotBlank() && !busy) { Text("Kirim ulang") }
         TextButton(onClick = onChangeEmail, enabled = !busy) { Text("Ganti email") }
     }
