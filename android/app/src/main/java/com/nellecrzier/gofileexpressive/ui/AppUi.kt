@@ -227,6 +227,7 @@ fun GofileApp(activity: MainActivity) {
         accent = prefs.accent,
         dynamic = prefs.dynamicColor,
         fontScale = prefs.fontScale,
+        reduceMotion = reduceMotion,
     ) {
         AppLockGate(enabled = prefs.appLock, lockRevision = lockRevision) {
         val permissionRevision by activity.permissionRevision.collectAsState()

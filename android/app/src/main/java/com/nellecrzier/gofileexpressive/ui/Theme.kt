@@ -82,8 +82,8 @@ private fun schemeFor(dark: Boolean, choice: AccentChoice): ColorScheme {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun animatedColor(target: Color, label: String): Color {
-    val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Color>()
+private fun animatedColor(target: Color, label: String, reduceMotion: Boolean): Color {
+    val spec = if (reduceMotion) androidx.compose.animation.core.tween(0) else MaterialTheme.motionScheme.defaultEffectsSpec<Color>()
     val value by animateColorAsState(targetValue = target, animationSpec = spec, label = label)
     return value
 }
@@ -91,39 +91,39 @@ private fun animatedColor(target: Color, label: String): Color {
 /** Skema warna yang seluruh perannya dianimasikan saat tema berganti. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun animateScheme(target: ColorScheme): ColorScheme = target.copy(
-    primary = animatedColor(target.primary, "primary"),
-    onPrimary = animatedColor(target.onPrimary, "onPrimary"),
-    primaryContainer = animatedColor(target.primaryContainer, "primaryContainer"),
-    onPrimaryContainer = animatedColor(target.onPrimaryContainer, "onPrimaryContainer"),
-    inversePrimary = animatedColor(target.inversePrimary, "inversePrimary"),
-    secondary = animatedColor(target.secondary, "secondary"),
-    onSecondary = animatedColor(target.onSecondary, "onSecondary"),
-    secondaryContainer = animatedColor(target.secondaryContainer, "secondaryContainer"),
-    onSecondaryContainer = animatedColor(target.onSecondaryContainer, "onSecondaryContainer"),
-    tertiary = animatedColor(target.tertiary, "tertiary"),
-    onTertiary = animatedColor(target.onTertiary, "onTertiary"),
-    tertiaryContainer = animatedColor(target.tertiaryContainer, "tertiaryContainer"),
-    onTertiaryContainer = animatedColor(target.onTertiaryContainer, "onTertiaryContainer"),
-    background = animatedColor(target.background, "background"),
-    onBackground = animatedColor(target.onBackground, "onBackground"),
-    surface = animatedColor(target.surface, "surface"),
-    onSurface = animatedColor(target.onSurface, "onSurface"),
-    surfaceVariant = animatedColor(target.surfaceVariant, "surfaceVariant"),
-    onSurfaceVariant = animatedColor(target.onSurfaceVariant, "onSurfaceVariant"),
-    surfaceContainerLowest = animatedColor(target.surfaceContainerLowest, "surfaceContainerLowest"),
-    surfaceContainerLow = animatedColor(target.surfaceContainerLow, "surfaceContainerLow"),
-    surfaceContainer = animatedColor(target.surfaceContainer, "surfaceContainer"),
-    surfaceContainerHigh = animatedColor(target.surfaceContainerHigh, "surfaceContainerHigh"),
-    surfaceContainerHighest = animatedColor(target.surfaceContainerHighest, "surfaceContainerHighest"),
-    inverseSurface = animatedColor(target.inverseSurface, "inverseSurface"),
-    inverseOnSurface = animatedColor(target.inverseOnSurface, "inverseOnSurface"),
-    error = animatedColor(target.error, "error"),
-    onError = animatedColor(target.onError, "onError"),
-    errorContainer = animatedColor(target.errorContainer, "errorContainer"),
-    onErrorContainer = animatedColor(target.onErrorContainer, "onErrorContainer"),
-    outline = animatedColor(target.outline, "outline"),
-    outlineVariant = animatedColor(target.outlineVariant, "outlineVariant"),
+private fun animateScheme(target: ColorScheme, reduceMotion: Boolean): ColorScheme = target.copy(
+    primary = animatedColor(target.primary, "primary", reduceMotion),
+    onPrimary = animatedColor(target.onPrimary, "onPrimary", reduceMotion),
+    primaryContainer = animatedColor(target.primaryContainer, "primaryContainer", reduceMotion),
+    onPrimaryContainer = animatedColor(target.onPrimaryContainer, "onPrimaryContainer", reduceMotion),
+    inversePrimary = animatedColor(target.inversePrimary, "inversePrimary", reduceMotion),
+    secondary = animatedColor(target.secondary, "secondary", reduceMotion),
+    onSecondary = animatedColor(target.onSecondary, "onSecondary", reduceMotion),
+    secondaryContainer = animatedColor(target.secondaryContainer, "secondaryContainer", reduceMotion),
+    onSecondaryContainer = animatedColor(target.onSecondaryContainer, "onSecondaryContainer", reduceMotion),
+    tertiary = animatedColor(target.tertiary, "tertiary", reduceMotion),
+    onTertiary = animatedColor(target.onTertiary, "onTertiary", reduceMotion),
+    tertiaryContainer = animatedColor(target.tertiaryContainer, "tertiaryContainer", reduceMotion),
+    onTertiaryContainer = animatedColor(target.onTertiaryContainer, "onTertiaryContainer", reduceMotion),
+    background = animatedColor(target.background, "background", reduceMotion),
+    onBackground = animatedColor(target.onBackground, "onBackground", reduceMotion),
+    surface = animatedColor(target.surface, "surface", reduceMotion),
+    onSurface = animatedColor(target.onSurface, "onSurface", reduceMotion),
+    surfaceVariant = animatedColor(target.surfaceVariant, "surfaceVariant", reduceMotion),
+    onSurfaceVariant = animatedColor(target.onSurfaceVariant, "onSurfaceVariant", reduceMotion),
+    surfaceContainerLowest = animatedColor(target.surfaceContainerLowest, "surfaceContainerLowest", reduceMotion),
+    surfaceContainerLow = animatedColor(target.surfaceContainerLow, "surfaceContainerLow", reduceMotion),
+    surfaceContainer = animatedColor(target.surfaceContainer, "surfaceContainer", reduceMotion),
+    surfaceContainerHigh = animatedColor(target.surfaceContainerHigh, "surfaceContainerHigh", reduceMotion),
+    surfaceContainerHighest = animatedColor(target.surfaceContainerHighest, "surfaceContainerHighest", reduceMotion),
+    inverseSurface = animatedColor(target.inverseSurface, "inverseSurface", reduceMotion),
+    inverseOnSurface = animatedColor(target.inverseOnSurface, "inverseOnSurface", reduceMotion),
+    error = animatedColor(target.error, "error", reduceMotion),
+    onError = animatedColor(target.onError, "onError", reduceMotion),
+    errorContainer = animatedColor(target.errorContainer, "errorContainer", reduceMotion),
+    onErrorContainer = animatedColor(target.onErrorContainer, "onErrorContainer", reduceMotion),
+    outline = animatedColor(target.outline, "outline", reduceMotion),
+    outlineVariant = animatedColor(target.outlineVariant, "outlineVariant", reduceMotion),
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -133,6 +133,7 @@ fun GofileTheme(
     accent: AccentChoice = AccentChoice.CORAL,
     dynamic: Boolean = true,
     fontScale: Float = 1f,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -147,7 +148,7 @@ fun GofileTheme(
         dynamicAvailable -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         else -> schemeFor(dark, accent)
     }
-    val animated = animateScheme(scheme)
+    val animated = animateScheme(scheme, reduceMotion)
     val typography = if (fontScale == 1f) Typography() else Typography().scaled(fontScale)
     val shapes = Shapes(
         extraSmall = RoundedCornerShape(4.dp),
