@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.GofileApi
 import com.nellecrzier.gofileexpressive.R
-import com.nellecrzier.gofileexpressive.ui.Hyper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -42,14 +41,18 @@ private sealed interface DocumentState {
     data class Ready(val text: String) : DocumentState
 }
 
-private val CodeTextStyle = TextStyle(
+@Composable
+private fun codeTextStyle(): TextStyle = TextStyle(
     fontFamily = FontFamily.Monospace,
     fontSize = 13.sp,
     lineHeight = 20.sp,
-    color = Hyper.Text,
+    color = MaterialTheme.colorScheme.onSurface,
 )
 
-private val GutterTextStyle = CodeTextStyle.copy(color = Hyper.Text3)
+@Composable
+private fun gutterTextStyle(): TextStyle = codeTextStyle().copy(
+    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+)
 
 /**
  * Teks, kode, dan Markdown dirender langsung di Compose. Di atas 1 MB file
@@ -148,14 +151,21 @@ internal fun DocumentPreview(
 
 @Composable
 private fun MarkdownBody(text: String, modifier: Modifier = Modifier) {
-    val annotated = remember(text) { buildMarkdownAnnotatedString(text) }
+    val colors = MarkdownColors(
+        text = MaterialTheme.colorScheme.onSurface,
+        muted = MaterialTheme.colorScheme.onSurfaceVariant,
+        faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        accent = MaterialTheme.colorScheme.primary,
+        codeFill = MaterialTheme.colorScheme.surfaceContainerHigh,
+    )
+    val annotated = remember(text, colors) { buildMarkdownAnnotatedString(text, colors) }
     val scroll = rememberScrollState()
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         SelectionContainer {
             Text(
                 text = annotated,
                 style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 27.sp),
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .widthIn(max = 760.dp)
                     .fillMaxWidth()
@@ -181,6 +191,8 @@ private fun CodeBody(
     val horizontal = rememberScrollState()
     val lineCount = remember(text) { text.count { it == '\n' } + 1 }
     val numbers = remember(lineCount) { (1..lineCount).joinToString("\n") }
+    val codeStyle = codeTextStyle()
+    val gutterStyle = gutterTextStyle()
 
     SelectionContainer {
         Row(
@@ -191,7 +203,7 @@ private fun CodeBody(
             if (lineNumbers) {
                 Text(
                     text = numbers,
-                    style = GutterTextStyle,
+                    style = gutterStyle,
                     softWrap = false,
                     textAlign = TextAlign.End,
                     modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 16.dp, bottom = 28.dp),
@@ -204,7 +216,7 @@ private fun CodeBody(
             ) {
                 Text(
                     text = text,
-                    style = CodeTextStyle,
+                    style = codeStyle,
                     softWrap = false,
                     modifier = Modifier.padding(
                         start = if (lineNumbers) 0.dp else 16.dp,
