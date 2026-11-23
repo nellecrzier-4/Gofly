@@ -252,8 +252,8 @@ class TransferService : Service() {
             val id = if (index == 0 && !baseId.isNullOrBlank()) baseId else UUID.randomUUID().toString()
             val name = when {
                 uris.size == 1 && baseName.isNotBlank() -> baseName
-                else -> displayName(uri) ?: "berkas-${System.currentTimeMillis()}-$index"
-            }.ifBlank { "berkas" }
+                else -> displayName(uri) ?: "${getString(R.string.upload_default_name, System.currentTimeMillis())}-$index"
+            }.ifBlank { getString(R.string.upload_default_name, System.currentTimeMillis()) }
             if (TransferStore.get(id) == null) {
                 TransferStore.add(TransferInfo(id, "upload", name, 0, "queued"))
             }
@@ -320,9 +320,9 @@ class TransferService : Service() {
     }
 
     private fun folderName(uri: Uri): String = try {
-        DocumentFile.fromTreeUri(this, uri)?.name ?: "Folder"
+        DocumentFile.fromTreeUri(this, uri)?.name ?: getString(R.string.folder_default_name)
     } catch (_: Exception) {
-        "Folder"
+        getString(R.string.folder_default_name)
     }
 
     /* ---------------------------- preferensi ---------------------------- */

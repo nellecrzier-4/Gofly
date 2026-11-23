@@ -1,5 +1,7 @@
 package com.nellecrzier.gofly.transfer
 
+import com.nellecrzier.gofly.R
+import com.nellecrzier.gofly.AppStrings
 import android.content.ContentValues
 import android.content.Context
 import androidx.annotation.RequiresApi
@@ -101,7 +103,7 @@ internal object DownloadSinks {
             SafSink(
                 context = context,
                 document = document,
-                displayPath = "${tree.name ?: "Folder"}/${document.name ?: finalName}",
+                displayPath = "${tree.name ?: AppStrings.get(R.string.folder_default_name)}/${document.name ?: finalName}",
                 mimeType = mime,
             )
         } catch (_: Exception) {

@@ -1,5 +1,7 @@
 package com.nellecrzier.gofly.vm
 
+import com.nellecrzier.gofly.R
+import com.nellecrzier.gofly.AppStrings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -112,7 +114,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
     fun openRoot(token: String, rootFolder: String) {
         val id = rootFolder.ifBlank { "root" }
         if (_state.value.crumbs.firstOrNull()?.id == id && _state.value.items.isNotEmpty()) return
-        _state.value = FolderUiState(crumbs = listOf(Crumb(id, "Root")))
+        _state.value = FolderUiState(crumbs = listOf(Crumb(id, AppStrings.get(R.string.folder_root_name))))
         load(token, id, reset = true)
     }
 
@@ -245,7 +247,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
                     _state.update { it.copy(offline = hadCache, error = error.message) }
                     if (!hadCache) {
                         _events.tryEmit(
-                            FolderEvent.Message(error.message ?: "Terjadi kesalahan."),
+                            FolderEvent.Message(error.message ?: AppStrings.get(R.string.err_generic)),
                         )
                     }
                 }
@@ -326,7 +328,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 repository.createFolder(token, parent, clean)
                 _state.update { it.copy(busy = false) }
-                _events.tryEmit(FolderEvent.Message("Folder \"$clean\" dibuat.", error = false))
+                _events.tryEmit(FolderEvent.Message(AppStrings.get(R.string.folder_created, clean), error = false))
                 load(token, parent, reset = true)
             } catch (error: Exception) {
                 fail(error)
@@ -350,7 +352,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
                         },
                     )
                 }
-                _events.tryEmit(FolderEvent.Message("Nama diubah menjadi \"$clean\".", error = false))
+                _events.tryEmit(FolderEvent.Message(AppStrings.get(R.string.folder_renamed, clean), error = false))
                 cache.save(parent, _state.value.items)
             } catch (error: Exception) {
                 fail(error)
@@ -383,7 +385,11 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
                 _state.update { it.copy(undo = null) }
                 _events.tryEmit(
                     FolderEvent.Message(
-                        if (items.size == 1) "\"${items.first().name}\" dihapus." else "${items.size} item dihapus.",
+                        if (items.size == 1) {
+                            AppStrings.get(R.string.folder_deleted_one, items.first().name)
+                        } else {
+                            AppStrings.get(R.string.folder_deleted_many, items.size)
+                        },
                         error = false,
                     ),
                 )
@@ -441,7 +447,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
     fun openPicker(token: String, mode: PickerMode) {
         lastToken = token
         val start = _state.value.currentFolderId ?: return
-        val name = _state.value.crumbs.lastOrNull()?.name ?: "Root"
+        val name = _state.value.crumbs.lastOrNull()?.name ?: AppStrings.get(R.string.folder_root_name)
         _state.update {
             it.copy(picker = PickerState(mode = mode, crumbs = listOf(Crumb(start, name))))
         }
@@ -479,7 +485,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 repository.createFolder(token, parent, clean)
                 loadPicker(token, parent)
-                _events.tryEmit(FolderEvent.Message("Folder \"$clean\" dibuat.", error = false))
+                _events.tryEmit(FolderEvent.Message(AppStrings.get(R.string.folder_created, clean), error = false))
             } catch (error: Exception) {
                 _state.update { it.copy(picker = picker.copy(busy = false)) }
                 fail(error)
@@ -516,8 +522,8 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
                 _events.tryEmit(
                     FolderEvent.Message(
                         when (picker.mode) {
-                            PickerMode.MOVE -> "Dipindahkan ke \"${picker.crumbs.last().name}\"."
-                            PickerMode.COPY -> "Disalin ke \"${picker.crumbs.last().name}\"."
+                            PickerMode.MOVE -> AppStrings.get(R.string.folder_moved_to, picker.crumbs.last().name)
+                            PickerMode.COPY -> AppStrings.get(R.string.folder_copied_to, picker.crumbs.last().name)
                         },
                         error = false,
                     ),
@@ -553,7 +559,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
                 if (error is GoFileException.AuthExpired) {
                     _events.tryEmit(FolderEvent.SessionExpired)
                 } else {
-                    _events.tryEmit(FolderEvent.Message(error.message ?: "Terjadi kesalahan."))
+                    _events.tryEmit(FolderEvent.Message(error.message ?: AppStrings.get(R.string.err_generic)))
                 }
             }
         }
@@ -564,7 +570,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
         if (error is GoFileException.AuthExpired) {
             _events.tryEmit(FolderEvent.SessionExpired)
         } else {
-            _events.tryEmit(FolderEvent.Message(error.message ?: "Terjadi kesalahan."))
+            _events.tryEmit(FolderEvent.Message(error.message ?: AppStrings.get(R.string.err_generic)))
         }
     }
 }

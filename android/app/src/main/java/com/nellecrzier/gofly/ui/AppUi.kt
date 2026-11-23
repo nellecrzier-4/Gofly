@@ -2,6 +2,7 @@
 
 package com.nellecrzier.gofly.ui
 
+import androidx.annotation.StringRes
 import com.nellecrzier.gofly.ui.components.LocalTabActivation
 import androidx.compose.runtime.mutableStateMapOf
 import kotlin.math.sign
@@ -175,16 +176,16 @@ data class Crumb(val id: String, val name: String)
 
 private data class AppTab(
     val key: String,
-    val label: String,
+    @StringRes val labelRes: Int,
     val icon: ImageVector,
     val outlined: ImageVector,
 )
 
 private val APP_TABS = listOf(
-    AppTab("home", "Beranda", Icons.Filled.Home, Icons.Outlined.Home),
-    AppTab("folder", "File", Icons.Filled.Folder, Icons.Outlined.Folder),
-    AppTab("library", "Pustaka", Icons.Filled.Star, Icons.Outlined.Star),
-    AppTab("settings", "Setelan", Icons.Filled.Settings, Icons.Outlined.Settings),
+    AppTab("home", R.string.tab_home, Icons.Filled.Home, Icons.Outlined.Home),
+    AppTab("folder", R.string.tab_folder, Icons.Filled.Folder, Icons.Outlined.Folder),
+    AppTab("library", R.string.tab_library, Icons.Filled.Star, Icons.Outlined.Star),
+    AppTab("settings", R.string.tab_settings, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
 
 private val TAB_ORDER = APP_TABS.map { it.key }
@@ -316,7 +317,7 @@ fun GofileApp(activity: MainActivity) {
             TransferStore.transfers.collect { list ->
                 list.filter { it.state == "error" && it.id !in handledErrors }.forEach {
                     handledErrors += it.id
-                    activity.toast(it.message.ifBlank { "Transfer gagal." })
+                    activity.toast(it.message.ifBlank { activity.getString(R.string.transfer_failed_generic) })
                 }
             }
         }
@@ -351,7 +352,7 @@ fun GofileApp(activity: MainActivity) {
                     )
                     currentTab = "folder"
                 } else {
-                    showNotice("Masuk dulu untuk membuka tautan folder.", error = true)
+                    showNotice(activity.getString(R.string.notice_login_for_folder_link), error = true)
                 }
                 activity.deepLinkFolder.value = null
             }
@@ -364,11 +365,11 @@ fun GofileApp(activity: MainActivity) {
                 val current = sessionVm.state.value.session
                 val folderId = folderVm.state.value.currentFolderId ?: current.rootFolder
                 if (current.token.isBlank()) {
-                    showNotice("Masuk dulu untuk mengunggah berkas.", error = true)
+                    showNotice(activity.getString(R.string.notice_login_for_upload), error = true)
                 } else {
                     currentTab = "folder"
                     activity.uploadUris(uris, folderId, current.token)
-                    showNotice("Mengunggah ${uris.size} berkas…", error = false)
+                    showNotice(activity.resources.getQuantityString(R.plurals.notice_uploading_count, uris.size, uris.size), error = false)
                 }
                 activity.incomingShare.value = emptyList()
             }
@@ -752,7 +753,7 @@ private fun AnimatedTabIcon(
     ) { active ->
         Icon(
             imageVector = if (active) tab.icon else tab.outlined,
-            contentDescription = tab.label,
+            contentDescription = stringResource(tab.labelRes),
             modifier = Modifier.size(24.dp),
         )
     }
@@ -776,7 +777,7 @@ private fun AppShortNavigationBar(
                 selected = currentTab == tab.key,
                 onClick = { onSelect(tab.key) },
                 icon = { AnimatedTabIcon(tab, currentTab == tab.key, reduceMotion) },
-                label = { Text(tab.label, maxLines = 1) },
+                label = { Text(stringResource(tab.labelRes), maxLines = 1) },
             )
         }
     }
@@ -798,7 +799,7 @@ private fun AppNavigationRail(
                 selected = currentTab == tab.key,
                 onClick = { onSelect(tab.key) },
                 icon = { AnimatedTabIcon(tab, currentTab == tab.key, reduceMotion) },
-                label = { Text(tab.label, maxLines = 1) },
+                label = { Text(stringResource(tab.labelRes), maxLines = 1) },
                 alwaysShowLabel = true,
             )
         }

@@ -1,5 +1,6 @@
 package com.nellecrzier.gofly.transfer
 
+import com.nellecrzier.gofly.AppStrings
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
@@ -124,7 +125,7 @@ internal class TransferEngine(private val context: Context) {
         if (totalFiles == 0) throw TransferException(TransferErrorKind.EMPTY)
         val totalBytes = countBytes(root, 0)
         val emitter = ProgressEmitter(onProgress)
-        val rootName = sanitize(task.name.ifBlank { root.name ?: "Folder" })
+        val rootName = sanitize(task.name.ifBlank { root.name ?: AppStrings.get(R.string.folder_default_name) })
 
         onMessage(context.getString(R.string.transfer_message_creating_folder, rootName))
         val rootId = createFolderId(task.token, task.folderId, rootName)
@@ -712,7 +713,7 @@ internal class TransferEngine(private val context: Context) {
         name.replace(Regex("[\\\\/:*?\"<>|\\r\\n]"), "_")
             .trim()
             .take(180)
-            .ifBlank { "berkas" }
+            .ifBlank { AppStrings.get(R.string.upload_default_name, System.currentTimeMillis()) }
 
     /* ---------------------------- pembantu ----------------------------- */
 

@@ -5,6 +5,17 @@ Changelog, dan versi mengikuti Semantic Versioning. Berkas ini dibaca apa
 adanya oleh aplikasi (Setelan > Apa yang baru), jadi tulis sebagai teks biasa:
 tanpa tabel, tanpa HTML, dan baris pendek.
 
+## 4.4.0 - 2026-11-23
+
+### Bahasa
+- Seluruh teks aplikasi kini mengikuti bahasa pilihan pengguna (Inggris atau
+  Indonesia). Sebelumnya beranda, notifikasi singkat, pesan galat, dialog
+  izin, dan menu bagikan masih tertanam dalam bahasa Indonesia.
+- Kunci aplikasi di bahasa Inggris tidak lagi tampil berbahasa Indonesia.
+- Jenis berkas di daftar dan detail (gambar, arsip, dokumen, dan lainnya)
+  diterjemahkan.
+- Terjemahan warna aksen Indonesia dirapikan (Ambar, Ungu).
+
 ## 4.3.0 - 2026-11-23
 
 ### Antarmuka

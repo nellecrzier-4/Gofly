@@ -75,7 +75,7 @@ class MainActivity : FragmentActivity() {
         notificationLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 permissionRevision.value++
-                toast(if (granted) "Izin notifikasi aktif." else "Izin notifikasi ditolak.")
+                toast(getString(if (granted) R.string.toast_notif_granted else R.string.toast_notif_denied))
             }
         batteryLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -94,7 +94,7 @@ class MainActivity : FragmentActivity() {
                 if (granted && request != null) {
                     launchDownload(request)
                 } else if (!granted) {
-                    toast("Izin penyimpanan ditolak. File tidak bisa disimpan ke Downloads.")
+                    toast(getString(R.string.toast_storage_denied))
                 }
             }
 
@@ -186,7 +186,7 @@ class MainActivity : FragmentActivity() {
     fun requestIgnoreBatteryOptimizations() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         if (isIgnoringBatteryOptimizations()) {
-            toast("Aplikasi sudah diizinkan berjalan di latar belakang.")
+            toast(getString(R.string.toast_battery_already))
             return
         }
         try {
@@ -195,7 +195,7 @@ class MainActivity : FragmentActivity() {
             }
             batteryLauncher.launch(intent)
         } catch (_: Exception) {
-            toast("Buka Pengaturan → Baterai → Gofly → Izinkan latar belakang.")
+            toast(getString(R.string.toast_battery_manual))
         }
     }
 
@@ -203,7 +203,7 @@ class MainActivity : FragmentActivity() {
 
     fun pickFileForUpload(folderId: String, token: String) {
         if (!hasNotificationPermission()) {
-            toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
+            toast(getString(R.string.toast_enable_notifications_first))
             return
         }
         pendingFolderId = folderId
@@ -216,9 +216,9 @@ class MainActivity : FragmentActivity() {
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         }
         try {
-            fileLauncher.launch(Intent.createChooser(picker, "Pilih berkas untuk diunggah"))
+            fileLauncher.launch(Intent.createChooser(picker, getString(R.string.chooser_pick_files)))
         } catch (_: Exception) {
-            toast("Tidak ada aplikasi pemilih berkas di perangkat ini.")
+            toast(getString(R.string.toast_no_file_picker))
         }
     }
 
@@ -226,12 +226,12 @@ class MainActivity : FragmentActivity() {
     fun uploadUris(uris: List<Uri>, folderId: String, token: String) {
         if (uris.isEmpty()) return
         if (!hasNotificationPermission()) {
-            toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
+            toast(getString(R.string.toast_enable_notifications_first))
             return
         }
         uris.forEach { uri ->
             takePermission(uri)
-            val name = queryDisplayName(uri) ?: "berkas-${System.currentTimeMillis()}"
+            val name = queryDisplayName(uri) ?: getString(R.string.upload_default_name, System.currentTimeMillis())
             val id = UUID.randomUUID().toString()
             TransferStore.add(TransferInfo(id, "upload", name, 0, "queued"))
             val intent = Intent(this, TransferService::class.java).apply {
@@ -250,7 +250,7 @@ class MainActivity : FragmentActivity() {
 
     private fun handlePickedFile(uri: Uri) {
         takePermission(uri)
-        val name = queryDisplayName(uri) ?: "berkas-${System.currentTimeMillis()}"
+        val name = queryDisplayName(uri) ?: getString(R.string.upload_default_name, System.currentTimeMillis())
         val id = UUID.randomUUID().toString()
         TransferStore.add(TransferInfo(id, "upload", name, 0, "queued"))
         val intent = Intent(this, TransferService::class.java).apply {
@@ -275,11 +275,11 @@ class MainActivity : FragmentActivity() {
 
     fun startDownload(url: String, fileName: String, token: String, md5: String = "") {
         if (!url.startsWith("http")) {
-            toast("Tautan unduh tidak valid.")
+            toast(getString(R.string.toast_invalid_download_link))
             return
         }
         if (!hasNotificationPermission()) {
-            toast("Aktifkan izin notifikasi dulu supaya progres transfer tetap terlihat.")
+            toast(getString(R.string.toast_enable_notifications_first))
             return
         }
         val request = PendingDownload(url, fileName, token, md5)
@@ -326,9 +326,9 @@ class MainActivity : FragmentActivity() {
                 setDataAndType(uri, mimeType.ifBlank { "*/*" })
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(intent, "Buka dengan"))
+            startActivity(Intent.createChooser(intent, getString(R.string.chooser_open_with)))
         } catch (error: Exception) {
-            toast("Tidak ada aplikasi yang bisa membuka berkas ini.")
+            toast(getString(R.string.toast_no_app_open_file))
         }
     }
 
@@ -337,7 +337,7 @@ class MainActivity : FragmentActivity() {
         try {
             treeLauncher.launch(null)
         } catch (_: Exception) {
-            toast("Tidak ada aplikasi pemilih folder di perangkat ini.")
+            toast(getString(R.string.toast_no_folder_picker))
         }
     }
 
@@ -350,12 +350,12 @@ class MainActivity : FragmentActivity() {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "Gofly — log")
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.log_subject))
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(intent, "Ekspor log"))
+            startActivity(Intent.createChooser(intent, getString(R.string.chooser_export_log)))
         } catch (error: Exception) {
-            toast("Log belum bisa diekspor.")
+            toast(getString(R.string.toast_log_export_failed))
         }
     }
 
@@ -366,14 +366,14 @@ class MainActivity : FragmentActivity() {
             val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_SUBJECT, "Masukan Gofly")
-                putExtra(Intent.EXTRA_TEXT, "Tulis masalah atau saran di sini.\n\nLog terlampir.")
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.feedback_subject))
+                putExtra(Intent.EXTRA_TEXT, getString(R.string.feedback_body))
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(intent, "Kirim masukan"))
+            startActivity(Intent.createChooser(intent, getString(R.string.chooser_send_feedback)))
         } catch (error: Exception) {
-            toast("Tidak ada aplikasi untuk mengirim masukan.")
+            toast(getString(R.string.toast_no_app_feedback))
         }
     }
 
@@ -384,14 +384,14 @@ class MainActivity : FragmentActivity() {
             putExtra(Intent.EXTRA_SUBJECT, name)
             putExtra(Intent.EXTRA_TEXT, link)
         }
-        startActivity(Intent.createChooser(intent, "Bagikan tautan"))
+        startActivity(Intent.createChooser(intent, getString(R.string.chooser_share_link)))
     }
 
     fun openUrlExternally(url: String) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (_: Exception) {
-            toast("Tidak ada aplikasi untuk membuka tautan ini.")
+            toast(getString(R.string.toast_no_app_open_link))
         }
     }
 

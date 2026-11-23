@@ -219,16 +219,16 @@ object GofileApi {
     fun fetchBytes(url: String, token: String): ByteArray {
         val response = openStream(url, token, withAccountHeaders = true)
             ?: openStream(url, token, withAccountHeaders = false)
-            ?: throw GoFileException.Network("Berkas tidak bisa diambil dari server.")
+            ?: throw GoFileException.Network(AppStrings.get(R.string.err_file_fetch))
         response.use { res ->
-            val body = res.body ?: throw GoFileException.Unknown("Balasan berkas kosong.")
+            val body = res.body ?: throw GoFileException.Unknown(AppStrings.get(R.string.err_empty_reply))
             val declared = body.contentLength()
             if (declared > MAX_PREVIEW_BYTES) {
-                throw GoFileException.Unknown("Berkas terlalu besar untuk pratinjau.")
+                throw GoFileException.Unknown(AppStrings.get(R.string.err_file_too_large))
             }
             val bytes = body.bytes()
             if (bytes.size > MAX_PREVIEW_BYTES) {
-                throw GoFileException.Unknown("Berkas terlalu besar untuk pratinjau.")
+                throw GoFileException.Unknown(AppStrings.get(R.string.err_file_too_large))
             }
             return bytes
         }
@@ -249,9 +249,9 @@ object GofileApi {
         val target = java.io.File(dir, safe)
         val response = openStream(url, token, withAccountHeaders = true)
             ?: openStream(url, token, withAccountHeaders = false)
-            ?: throw GoFileException.Network("Berkas tidak bisa diunduh dari server.")
+            ?: throw GoFileException.Network(AppStrings.get(R.string.err_file_download))
         response.use { res ->
-            val body = res.body ?: throw GoFileException.Unknown("Balasan berkas kosong.")
+            val body = res.body ?: throw GoFileException.Unknown(AppStrings.get(R.string.err_empty_reply))
             target.outputStream().use { out -> body.byteStream().copyTo(out) }
         }
         return target
@@ -336,7 +336,7 @@ object GofileApi {
             client.newCall(builder.build()).execute()
         } catch (error: IOException) {
             throw GoFileException.Network(
-                "Tidak bisa menghubungi GoFile. Periksa koneksi internet lalu coba lagi.",
+                AppStrings.get(R.string.err_network),
                 error,
             )
         }
@@ -347,7 +347,7 @@ object GofileApi {
                 JSONObject(text)
             } catch (error: Exception) {
                 throw GoFileException.Unknown(
-                    "GoFile mengirim balasan yang tidak dikenali: ${text.take(120)}",
+                    AppStrings.get(R.string.err_unrecognized_reply, text.take(120)),
                     error,
                 )
             }

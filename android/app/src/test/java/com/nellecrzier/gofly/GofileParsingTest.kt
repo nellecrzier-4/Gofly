@@ -5,6 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -12,6 +14,12 @@ import org.junit.Test
  * Semua fungsi murni, jadi tidak butuh jaringan maupun Robolectric.
  */
 class GofileParsingTest {
+
+    @Before
+    fun installStrings() = TestStrings.install("id")
+
+    @After
+    fun removeStrings() = TestStrings.uninstall()
 
     /* ------------------------- parseFolderPage ------------------------- */
 

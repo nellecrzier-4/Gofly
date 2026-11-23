@@ -108,7 +108,7 @@ internal fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Isi root folder GoFile kamu, langsung dari perangkat.",
+                    text = stringResource(R.string.home_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -124,7 +124,7 @@ internal fun HomeScreen(
         Row(Modifier.staggeredEnter(1, reduceMotion, shown), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistChip(
                 onClick = {},
-                label = { Text("Sesi aktif") },
+                label = { Text(stringResource(R.string.home_session_active)) },
                 leadingIcon = {
                     Icon(
                         Icons.Filled.CheckCircle,
@@ -136,7 +136,7 @@ internal fun HomeScreen(
             )
             AssistChip(
                 onClick = {},
-                label = { Text("Tier ${session.tier.ifBlank { "Tamu" }}") },
+                label = { Text(stringResource(R.string.settings_account_tier_badge, session.tier.ifBlank { stringResource(R.string.home_tier_guest) })) },
             )
         }
 
@@ -158,20 +158,20 @@ internal fun HomeScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "GOFILE CLOUD",
+                        text = stringResource(R.string.home_cloud_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = session.email.ifBlank { "Akun tamu" },
+                    text = session.email.ifBlank { stringResource(R.string.settings_account_guest) },
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Siap menerima transfer",
+                    text = stringResource(R.string.home_ready_for_transfers),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -181,7 +181,7 @@ internal fun HomeScreen(
         Spacer(Modifier.height(12.dp))
         Row(Modifier.staggeredEnter(3, reduceMotion, shown), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatTile(
-                label = "Folder",
+                label = stringResource(R.string.home_stat_folders),
                 value = folderCount.toString(),
                 icon = Icons.Filled.FolderOpen,
                 modifier = Modifier.weight(1f),
@@ -189,7 +189,7 @@ internal fun HomeScreen(
                 reduceMotion = reduceMotion,
             )
             StatTile(
-                label = "Berkas",
+                label = stringResource(R.string.home_stat_files),
                 value = fileCount.toString(),
                 icon = Icons.AutoMirrored.Filled.InsertDriveFile,
                 modifier = Modifier.weight(1f),
@@ -197,7 +197,7 @@ internal fun HomeScreen(
                 reduceMotion = reduceMotion,
             )
             StatTile(
-                label = "Ukuran",
+                label = stringResource(R.string.home_stat_size),
                 value = readableSize(totalSize),
                 icon = Icons.Filled.SwapVert,
                 modifier = Modifier.weight(1f),
@@ -208,7 +208,7 @@ internal fun HomeScreen(
 
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "AKSI CEPAT",
+            text = stringResource(R.string.home_quick_actions),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.staggeredEnter(4, reduceMotion, shown),
@@ -221,12 +221,12 @@ internal fun HomeScreen(
         ) {
             Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Buka folder root")
+            Text(stringResource(R.string.home_open_root))
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.staggeredEnter(6, reduceMotion, shown), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActionTile("Unggah", "Pilih berkas", Icons.Filled.Upload, onUpload, Modifier.weight(1f))
-            ActionTile("Folder baru", "Di folder ini", Icons.Filled.CreateNewFolder, onNewFolder, Modifier.weight(1f))
+            ActionTile(stringResource(R.string.home_action_upload), stringResource(R.string.home_action_upload_hint), Icons.Filled.Upload, onUpload, Modifier.weight(1f))
+            ActionTile(stringResource(R.string.home_action_new_folder), stringResource(R.string.home_action_new_folder_hint), Icons.Filled.CreateNewFolder, onNewFolder, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -234,7 +234,7 @@ internal fun HomeScreen(
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 AppLoadingIndicator(size = 18.dp, reduceMotion = reduceMotion)
                 Spacer(Modifier.width(10.dp))
-                Text("Menyinkronkan isi folder…", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.home_syncing), style = MaterialTheme.typography.bodyMedium)
             }
         } else {
             FilledTonalButton(
@@ -244,13 +244,13 @@ internal fun HomeScreen(
             ) {
                 Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Sinkronkan sekarang")
+                Text(stringResource(R.string.home_sync_now))
             }
         }
 
         Spacer(Modifier.height(18.dp))
         Text(
-            text = "TRANSFER TERBARU",
+            text = stringResource(R.string.home_recent_transfers),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -376,9 +376,9 @@ private fun PermissionSetup(activity: MainActivity, revision: Int) {
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Siapkan transfer latar belakang", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.perm_setup_title), style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "Dua izin ini menjaga progres tetap berjalan.",
+                        stringResource(R.string.perm_setup_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -387,17 +387,17 @@ private fun PermissionSetup(activity: MainActivity, revision: Int) {
             Spacer(Modifier.height(10.dp))
             PermissionRow(
                 ready = notificationsReady,
-                title = "Notifikasi progres",
-                supporting = "Progres unggah dan unduh tetap terlihat.",
-                actionLabel = "Aktifkan",
+                title = stringResource(R.string.perm_notif_title),
+                supporting = stringResource(R.string.perm_notif_body),
+                actionLabel = stringResource(R.string.perm_notif_action),
                 onAction = { activity.requestNotificationPermission() },
             )
             Spacer(Modifier.height(4.dp))
             PermissionRow(
                 ready = batteryReady,
-                title = "Izin latar belakang",
-                supporting = "Transfer tidak terhenti saat aplikasi ditutup.",
-                actionLabel = "Atur",
+                title = stringResource(R.string.perm_bg_title),
+                supporting = stringResource(R.string.perm_bg_body),
+                actionLabel = stringResource(R.string.perm_bg_action),
                 onAction = { activity.requestIgnoreBatteryOptimizations() },
             )
         }

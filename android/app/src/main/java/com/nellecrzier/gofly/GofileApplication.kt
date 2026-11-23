@@ -17,6 +17,7 @@ class GofileApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        AppStrings.init(this)
         AppLog.install(this)
         LocaleSupport.applySystemLocales(this)
     }

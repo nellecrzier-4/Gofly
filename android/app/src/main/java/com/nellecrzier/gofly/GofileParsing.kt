@@ -89,18 +89,18 @@ object GofileParsing {
     fun friendlyMessage(status: String, code: Int, serverMessage: String?): String {
         serverMessage?.takeUnless { it.isBlank() }?.let { return it }
         return when (status) {
-            "error-token", "error-wrongToken" -> "Sesi berakhir. Masuk lagi untuk melanjutkan."
-            "error-notPremium" -> "Fitur ini membutuhkan akun GoFile Premium."
-            "error-rateLimit" -> "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi."
-            "error-limits" -> "Kuota akun GoFile sudah penuh."
-            "error-notFound" -> "Konten tidak ditemukan atau sudah dihapus."
-            "error-email" -> "Alamat email tidak valid."
-            "error-field", "error-contentsId", "error-tags" -> "Ada isian yang tidak valid."
+            "error-token", "error-wrongToken" -> AppStrings.get(R.string.err_session_expired)
+            "error-notPremium" -> AppStrings.get(R.string.err_premium_required)
+            "error-rateLimit" -> AppStrings.get(R.string.err_rate_limited)
+            "error-limits" -> AppStrings.get(R.string.err_quota_full)
+            "error-notFound" -> AppStrings.get(R.string.err_not_found)
+            "error-email" -> AppStrings.get(R.string.err_invalid_email)
+            "error-field", "error-contentsId", "error-tags" -> AppStrings.get(R.string.err_invalid_field)
             "error-owner", "error-notOwner", "error-accountId" ->
-                "Konten ini bukan milik akun yang sedang masuk."
-            "error-protectedFolder" -> "Folder ini dilindungi dan tidak bisa diubah."
-            "error-rootFolder" -> "Folder akar tidak bisa diubah."
-            else -> "GoFile menjawab $status${if (code != 0) " (HTTP $code)" else ""}."
+                AppStrings.get(R.string.err_not_owner)
+            "error-protectedFolder" -> AppStrings.get(R.string.err_protected_folder)
+            "error-rootFolder" -> AppStrings.get(R.string.err_root_folder)
+            else -> AppStrings.get(if (code != 0) R.string.err_unknown_status_http else R.string.err_unknown_status, status, code)
         }
     }
 

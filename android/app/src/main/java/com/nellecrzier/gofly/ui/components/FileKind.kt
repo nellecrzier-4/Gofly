@@ -1,5 +1,7 @@
 package com.nellecrzier.gofly.ui.components
 
+import com.nellecrzier.gofly.R
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Code
@@ -24,6 +26,22 @@ import java.util.Locale
 /** Jenis file untuk ikon dan filter. Ditentukan dari `mimetype` + ekstensi. */
 enum class FileKind {
     FOLDER, IMAGE, VIDEO, AUDIO, PDF, DOCUMENT, ARCHIVE, CODE, APK, OTHER;
+
+    /** Nama jenis berkas yang ikut bahasa pilihan pengguna. */
+    @get:StringRes
+    val labelRes: Int
+        get() = when (this) {
+            FOLDER -> R.string.kind_folder
+            IMAGE -> R.string.kind_image
+            VIDEO -> R.string.kind_video
+            AUDIO -> R.string.kind_audio
+            PDF -> R.string.kind_pdf
+            DOCUMENT -> R.string.kind_document
+            ARCHIVE -> R.string.kind_archive
+            CODE -> R.string.kind_code
+            APK -> R.string.kind_apk
+            OTHER -> R.string.kind_other
+        }
 
     val icon: ImageVector
         get() = when (this) {

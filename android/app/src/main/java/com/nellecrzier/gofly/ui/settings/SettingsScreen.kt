@@ -287,8 +287,8 @@ internal fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 SettingsActionRow(
-                                    title = "Motion playground",
-                                    subtitle = "Demonstrasi gerak Material 3 Expressive (build debug)",
+                                    title = stringResource(R.string.settings_motion_playground),
+                                    subtitle = stringResource(R.string.settings_motion_playground_body),
                                     icon = Icons.Filled.PlayArrow,
                                     iconTint = MaterialTheme.colorScheme.tertiary,
                                     onClick = onOpenMotionPlayground,

@@ -68,9 +68,9 @@
     <string name="settings_theme_light">Terang</string>
     <string name="settings_accent">Warna aksen</string>
     <string name="settings_accent_coral">Koral</string>
-    <string name="settings_accent_amber">Amber</string>
+    <string name="settings_accent_amber">Ambar</string>
     <string name="settings_accent_mint">Mint</string>
-    <string name="settings_accent_violet">Violet</string>
+    <string name="settings_accent_violet">Ungu</string>
     <string name="settings_accent_blue">Biru</string>
     <string name="settings_accent_description">Warna aksen %1$s</string>
     <string name="settings_dynamic">Warna dinamis</string>

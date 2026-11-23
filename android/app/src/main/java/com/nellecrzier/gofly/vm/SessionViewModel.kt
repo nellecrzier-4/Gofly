@@ -1,5 +1,7 @@
 package com.nellecrzier.gofly.vm
 
+import com.nellecrzier.gofly.R
+import com.nellecrzier.gofly.AppStrings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -95,7 +97,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                 _state.update { it.copy(busy = false, step = "token", email = clean) }
                 _events.tryEmit(
                     SessionEvent.Message(
-                        "Link login terkirim. Cek email lalu tempel di sini.",
+                        AppStrings.get(R.string.session_link_sent),
                         error = false,
                     ),
                 )
@@ -109,7 +111,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         val token = GofileApi.extractToken(raw)
         if (token == null) {
             _events.tryEmit(
-                SessionEvent.Message("Link atau token tidak dikenali. Tempel link lengkap dari email."),
+                SessionEvent.Message(AppStrings.get(R.string.session_link_invalid)),
             )
             return
         }
@@ -143,7 +145,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val account = repository.getAccount(token)
                 enter(account.copy(token = token))
-                _events.tryEmit(SessionEvent.Message("Masuk lewat link email berhasil.", error = false))
+                _events.tryEmit(SessionEvent.Message(AppStrings.get(R.string.session_login_via_link), error = false))
             } catch (error: Exception) {
                 fail(error)
             }
@@ -155,7 +157,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         _state.value = SessionUiState(step = "email")
         _events.tryEmit(SessionEvent.LoggedOut)
         if (expired) {
-            _events.tryEmit(SessionEvent.Message("Sesi berakhir. Masuk lagi untuk melanjutkan."))
+            _events.tryEmit(SessionEvent.Message(AppStrings.get(R.string.err_session_expired)))
         }
     }
 
@@ -165,7 +167,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
             it.copy(session = session, step = "ready", busy = false, checking = false)
         }
         _events.tryEmit(SessionEvent.LoggedIn)
-        if (notify) _events.tryEmit(SessionEvent.Message("Berhasil masuk.", error = false))
+        if (notify) _events.tryEmit(SessionEvent.Message(AppStrings.get(R.string.session_signed_in), error = false))
     }
 
     private fun fail(error: Exception) {
@@ -173,7 +175,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         if (error is GoFileException.AuthExpired) {
             logout(expired = true)
         } else {
-            _events.tryEmit(SessionEvent.Message(error.message ?: "Terjadi kesalahan."))
+            _events.tryEmit(SessionEvent.Message(error.message ?: AppStrings.get(R.string.err_generic)))
         }
     }
 }

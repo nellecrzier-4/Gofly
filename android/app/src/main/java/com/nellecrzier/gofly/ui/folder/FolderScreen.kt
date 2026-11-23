@@ -1473,7 +1473,7 @@ private fun FileRow(
                     text = if (item.isFolder) {
                         stringResource(R.string.details_folder)
                     } else {
-                        "${kind.name.lowercase(Locale.ROOT)} · ${readableSize(item.size)}"
+                        "${stringResource(kind.labelRes)} · ${readableSize(item.size)}"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2298,7 +2298,7 @@ private fun ItemDetailsSheet(
             DetailRow(stringResource(R.string.details_size), readableSize(item.size))
             DetailRow(
                 stringResource(R.string.details_type),
-                item.mimetype.ifBlank { item.fileKind().name.lowercase(Locale.ROOT) },
+                item.mimetype.ifBlank { stringResource(item.fileKind().labelRes) },
             )
             DetailRow(stringResource(R.string.details_id), item.id)
             if (item.createTime > 0) {
