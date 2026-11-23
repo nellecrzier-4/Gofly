@@ -35,7 +35,7 @@ data class PrefsState(
     // Tampilan
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentChoice = AccentChoice.CORAL,
-    val dynamicColor: Boolean = false,
+    val dynamicColor: Boolean = true,
     val fontScale: Float = 1f,
     val density: Density = Density.COMFORT,
     val language: LanguageChoice = LanguageChoice.SYSTEM,
@@ -78,7 +78,7 @@ class AppPrefs(context: Context) {
             recent = GItemJson.decodeList(prefs[RECENT]),
             themeMode = enumOr(prefs[THEME_MODE], ThemeMode.DARK),
             accent = enumOr(prefs[ACCENT], AccentChoice.CORAL),
-            dynamicColor = prefs[DYNAMIC_COLOR] ?: false,
+            dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
             fontScale = (prefs[FONT_SCALE] ?: 1f).coerceIn(0.85f, 1.3f),
             density = enumOr(prefs[DENSITY], Density.COMFORT),
             language = enumOr(prefs[LANGUAGE], LanguageChoice.SYSTEM),
