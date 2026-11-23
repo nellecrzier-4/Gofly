@@ -1,6 +1,6 @@
 # Upgrade report — 4.0
 
-Ringkasan pekerjaan pada brief "Complete Gofile Expressive", apa yang selesai,
+Ringkasan pekerjaan pada brief "Complete Gofly", apa yang selesai,
 apa yang tidak, dan keputusan desainnya. Versi: 4.0 (versionCode 13).
 
 ## Verifikasi

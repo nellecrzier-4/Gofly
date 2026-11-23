@@ -1,6 +1,6 @@
 # Kontribusi
 
-Terima kasih sudah mau membantu Gofile Expressive. Panduan ini singkat: cara
+Terima kasih sudah mau membantu Gofly. Panduan ini singkat: cara
 membangun, menguji, dan aturan yang tidak bisa ditawar.
 
 ## Prasyarat
@@ -10,6 +10,22 @@ membangun, menguji, dan aturan yang tidak bisa ditawar.
   terbaru sudah menyiapkan ini).
 - Node.js 22 hanya diperlukan untuk memeriksa JavaScript versi web.
 - Python 3 untuk menjalankan server statis web.
+
+## Versi dan pembaruan tanpa uninstall
+
+Setiap kali menambah fitur baru, naikkan versi aplikasi:
+
+1. Ubah `appVersionName` di `android/app/build.gradle.kts` (mis. 4.2.0 menjadi
+   4.3.0 untuk fitur baru, 4.2.1 untuk perbaikan). `versionCode` dihitung
+   otomatis dari nama versi, jadi tidak perlu diubah manual.
+2. Tambah entri di `CHANGELOG.md` dan salin ke
+   `android/app/src/main/assets/CHANGELOG.md`.
+3. Untuk versi web, naikkan `VERSION` di `sw.js`.
+
+Agar APK baru bisa dipasang di atas yang lama tanpa uninstall, tiga hal ini
+harus tetap sama: `applicationId` (`com.nellecrzier.gofileexpressive`, sengaja
+tidak diganti), kunci tanda tangan (`debug.keystore` atau keystore rilis), dan
+`versionCode` yang selalu lebih besar dari versi terpasang.
 
 ## Membangun
 
@@ -39,7 +55,7 @@ cd android
 - Laporan HTML: `android/app/build/reports/tests/testDebugUnitTest/index.html`.
 - Satu kelas: `./gradlew :app:testDebugUnitTest --tests "*GofileParsingTest"`.
 - Tes baru ditulis dengan JUnit4 (tanpa Robolectric) di
-  `android/app/src/test/java/com/nellecrzier/gofileexpressive/`.
+  `android/app/src/test/java/com/nellecrzier/gofly/`.
 - `org.json` asli tersedia untuk unit test lewat dependensi `testImplementation`,
   jadi penguraian JSON diuji dengan perilaku yang sama seperti di perangkat.
 - Fixture JSON bersama ada di `Fixtures.kt`.
@@ -133,7 +149,7 @@ Sertakan:
   rilis GitHub atau build sendiri,
 - perilaku yang diharapkan dan yang terjadi,
 - **log aplikasi**: buka Setelan > Ekspor log, lalu lampirkan berkas
-  `gofile-expressive.log` ke issue. Log hanya ditulis lokal, tidak pernah
+  `gofly.log` ke issue. Log hanya ditulis lokal, tidak pernah
   dikirim ke server mana pun.
 
 Jangan menyertakan token login, alamat email, atau tautan folder privat di

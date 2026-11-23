@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GofileExpressive"
+rootProject.name = "Gofly"
 include(":app")

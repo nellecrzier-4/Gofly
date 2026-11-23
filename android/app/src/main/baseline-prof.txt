@@ -8,6 +8,6 @@ HSPLandroidx/compose/material3/**;->**(**)**
 HSPLandroidx/compose/material/ripple/**;->**(**)**
 HSPLandroidx/lifecycle/**;->**(**)**
 HSPLandroidx/activity/**;->**(**)**
-HSPLcom/nellecrzier/gofileexpressive/**;->**(**)**
+HSPLcom/nellecrzier/gofly/**;->**(**)**
 Landroidx/compose/**;
-Lcom/nellecrzier/gofileexpressive/**;
+Lcom/nellecrzier/gofly/**;

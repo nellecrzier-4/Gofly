@@ -1,7 +1,7 @@
 <resources>
     <!-- layar setelan -->
     <string name="settings_title">Setelan</string>
-    <string name="settings_app_name">Gofile Expressive</string>
+    <string name="settings_app_name">Gofly</string>
     <string name="settings_subtitle">Akun, tampilan, dan penyimpanan.</string>
 
     <string name="settings_section_appearance">Tampilan</string>
@@ -167,7 +167,7 @@
     <string name="settings_license">Lisensi</string>
     <string name="settings_license_value">Apache-2.0</string>
     <string name="settings_license_sheet_title">Lisensi</string>
-    <string name="settings_license_body">Gofile Expressive dilisensikan di bawah Apache License, Version 2.0. Salinan lisensi tersedia di apache.org/licenses/LICENSE-2.0. Perangkat lunak disediakan “apa adanya”, tanpa jaminan apa pun.</string>
+    <string name="settings_license_body">Gofly dilisensikan di bawah Apache License, Version 2.0. Salinan lisensi tersedia di apache.org/licenses/LICENSE-2.0. Perangkat lunak disediakan “apa adanya”, tanpa jaminan apa pun.</string>
     <string name="settings_license_link">Buka lisensi lengkap</string>
     <string name="settings_whats_new">Yang baru</string>
     <string name="settings_whats_new_body">Catatan rilis untuk versi ini.</string>

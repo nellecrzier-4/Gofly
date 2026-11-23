@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Server statis lokal untuk Gofile Expressive (tanpa build step)."""
+"""Server statis lokal untuk Gofly (tanpa build step)."""
 
 import argparse
 from functools import partial
@@ -27,7 +27,7 @@ def main():
 
     handler = partial(Handler, directory=str(ROOT))
     server = ThreadingHTTPServer(("0.0.0.0", args.port), handler)
-    print(f"Gofile Expressive -> http://localhost:{args.port}")
+    print(f"Gofly -> http://localhost:{args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

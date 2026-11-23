@@ -1,4 +1,4 @@
-# Gofile Expressive
+# Gofly
 
 Klien GoFile dua sisi: **aplikasi Android native 100% Compose** (tanpa WebView) dan **klien web statis** (HTML/CSS/JS, tanpa build step) yang bisa dipasang sebagai PWA.
 
@@ -73,7 +73,7 @@ Fitur berikut **tidak** disediakan API, jadi tidak dibuat palsu; UI menyatakanny
 .
 ├── index.html, styles.css, js/       # klien web + PWA (sw.js, manifest.webmanifest)
 ├── android/                          # aplikasi native Kotlin + Compose
-│   └── app/src/main/java/com/nellecrzier/gofileexpressive/
+│   └── app/src/main/java/com/nellecrzier/gofly/
 │       ├── GofileApi.kt, GofileParsing.kt, GofileRepository.kt, GofileConfig.kt
 │       ├── TransferService.kt, TransferStore.kt, transfer/
 │       ├── ui/ (folder, home, library, login, settings, transfer, preview, share, security, account)

@@ -1,9 +1,17 @@
 # Changelog
 
-Semua perubahan penting pada Gofile Expressive. Format mengikuti Keep a
+Semua perubahan penting pada Gofly. Format mengikuti Keep a
 Changelog, dan versi mengikuti Semantic Versioning. Berkas ini dibaca apa
 adanya oleh aplikasi (Setelan > Apa yang baru), jadi tulis sebagai teks biasa:
 tanpa tabel, tanpa HTML, dan baris pendek.
+
+## 4.2.0 - 2026-11-23
+
+### Umum
+- Aplikasi berganti nama menjadi Gofly.
+- Pembaruan kini bisa dipasang langsung di atas versi lama tanpa uninstall:
+  versionCode dihitung otomatis dari versionName, dan ID aplikasi serta
+  kunci tanda tangan dipertahankan.
 
 ## 4.1.0 - 2026-11-23
 
@@ -52,7 +60,7 @@ komunikasi GoFile lewat OkHttp. Versi web tetap tersedia sebagai PWA terpisah.
   dilanjutkan setelah koneksi putus.
 
 ### Integrasi Android
-- Terima berkas dari aplikasi lain (bagikan ke Gofile Expressive).
+- Terima berkas dari aplikasi lain (bagikan ke Gofly).
 - Pintasan peluncur untuk unggah dan membuka antrean transfer.
 - Splash screen Android 12+ yang mengikuti tema aplikasi.
 - Kunci aplikasi dengan biometrik atau PIN, diminta lagi setiap kembali dari

@@ -1,12 +1,12 @@
-# Gofile Expressive — R8 rules.
+# Gofly — R8 rules.
 #
 # Aplikasi ini tidak memakai WebView, JavascriptInterface, atau refleksi JSON
 # berbasis model, jadi aturan di bawah hanya menjaga hal-hal yang memang
 # dibutuhkan library dan entry point Android.
 
 # Entry point Android.
--keep class com.nellecrzier.gofileexpressive.MainActivity { *; }
--keep class com.nellecrzier.gofileexpressive.TransferService { *; }
+-keep class com.nellecrzier.gofly.MainActivity { *; }
+-keep class com.nellecrzier.gofly.TransferService { *; }
 
 # OkHttp / Okio: peringatan opsional untuk platform yang tidak dipakai.
 -dontwarn okhttp3.**
@@ -36,7 +36,7 @@
 -dontwarn com.google.crypto.tink.**
 
 # Pesan error GoFile dipertahankan apa adanya untuk laporan bug.
--keepnames class com.nellecrzier.gofileexpressive.GoFileException { *; }
+-keepnames class com.nellecrzier.gofly.GoFileException { *; }
 
 # Media3 ExoPlayer: pemutar media memakai refleksi untuk memilih decoder.
 -keep class androidx.media3.** { *; }
@@ -50,9 +50,9 @@
 
 # Model JSON aplikasi (dipakai lewat org.json, bukan refleksi) tetap aman,
 # tetapi nama kelas model dipertahankan supaya log tidak sulit dibaca.
--keep class com.nellecrzier.gofileexpressive.GItem { *; }
--keep class com.nellecrzier.gofileexpressive.GSession { *; }
--keep class com.nellecrzier.gofileexpressive.TransferInfo { *; }
+-keep class com.nellecrzier.gofly.GItem { *; }
+-keep class com.nellecrzier.gofly.GSession { *; }
+-keep class com.nellecrzier.gofly.TransferInfo { *; }
 
 # Jangan buang metadata anotasi Compose.
 -keepclassmembers class ** {

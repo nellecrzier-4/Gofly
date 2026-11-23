@@ -16,7 +16,8 @@
 export const API_BASE = "https://api.gofile.io";
 export const UPLOAD_URL = "https://upload.gofile.io/uploadfile";
 
-const STORAGE_KEY = "gofile-expressive-session";
+const STORAGE_KEY = "gofly-session";
+const LEGACY_STORAGE_KEY = "gofile-expressive-session";
 const WT_SECRET = "12af056dacea0b";
 const WT_PERIOD_MS = 4 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -304,7 +305,15 @@ export function uploadFile({ file, token, folderId, onProgress = () => {}, onSta
 
 export function loadSession() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      // Migrasi sekali dari nama lama supaya pengguna tidak perlu login ulang.
+      raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (raw) {
+        localStorage.setItem(STORAGE_KEY, raw);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      }
+    }
     if (!raw) return null;
     const session = JSON.parse(raw);
     return session?.token && session?.account?.rootFolder ? session : null;

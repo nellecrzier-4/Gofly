@@ -102,8 +102,8 @@ const FILTERS = [
   { id: "code", label: "Kode", icon: "code" },
 ];
 
-const FOLDER_CACHE_KEY = "gofile-expressive-folders-v1";
-const SHARED_KEY = "gofile-expressive-shared-ack";
+const FOLDER_CACHE_KEY = "gofly-folders-v1";
+const SHARED_KEY = "gofly-shared-ack";
 const MAX_CACHED_FOLDERS = 8;
 
 const state = {

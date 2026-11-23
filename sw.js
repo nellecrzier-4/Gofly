@@ -1,5 +1,5 @@
 /**
- * Service worker Gofile Expressive.
+ * Service worker Gofly.
  *
  * - App shell (HTML/CSS/JS/ikon) : cache-first + pembaruan latar belakang.
  * - API GoFile (/contents/*)     : network-first, disalin ke cache.
@@ -9,10 +9,10 @@
  * Cache diberi versi; cache lama dibersihkan saat activate.
  */
 
-const VERSION = "v9";
-const SHELL_CACHE = `gofile-shell-${VERSION}`;
-const API_CACHE = `gofile-api-${VERSION}`;
-const FONT_CACHE = `gofile-fonts-${VERSION}`;
+const VERSION = "v10";
+const SHELL_CACHE = `gofly-shell-${VERSION}`;
+const API_CACHE = `gofly-api-${VERSION}`;
+const FONT_CACHE = `gofly-fonts-${VERSION}`;
 const OWN_CACHES = new Set([SHELL_CACHE, API_CACHE, FONT_CACHE]);
 
 const resolve = (path) => new URL(path, self.location.href).href;
@@ -76,7 +76,7 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key.startsWith("gofile-") && !OWN_CACHES.has(key)).map((key) => caches.delete(key))),
+        Promise.all(keys.filter((key) => (key.startsWith("gofile-") || key.startsWith("gofly-")) && !OWN_CACHES.has(key)).map((key) => caches.delete(key))),
       )
       .then(() => self.clients.claim()),
   );

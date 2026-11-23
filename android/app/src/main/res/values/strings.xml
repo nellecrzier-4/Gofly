@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Gofile Expressive</string>
+    <string name="app_name">Gofly</string>
 
     <!-- notifications -->
     <string name="channel_name">GoFile transfers</string>
@@ -135,7 +135,7 @@
     <string name="shortcut_transfers_short">Transfers</string>
     <string name="shortcut_transfers_long">Transfer panel</string>
     <!-- app lock -->
-    <string name="lock_title">Gofile Expressive terkunci</string>
+    <string name="lock_title">Gofly terkunci</string>
     <string name="lock_subtitle">Verifikasi untuk membuka aplikasi</string>
     <string name="lock_body">Aplikasi dikunci setiap kali kembali dari latar belakang. Gunakan biometrik atau PIN perangkat.</string>
     <string name="lock_unlock">Buka kunci</string>

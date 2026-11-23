@@ -4,16 +4,28 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Sumber tunggal versi aplikasi. versionCode DIHITUNG dari versionName
+// (MAJOR*10000 + MINOR*100 + PATCH), jadi menaikkan versionName otomatis
+// menaikkan versionCode. Android hanya mau memperbarui APK terpasang bila
+// versionCode baru lebih besar, applicationId sama, dan tanda tangan sama.
+// Naikkan versi di sini setiap menambah fitur (lihat CONTRIBUTING.md).
+val appVersionName = "4.2.0"
+val appVersionCode = appVersionName.split(".").let { (major, minor, patch) ->
+    major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt()
+}
+
 android {
-    namespace = "com.nellecrzier.gofileexpressive"
+    namespace = "com.nellecrzier.gofly"
     compileSdk = 36
 
     defaultConfig {
+        // JANGAN diubah: applicationId lama dipertahankan supaya Gofly bisa
+        // memperbarui pemasangan yang sudah ada tanpa uninstall.
         applicationId = "com.nellecrzier.gofileexpressive"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "4.1"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     signingConfigs {

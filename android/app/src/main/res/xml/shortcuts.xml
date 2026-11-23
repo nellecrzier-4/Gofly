@@ -9,10 +9,10 @@
         android:shortcutShortLabel="@string/shortcut_upload_short">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.nellecrzier.gofileexpressive.MainActivity"
+            android:targetClass="com.nellecrzier.gofly.MainActivity"
             android:targetPackage="com.nellecrzier.gofileexpressive">
             <extra
-                android:name="com.nellecrzier.gofileexpressive.extra.SHORTCUT"
+                android:name="com.nellecrzier.gofly.extra.SHORTCUT"
                 android:value="upload" />
         </intent>
     </shortcut>
@@ -25,10 +25,10 @@
         android:shortcutShortLabel="@string/shortcut_transfers_short">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.nellecrzier.gofileexpressive.MainActivity"
+            android:targetClass="com.nellecrzier.gofly.MainActivity"
             android:targetPackage="com.nellecrzier.gofileexpressive">
             <extra
-                android:name="com.nellecrzier.gofileexpressive.extra.SHORTCUT"
+                android:name="com.nellecrzier.gofly.extra.SHORTCUT"
                 android:value="transfers" />
         </intent>
     </shortcut>
