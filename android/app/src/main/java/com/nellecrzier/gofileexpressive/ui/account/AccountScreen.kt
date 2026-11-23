@@ -51,6 +51,9 @@ import androidx.compose.ui.unit.dp
 import com.nellecrzier.gofileexpressive.GSession
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
+import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
+import com.nellecrzier.gofileexpressive.ui.components.connectedShape
+import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
 import com.nellecrzier.gofileexpressive.ui.readableSize
 
 /**
@@ -161,7 +164,7 @@ internal fun AccountScreen(
                 }
             }
 
-            IdentitySection(session, snapshot)
+            IdentitySection(session, snapshot, reduceMotion)
             SignOutSection(onSignOut)
         }
     }
@@ -436,37 +439,41 @@ private fun BreakdownSection(snapshot: AccountSnapshot, reduceMotion: Boolean) {
 /* ------------------------------- identitas --------------------------- */
 
 @Composable
-private fun IdentitySection(session: GSession, snapshot: AccountSnapshot?) {
+private fun IdentitySection(
+    session: GSession,
+    snapshot: AccountSnapshot?,
+    reduceMotion: Boolean = rememberReducedMotion(),
+) {
     SectionHeader(stringResource(R.string.settings_account_details))
     val email = snapshot?.email?.takeIf { it.isNotBlank() } ?: session.email
     val tier = snapshot?.tier?.takeIf { it.isNotBlank() } ?: session.tier
     val root = snapshot?.rootFolder?.takeIf { it.isNotBlank() } ?: session.rootFolder
     val id = snapshot?.accountId?.takeIf { it.isNotBlank() } ?: session.accountId
 
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+    // Grup baris identitas: tiap baris adalah Surface tonal sendiri dengan jarak
+    // 2.dp, sudut luar hanya di baris pertama/terakhir (daftar bersambung).
+    val rows = listOf(
+        stringResource(R.string.settings_account_email) to email,
+        stringResource(R.string.settings_account_tier_label) to tier,
+        stringResource(R.string.settings_account_root) to root,
+        stringResource(R.string.settings_account_id) to id,
+    )
+    Column(
         modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Column {
-            IdentityRow(
-                label = stringResource(R.string.settings_account_email),
-                value = email,
-            )
-            IdentityRow(
-                label = stringResource(R.string.settings_account_tier_label),
-                value = tier,
-            )
-            IdentityRow(
-                label = stringResource(R.string.settings_account_root),
-                value = root,
-            )
-            IdentityRow(
-                label = stringResource(R.string.settings_account_id),
-                value = id,
-            )
+        rows.forEachIndexed { index, (label, value) ->
+            Surface(
+                shape = if (reduceMotion) {
+                    connectedShape(index, rows.size)
+                } else {
+                    animatedConnectedShape(index, rows.size, reduceMotion)
+                },
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                IdentityRow(label = label, value = value)
+            }
         }
     }
 }
