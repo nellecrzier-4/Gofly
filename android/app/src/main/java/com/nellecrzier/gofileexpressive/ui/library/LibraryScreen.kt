@@ -3,7 +3,9 @@
 package com.nellecrzier.gofileexpressive.ui.library
 
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,7 +20,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,11 +42,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -55,7 +59,10 @@ import com.nellecrzier.gofileexpressive.GItem
 import com.nellecrzier.gofileexpressive.MainActivity
 import com.nellecrzier.gofileexpressive.PrefsState
 import com.nellecrzier.gofileexpressive.R
+import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
 import com.nellecrzier.gofileexpressive.ui.components.fileKind
+import com.nellecrzier.gofileexpressive.ui.motion.pressScale
+import com.nellecrzier.gofileexpressive.ui.motion.staggeredEnter
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.vm.FolderViewModel
 import kotlinx.coroutines.delay
@@ -76,6 +83,9 @@ fun LibraryScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
+    // Masuk bertahap hanya pada komposisi pertama; bergulir tidak mengulanginya.
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
 
     LaunchedEffect(query) {
         delay(180)
@@ -87,10 +97,10 @@ fun LibraryScreen(
             .fillMaxSize()
             .statusBarsPadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 130.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         item {
-            Column {
+            Column(Modifier.padding(bottom = 6.dp)) {
                 Text(
                     stringResource(R.string.library_title),
                     style = MaterialTheme.typography.headlineMedium,
@@ -123,7 +133,9 @@ fun LibraryScreen(
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
             )
         }
 
@@ -132,7 +144,7 @@ fun LibraryScreen(
                 stringResource(R.string.library_search_note),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(horizontal = 4.dp),
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 6.dp),
             )
         }
 
@@ -148,8 +160,13 @@ fun LibraryScreen(
                     )
                 }
             } else {
-                items(state.globalResults, key = { "g-${it.id}" }) { item ->
-                Box(Modifier.animateItem()) {
+                itemsIndexed(state.globalResults, key = { _, item -> "g-${item.id}" }) { index, item ->
+                val rowShape = animatedConnectedShape(index, state.globalResults.size, reduceMotion)
+                Box(
+                    Modifier
+                        .animateItem()
+                        .staggeredEnter(index, reduceMotion, entered || index >= 10),
+                ) {
                     LibraryRow(
                         item = item,
                         favorite = prefs.favorites.any { it.id == item.id },
@@ -164,6 +181,8 @@ fun LibraryScreen(
                             }
                         },
                         onFavorite = { vm.toggleFavorite(item) },
+                        shape = rowShape,
+                        reduceMotion = reduceMotion,
                     )
                     }
                 }
@@ -182,21 +201,30 @@ fun LibraryScreen(
                 )
             }
         } else {
-            items(prefs.favorites, key = { "f-${it.id}" }) { item ->
-                LibraryRow(
-                    item = item,
-                    favorite = true,
-                    onOpen = {
-                        if (item.isFolder) {
-                            vm.openDirect(token, item)
-                            onOpenFolder()
-                        } else if (item.link.startsWith("http")) {
-                            activity.startDownload(item.link, item.name, token)
-                            vm.recordRecent(item)
-                        }
-                    },
-                    onFavorite = { vm.toggleFavorite(item) },
-                )
+            itemsIndexed(prefs.favorites, key = { _, item -> "f-${item.id}" }) { index, item ->
+                val rowShape = animatedConnectedShape(index, prefs.favorites.size, reduceMotion)
+                Box(
+                    Modifier
+                        .animateItem()
+                        .staggeredEnter(index, reduceMotion, entered || index >= 10),
+                ) {
+                    LibraryRow(
+                        item = item,
+                        favorite = true,
+                        onOpen = {
+                            if (item.isFolder) {
+                                vm.openDirect(token, item)
+                                onOpenFolder()
+                            } else if (item.link.startsWith("http")) {
+                                activity.startDownload(item.link, item.name, token)
+                                vm.recordRecent(item)
+                            }
+                        },
+                        onFavorite = { vm.toggleFavorite(item) },
+                        shape = rowShape,
+                        reduceMotion = reduceMotion,
+                    )
+                }
             }
         }
 
@@ -211,18 +239,27 @@ fun LibraryScreen(
                 )
             }
         } else {
-            items(prefs.recent, key = { "r-${it.id}" }) { item ->
-                LibraryRow(
-                    item = item,
-                    favorite = prefs.favorites.any { it.id == item.id },
-                    onOpen = {
-                        if (item.link.startsWith("http")) {
-                            activity.startDownload(item.link, item.name, token)
-                            vm.recordRecent(item)
-                        }
-                    },
-                    onFavorite = { vm.toggleFavorite(item) },
-                )
+            itemsIndexed(prefs.recent, key = { _, item -> "r-${item.id}" }) { index, item ->
+                val rowShape = animatedConnectedShape(index, prefs.recent.size, reduceMotion)
+                Box(
+                    Modifier
+                        .animateItem()
+                        .staggeredEnter(index, reduceMotion, entered || index >= 10),
+                ) {
+                    LibraryRow(
+                        item = item,
+                        favorite = prefs.favorites.any { it.id == item.id },
+                        onOpen = {
+                            if (item.link.startsWith("http")) {
+                                activity.startDownload(item.link, item.name, token)
+                                vm.recordRecent(item)
+                            }
+                        },
+                        onFavorite = { vm.toggleFavorite(item) },
+                        shape = rowShape,
+                        reduceMotion = reduceMotion,
+                    )
+                }
             }
             item {
                 TextButton(
@@ -310,16 +347,24 @@ private fun LibraryRow(
     favorite: Boolean,
     onOpen: () -> Unit,
     onFavorite: () -> Unit,
+    shape: Shape = RoundedCornerShape(18.dp),
+    reduceMotion: Boolean = false,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .combinedClickable(onClick = onOpen),
+            .clip(shape)
+            .pressScale(interactionSource, reduceMotion)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onOpen,
+            ),
     ) {
         Row(
             Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
