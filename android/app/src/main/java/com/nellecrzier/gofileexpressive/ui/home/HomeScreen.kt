@@ -2,6 +2,7 @@
 
 package com.nellecrzier.gofileexpressive.ui.home
 
+import com.nellecrzier.gofileexpressive.ui.components.rememberTabEntered
 import com.nellecrzier.gofileexpressive.ui.motion.staggeredEnter
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,8 +90,7 @@ internal fun HomeScreen(
     val fileCount = remember(items) { items.size - folderCount }
     val totalSize = remember(items) { items.sumOf { if (it.isFolder) 0L else it.size } }
 
-    var shown by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { shown = true }
+    val shown = rememberTabEntered()
 
     Column(
         Modifier

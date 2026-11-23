@@ -5,6 +5,8 @@
 
 package com.nellecrzier.gofileexpressive.ui.settings
 
+import com.nellecrzier.gofileexpressive.ui.motion.staggeredEnter
+import com.nellecrzier.gofileexpressive.ui.components.rememberTabEntered
 import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
@@ -104,6 +106,7 @@ internal fun SettingsScreen(
 ) {
     val vm: SettingsViewModel = viewModel()
     val prefs by vm.state.collectAsStateWithLifecycle()
+    val shown = rememberTabEntered()
     val cacheBytes by vm.cacheBytes.collectAsStateWithLifecycle()
     val still = reduceMotion || prefs.motionReduced
 
@@ -252,26 +255,28 @@ internal fun SettingsScreen(
                             bottom = 24.dp + com.nellecrzier.gofileexpressive.ui.components.LocalBottomChromeHeight.current,
                         ),
                     ) {
-                        SettingsAccountCard(
+                        Box(Modifier.staggeredEnter(0, still, shown)) { SettingsAccountCard(
                             session = session,
                             state = accountState,
                             reduceMotion = still,
                             onOpen = { showAccount = true },
                             onRetry = { reload += 1 },
                             onSignIn = { signOut(false) },
-                        )
+                        ) }
 
-                        SettingsAppearanceSection(prefs = prefs, vm = vm, reduceMotion = still)
-                        SettingsFilesSection(prefs = prefs, vm = vm, reduceMotion = still)
-                        SettingsNetworkSection(prefs = prefs, vm = vm, reduceMotion = still, actions = actions)
-                        SettingsSecuritySection(prefs = prefs, vm = vm, actions = actions)
-                        SettingsDataSection(
-                            prefs = prefs,
-                            vm = vm,
-                            cacheBytes = cacheBytes,
-                            actions = actions,
-                        )
-                        SettingsAboutSection(actions = actions)
+                        Box(Modifier.staggeredEnter(1, still, shown)) { SettingsAppearanceSection(prefs = prefs, vm = vm, reduceMotion = still) }
+                        Box(Modifier.staggeredEnter(2, still, shown)) { SettingsFilesSection(prefs = prefs, vm = vm, reduceMotion = still) }
+                        Box(Modifier.staggeredEnter(3, still, shown)) { SettingsNetworkSection(prefs = prefs, vm = vm, reduceMotion = still, actions = actions) }
+                        Box(Modifier.staggeredEnter(4, still, shown)) { SettingsSecuritySection(prefs = prefs, vm = vm, actions = actions) }
+                        Box(Modifier.staggeredEnter(5, still, shown)) {
+                            SettingsDataSection(
+                                prefs = prefs,
+                                vm = vm,
+                                cacheBytes = cacheBytes,
+                                actions = actions,
+                            )
+                        }
+                        Box(Modifier.staggeredEnter(6, still, shown)) { SettingsAboutSection(actions = actions) }
 
                         // Hanya di build debug, dan hanya baris ini yang ditambah.
                         if (BuildConfig.DEBUG) {

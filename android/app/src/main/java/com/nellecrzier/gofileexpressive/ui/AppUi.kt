@@ -2,6 +2,11 @@
 
 package com.nellecrzier.gofileexpressive.ui
 
+import com.nellecrzier.gofileexpressive.ui.components.LocalTabActivation
+import androidx.compose.runtime.mutableStateMapOf
+import kotlin.math.sign
+import androidx.compose.runtime.key
+import androidx.compose.ui.layout.layout
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -509,33 +514,33 @@ fun GofileApp(activity: MainActivity) {
                                             }
                                         },
                                 ) {
-                                    // Fade-through ringan: layar lama memudar cepat (90 ms), layar baru
-                                    // masuk sesudahnya sambil bergeser sedikit. Hanya satu layar yang
-                                    // terlihat pada satu waktu, jadi tidak ada dua layar berat yang
-                                    // digambar bersamaan, dan memakai tween (bukan spring yang lama
-                                    // mengendap) supaya komposisi layar lama dilepas dengan cepat.
-                                    AnimatedContent(
-                                        targetState = currentTab,
-                                        label = "tabContent",
-                                        transitionSpec = {
-                                            if (reduceMotion) {
-                                                fadeIn(tween(100)) togetherWith fadeOut(tween(80))
-                                            } else {
-                                                val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
-                                                (
-                                                    fadeIn(tween(200, delayMillis = 80, easing = LinearOutSlowInEasing)) +
-                                                        slideInHorizontally(
-                                                            tween(300, delayMillis = 50, easing = FastOutSlowInEasing),
-                                                        ) { full -> if (forward) full / 14 else -full / 14 }
-                                                    ) togetherWith (
-                                                    fadeOut(tween(80, easing = FastOutLinearInEasing)) +
-                                                        slideOutHorizontally(
-                                                            tween(120, easing = FastOutLinearInEasing),
-                                                        ) { full -> if (forward) -full / 24 else full / 24 }
-                                                    ) using null
-                                            }
-                                        },
-                                    ) { tab ->
+                                    // Tab dibuat sekali lalu dibiarkan hidup: pindah tab hanya mengubah
+                                    // alfa/geser, tanpa menyusun ulang layar berat dari nol (penyebab
+                                    // jeda beberapa detik sebelumnya). Tab yang tersembunyi tidak
+                                    // ditempatkan sehingga tidak digambar dan tidak menerima sentuhan.
+                                    var visited by remember { mutableStateOf(setOf("home")) }
+                                    val history = remember { arrayOf(currentTab, currentTab) }
+                                    if (history[1] != currentTab) {
+                                        history[0] = history[1]
+                                        history[1] = currentTab
+                                    }
+                                    val enterDir = sign(
+                                        (TAB_ORDER.indexOf(history[1]) - TAB_ORDER.indexOf(history[0])).toFloat(),
+                                    )
+                                    val activations = remember { mutableStateMapOf<String, Int>() }
+                                    LaunchedEffect(currentTab) {
+                                        visited = visited + currentTab
+                                        activations[currentTab] = (activations[currentTab] ?: 0) + 1
+                                    }
+                                    // Panaskan tab lain satu per satu saat menganggur.
+                                    LaunchedEffect(Unit) {
+                                        delay(900)
+                                        TAB_ORDER.forEach { key ->
+                                            visited = visited + key
+                                            delay(450)
+                                        }
+                                    }
+                                    val renderTab: @Composable (String) -> Unit = { tab ->
                                         when (tab) {
                                             "folder" -> FolderScreen(
                                                 vm = folderVm,
@@ -596,6 +601,40 @@ fun GofileApp(activity: MainActivity) {
                                                 },
                                                 onRefresh = { folderVm.refresh(session.token) },
                                             )
+                                        }
+                                    }
+                                    TAB_ORDER.forEach { tabKey ->
+                                        if (tabKey in visited || tabKey == currentTab) key(tabKey) {
+                                            val active = tabKey == currentTab
+                                            val progress by animateFloatAsState(
+                                                targetValue = if (active) 1f else 0f,
+                                                animationSpec = when {
+                                                    reduceMotion -> tween(90)
+                                                    active -> tween(240, delayMillis = 70, easing = FastOutSlowInEasing)
+                                                    else -> tween(80, easing = FastOutLinearInEasing)
+                                                },
+                                                label = "tabVisibility",
+                                            )
+                                            Box(
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .layout { measurable, constraints ->
+                                                        val placeable = measurable.measure(constraints)
+                                                        layout(placeable.width, placeable.height) {
+                                                            if (active || progress > 0.001f) placeable.place(0, 0)
+                                                        }
+                                                    }
+                                                    .graphicsLayer {
+                                                        alpha = progress
+                                                        if (!reduceMotion && active) {
+                                                            translationX = (1f - progress) * 28.dp.toPx() * enterDir
+                                                        }
+                                                    },
+                                            ) {
+                                                CompositionLocalProvider(
+                                                    LocalTabActivation provides (activations[tabKey] ?: 0),
+                                                ) { renderTab(tabKey) }
+                                            }
                                         }
                                     }
                                 }

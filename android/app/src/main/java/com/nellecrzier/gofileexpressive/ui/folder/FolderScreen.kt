@@ -72,6 +72,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -1572,6 +1573,8 @@ private fun FileGrid(
     onItemBounds: (String, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> },
 ) {
     val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+    var gridEntered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { gridEntered = true }
     val shouldLoadMore by remember(hasNextPage, items.size) {
         derivedStateOf {
             val last = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -1589,9 +1592,11 @@ private fun FileGrid(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        gridItems(items, key = { it.id }) { item ->
+        gridItemsIndexed(items, key = { _, it -> it.id }) { index, item ->
             GridCard(
-                modifier = Modifier.animateItem(),
+                modifier = Modifier
+                    .animateItem()
+                    .staggeredEnter(index % 12, false, gridEntered || index >= 12),
                 onBounds = { onItemBounds(item.id, it) },
                 item = item,
                 selected = item.id in selectedIds,

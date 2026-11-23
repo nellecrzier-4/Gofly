@@ -1,0 +1,13 @@
+# Baseline profile tulis-tangan: kompilasi AOT untuk jalur panas Compose dan
+# aplikasi ini, supaya pindah tab / membuka layar tidak diinterpretasi dulu.
+HSPLandroidx/compose/runtime/**;->**(**)**
+HSPLandroidx/compose/ui/**;->**(**)**
+HSPLandroidx/compose/foundation/**;->**(**)**
+HSPLandroidx/compose/animation/**;->**(**)**
+HSPLandroidx/compose/material3/**;->**(**)**
+HSPLandroidx/compose/material/ripple/**;->**(**)**
+HSPLandroidx/lifecycle/**;->**(**)**
+HSPLandroidx/activity/**;->**(**)**
+HSPLcom/nellecrzier/gofileexpressive/**;->**(**)**
+Landroidx/compose/**;
+Lcom/nellecrzier/gofileexpressive/**;
