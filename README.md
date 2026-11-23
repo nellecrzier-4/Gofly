@@ -2,7 +2,7 @@
 
 Klien GoFile dua sisi: **aplikasi Android native 100% Compose** (tanpa WebView) dan **klien web statis** (HTML/CSS/JS, tanpa build step) yang bisa dipasang sebagai PWA.
 
-Antarmuka Android memakai Material 3 Expressive: warna dinamis Material You di Android 12+, skema tonal dari aksen pilihan sebagai cadangan, tipografi dan bentuk bawaan M3, sudut bersambung untuk daftar dan grup kontrol, serta gerak spatial/effects yang menghormati setelan kurangi gerak.
+Antarmuka Android memakai Material 3 Expressive: warna dinamis Material You di Android 12+, skema tonal dari aksen pilihan sebagai cadangan, tipografi dan bentuk bawaan M3, sudut bersambung yang dianimasikan, indikator muat bermorfosis, progres bergelombang, serta gerak spatial/effects dari `MaterialTheme.motionScheme` yang menghormati setelan kurangi gerak.
 
 ## Login
 

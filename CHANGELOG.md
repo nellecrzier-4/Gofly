@@ -12,8 +12,12 @@ tanpa tabel, tanpa HTML, dan baris pendek.
   Material You di Android 12+, skema tonal dari aksen pilihan sebagai
   cadangan, tipografi dan bentuk bawaan M3, serta sudut bersambung untuk
   daftar dan grup kontrol.
-- Gerak memakai spesifikasi spatial/effects Expressive dan tetap menghormati
-  setelan kurangi gerak (SYSTEM/REDUCED/OFF).
+- Komponen Expressive asli dari material3 1.5: indikator muat bermorfosis,
+  progres bergelombang, navigasi singkat adaptif, dan sudut bersambung yang
+  dianimasikan saat item disisipkan atau dihapus.
+- Gerak memakai `MaterialTheme.motionScheme` Expressive (spatial untuk
+  posisi/bentuk, effects untuk alfa/warna), dengan setelan kurangi gerak
+  (SYSTEM/REDUCED/OFF) yang mematikan morph, stagger, dan goyangan.
 - Efek kaca, latar titik, dan komponen visual lama dihapus; tidak ada lagi
   shader AGSL maupun blur yang hanya berjalan di Android 13+.
 
