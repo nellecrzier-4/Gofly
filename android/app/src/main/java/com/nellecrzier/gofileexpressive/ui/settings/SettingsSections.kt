@@ -2,6 +2,7 @@ package com.nellecrzier.gofileexpressive.ui.settings
 
 import android.os.Build
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -27,8 +28,6 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -62,6 +61,9 @@ import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ThemeMode
 import com.nellecrzier.gofileexpressive.ViewMode
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
+import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
+import com.nellecrzier.gofileexpressive.ui.components.connectedShape
+import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
 import com.nellecrzier.gofileexpressive.ui.readableSize
 import com.nellecrzier.gofileexpressive.vm.SettingsViewModel
 import kotlinx.coroutines.delay
@@ -107,17 +109,37 @@ private fun SettingsSectionHeader(text: String) {
     )
 }
 
-/** Wadah grup setelan: kartu Material 3 datar tanpa efek kaca. */
+/**
+ * Wadah grup setelan bergaya daftar bersambung Material 3 Expressive.
+ *
+ * Tiap baris adalah [Surface] tonal sendiri dengan jarak 2.dp; hanya baris
+ * pertama dan terakhir yang memakai sudut luar besar. Jumlah baris diketahui
+ * dari [items] sehingga bentuk tiap sudut bisa dihitung. Garis pemisah tidak
+ * dipakai lagi karena jarak + sudut bersambung sudah memisahkan baris.
+ * Saat gerak diredupkan bentuk dipasang statis tanpa animasi.
+ */
 @Composable
-private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
-    Card(
+private fun SettingsGroup(
+    items: List<@Composable () -> Unit>,
+    reduceMotion: Boolean = rememberReducedMotion(),
+) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Column(Modifier.padding(vertical = 2.dp), content = content)
+        items.forEachIndexed { index, item ->
+            Surface(
+                shape = if (reduceMotion) {
+                    connectedShape(index, items.size)
+                } else {
+                    animatedConnectedShape(index, items.size, reduceMotion)
+                },
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                item()
+            }
+        }
     }
 }
 
@@ -266,80 +288,87 @@ internal fun SettingsAppearanceSection(
     reduceMotion: Boolean,
 ) {
     SettingsSectionHeader(stringResource(R.string.settings_section_appearance))
-    SettingsGroup {
-        SettingsBlock(
-            title = stringResource(R.string.settings_theme),
-            subtitle = stringResource(R.string.settings_theme_body),
-        ) {
-            SettingsSegmented(
-                options = themeOptions(),
-                value = prefs.themeMode.name,
-                onChange = { vm.setThemeMode(ThemeMode.valueOf(it)) },
-                reduceMotion = reduceMotion,
+    val items: List<@Composable () -> Unit> = listOf<@Composable () -> Unit>(
+        {
+            SettingsBlock(
+                title = stringResource(R.string.settings_theme),
+                subtitle = stringResource(R.string.settings_theme_body),
+            ) {
+                SettingsSegmented(
+                    options = themeOptions(),
+                    value = prefs.themeMode.name,
+                    onChange = { vm.setThemeMode(ThemeMode.valueOf(it)) },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+        {
+            AccentSwatches(
+                value = prefs.accent,
+                onChange = { vm.setAccent(it) },
             )
-        }
-        SettingsDivider()
-        AccentSwatches(
-            value = prefs.accent,
-            onChange = { vm.setAccent(it) },
-        )
-        SettingsDivider()
-        DynamicColourRow(prefs = prefs, vm = vm)
-        SettingsDivider()
-        SettingsBlock(
-            title = stringResource(R.string.settings_language),
-            subtitle = stringResource(R.string.settings_language_body),
-        ) {
-            SettingsSegmented(
-                options = languageOptions(),
-                value = prefs.language.name,
-                onChange = { vm.setLanguage(LanguageChoice.valueOf(it)) },
-                reduceMotion = reduceMotion,
-            )
-        }
-        SettingsDivider()
-        Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-            var draft by remember(prefs.fontScale) { mutableFloatStateOf(prefs.fontScale) }
-            val percent = (draft * 100).roundToInt()
-            SettingsSlider(
-                title = stringResource(R.string.settings_text_size),
-                valueLabel = stringResource(R.string.settings_text_size_value, percent),
-                value = draft,
-                onValueChange = { draft = it },
-                onValueChangeFinished = { vm.setFontScale(draft) },
-                valueRange = 0.85f..1.3f,
-                steps = 44,
-            )
-            TextSizePreview(
-                scale = draft,
-                text = stringResource(R.string.settings_text_size_preview),
-                modifier = Modifier.padding(horizontal = 14.dp),
-            )
-        }
-        SettingsDivider()
-        SettingsBlock(title = stringResource(R.string.settings_density)) {
-            SettingsSegmented(
-                options = densityOptions(),
-                value = prefs.density.name,
-                onChange = { vm.setDensity(Density.valueOf(it)) },
-                reduceMotion = reduceMotion,
-            )
-            Spacer(Modifier.height(10.dp))
-            DensityPreview(density = prefs.density)
-        }
-        SettingsDivider()
-        SettingsBlock(
-            title = stringResource(R.string.settings_motion),
-            subtitle = stringResource(R.string.settings_motion_body),
-        ) {
-            SettingsSegmented(
-                options = animOptions(),
-                value = prefs.animations.name,
-                onChange = { vm.setAnimations(AnimPref.valueOf(it)) },
-                reduceMotion = reduceMotion,
-            )
-        }
-    }
+        },
+        { DynamicColourRow(prefs = prefs, vm = vm) },
+        {
+            SettingsBlock(
+                title = stringResource(R.string.settings_language),
+                subtitle = stringResource(R.string.settings_language_body),
+            ) {
+                SettingsSegmented(
+                    options = languageOptions(),
+                    value = prefs.language.name,
+                    onChange = { vm.setLanguage(LanguageChoice.valueOf(it)) },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+        {
+            Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                var draft by remember(prefs.fontScale) { mutableFloatStateOf(prefs.fontScale) }
+                val percent = (draft * 100).roundToInt()
+                SettingsSlider(
+                    title = stringResource(R.string.settings_text_size),
+                    valueLabel = stringResource(R.string.settings_text_size_value, percent),
+                    value = draft,
+                    onValueChange = { draft = it },
+                    onValueChangeFinished = { vm.setFontScale(draft) },
+                    valueRange = 0.85f..1.3f,
+                    steps = 44,
+                )
+                TextSizePreview(
+                    scale = draft,
+                    text = stringResource(R.string.settings_text_size_preview),
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                )
+            }
+        },
+        {
+            SettingsBlock(title = stringResource(R.string.settings_density)) {
+                SettingsSegmented(
+                    options = densityOptions(),
+                    value = prefs.density.name,
+                    onChange = { vm.setDensity(Density.valueOf(it)) },
+                    reduceMotion = reduceMotion,
+                )
+                Spacer(Modifier.height(10.dp))
+                DensityPreview(density = prefs.density)
+            }
+        },
+        {
+            SettingsBlock(
+                title = stringResource(R.string.settings_motion),
+                subtitle = stringResource(R.string.settings_motion_body),
+            ) {
+                SettingsSegmented(
+                    options = animOptions(),
+                    value = prefs.animations.name,
+                    onChange = { vm.setAnimations(AnimPref.valueOf(it)) },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+    )
+    SettingsGroup(items = items, reduceMotion = reduceMotion)
 }
 
 @Composable
@@ -369,68 +398,76 @@ internal fun SettingsFilesSection(
     reduceMotion: Boolean,
 ) {
     SettingsSectionHeader(stringResource(R.string.settings_section_files))
-    SettingsGroup {
-        SettingsBlock(title = stringResource(R.string.settings_view_mode)) {
-            SettingsSegmented(
-                options = viewOptions(),
-                value = prefs.viewMode.name,
-                onChange = { vm.setViewMode(ViewMode.valueOf(it)) },
-                reduceMotion = reduceMotion,
+    val items: List<@Composable () -> Unit> = listOf<@Composable () -> Unit>(
+        {
+            SettingsBlock(title = stringResource(R.string.settings_view_mode)) {
+                SettingsSegmented(
+                    options = viewOptions(),
+                    value = prefs.viewMode.name,
+                    onChange = { vm.setViewMode(ViewMode.valueOf(it)) },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+        {
+            SettingsBlock(title = stringResource(R.string.settings_sort)) {
+                SettingsSegmented(
+                    options = sortOptions(),
+                    value = prefs.sortField,
+                    onChange = { vm.setSort(it, prefs.sortAscending) },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+        {
+            SettingsBlock(title = stringResource(R.string.settings_sort_direction)) {
+                SettingsSegmented(
+                    options = directionOptions(),
+                    value = if (prefs.sortAscending) "asc" else "desc",
+                    onChange = { vm.setSort(prefs.sortField, it == "asc") },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+        {
+            SettingsSwitchRow(
+                title = stringResource(R.string.settings_show_hidden),
+                subtitle = stringResource(R.string.settings_show_hidden_body),
+                checked = prefs.showHidden,
+                icon = Icons.Filled.Visibility,
+                onChange = { vm.setShowHidden(it) },
             )
-        }
-        SettingsDivider()
-        SettingsBlock(title = stringResource(R.string.settings_sort)) {
-            SettingsSegmented(
-                options = sortOptions(),
-                value = prefs.sortField,
-                onChange = { vm.setSort(it, prefs.sortAscending) },
-                reduceMotion = reduceMotion,
-            )
-        }
-        SettingsDivider()
-        SettingsBlock(title = stringResource(R.string.settings_sort_direction)) {
-            SettingsSegmented(
-                options = directionOptions(),
-                value = if (prefs.sortAscending) "asc" else "desc",
-                onChange = { vm.setSort(prefs.sortField, it == "asc") },
-                reduceMotion = reduceMotion,
-            )
-        }
-        SettingsDivider()
-        SettingsSwitchRow(
-            title = stringResource(R.string.settings_show_hidden),
-            subtitle = stringResource(R.string.settings_show_hidden_body),
-            checked = prefs.showHidden,
-            icon = Icons.Filled.Visibility,
-            onChange = { vm.setShowHidden(it) },
-        )
-        SettingsDivider()
-        SettingsBlock(
-            title = stringResource(R.string.settings_delete),
-            subtitle = stringResource(R.string.settings_delete_body),
-        ) {
-            SettingsSegmented(
-                options = deleteOptions(),
-                value = prefs.deleteConfirm.name,
-                onChange = { vm.setDeleteConfirm(DeleteConfirm.valueOf(it)) },
-                reduceMotion = reduceMotion,
-            )
-        }
-        SettingsDivider()
-        Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-            var undo by remember(prefs.undoSeconds) { mutableIntStateOf(prefs.undoSeconds) }
-            SettingsSlider(
-                title = stringResource(R.string.settings_undo),
-                subtitle = stringResource(R.string.settings_undo_body),
-                valueLabel = stringResource(R.string.settings_undo_value, undo),
-                value = undo.toFloat(),
-                onValueChange = { undo = it.roundToInt() },
-                onValueChangeFinished = { vm.setUndoSeconds(undo) },
-                valueRange = 3f..15f,
-                steps = 11,
-            )
-        }
-    }
+        },
+        {
+            SettingsBlock(
+                title = stringResource(R.string.settings_delete),
+                subtitle = stringResource(R.string.settings_delete_body),
+            ) {
+                SettingsSegmented(
+                    options = deleteOptions(),
+                    value = prefs.deleteConfirm.name,
+                    onChange = { vm.setDeleteConfirm(DeleteConfirm.valueOf(it)) },
+                    reduceMotion = reduceMotion,
+                )
+            }
+        },
+        {
+            Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                var undo by remember(prefs.undoSeconds) { mutableIntStateOf(prefs.undoSeconds) }
+                SettingsSlider(
+                    title = stringResource(R.string.settings_undo),
+                    subtitle = stringResource(R.string.settings_undo_body),
+                    valueLabel = stringResource(R.string.settings_undo_value, undo),
+                    value = undo.toFloat(),
+                    onValueChange = { undo = it.roundToInt() },
+                    onValueChangeFinished = { vm.setUndoSeconds(undo) },
+                    valueRange = 3f..15f,
+                    steps = 11,
+                )
+            }
+        },
+    )
+    SettingsGroup(items = items, reduceMotion = reduceMotion)
 }
 
 /* ------------------------------ jaringan ----------------------------- */
@@ -456,64 +493,73 @@ internal fun SettingsNetworkSection(
     val changeLabel = stringResource(R.string.settings_download_change)
 
     SettingsSectionHeader(stringResource(R.string.settings_section_network))
-    SettingsGroup {
-        SettingsSwitchRow(
-            title = stringResource(R.string.settings_wifi_only),
-            subtitle = stringResource(R.string.settings_wifi_only_body),
-            checked = prefs.wifiOnly,
-            icon = Icons.Filled.Wifi,
-            onChange = { vm.setWifiOnly(it) },
-        )
-        SettingsDivider()
-        SettingsBlock(
-            title = stringResource(R.string.settings_parallel),
-            subtitle = stringResource(R.string.settings_parallel_body),
-        ) {
-            SettingsSegmented(
-                options = parallelOptions(),
-                value = prefs.parallelTransfers.toString(),
-                onChange = { count -> count.toIntOrNull()?.let { vm.setParallelTransfers(it) } },
-                reduceMotion = reduceMotion,
+    val items: List<@Composable () -> Unit> = listOf<@Composable () -> Unit>(
+        {
+            SettingsSwitchRow(
+                title = stringResource(R.string.settings_wifi_only),
+                subtitle = stringResource(R.string.settings_wifi_only_body),
+                checked = prefs.wifiOnly,
+                icon = Icons.Filled.Wifi,
+                onChange = { vm.setWifiOnly(it) },
             )
-        }
-        SettingsDivider()
-        SettingsRow(
-            title = stringResource(R.string.settings_download_location),
-            subtitle = folder ?: defaultLabel,
-            icon = Icons.Filled.Download,
-            iconTint = MaterialTheme.colorScheme.primary,
-            onClick = actions.onPickDownloadFolder,
-            trailing = {
-                Text(
-                    text = changeLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+        },
+        {
+            SettingsBlock(
+                title = stringResource(R.string.settings_parallel),
+                subtitle = stringResource(R.string.settings_parallel_body),
+            ) {
+                SettingsSegmented(
+                    options = parallelOptions(),
+                    value = prefs.parallelTransfers.toString(),
+                    onChange = { count -> count.toIntOrNull()?.let { vm.setParallelTransfers(it) } },
+                    reduceMotion = reduceMotion,
                 )
-            },
-        )
-        Text(
-            text = stringResource(R.string.settings_download_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 12.dp),
-        )
-        SettingsDivider()
-        SettingsSwitchRow(
-            title = stringResource(R.string.settings_keep_awake),
-            subtitle = stringResource(R.string.settings_keep_awake_body),
-            checked = prefs.keepAwake,
-            icon = Icons.Filled.WbSunny,
-            onChange = { vm.setKeepAwake(it) },
-        )
-        SettingsDivider()
-        SettingsSwitchRow(
-            title = stringResource(R.string.settings_notify_sound),
-            subtitle = stringResource(R.string.settings_notify_sound_body),
-            checked = prefs.notifySound,
-            icon = Icons.Filled.NotificationsActive,
-            onChange = { vm.setNotifySound(it) },
-        )
-    }
+            }
+        },
+        {
+            Column(Modifier.fillMaxWidth()) {
+                SettingsRow(
+                    title = stringResource(R.string.settings_download_location),
+                    subtitle = folder ?: defaultLabel,
+                    icon = Icons.Filled.Download,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    onClick = actions.onPickDownloadFolder,
+                    trailing = {
+                        Text(
+                            text = changeLabel,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                )
+                Text(
+                    text = stringResource(R.string.settings_download_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 12.dp),
+                )
+            }
+        },
+        {
+            SettingsSwitchRow(
+                title = stringResource(R.string.settings_keep_awake),
+                subtitle = stringResource(R.string.settings_keep_awake_body),
+                checked = prefs.keepAwake,
+                icon = Icons.Filled.WbSunny,
+                onChange = { vm.setKeepAwake(it) },
+            )
+        },
+        {
+            SettingsSwitchRow(
+                title = stringResource(R.string.settings_notify_sound),
+                subtitle = stringResource(R.string.settings_notify_sound_body),
+                checked = prefs.notifySound,
+                icon = Icons.Filled.NotificationsActive,
+                onChange = { vm.setNotifySound(it) },
+            )
+        },
+    )
+    SettingsGroup(items = items, reduceMotion = reduceMotion)
 }
 
 /* ------------------------------ keamanan ----------------------------- */
@@ -533,48 +579,57 @@ internal fun SettingsSecuritySection(
     }
 
     SettingsSectionHeader(stringResource(R.string.settings_section_security))
-    SettingsGroup {
-        SettingsSwitchRow(
-            title = stringResource(R.string.settings_app_lock),
-            subtitle = stringResource(R.string.settings_app_lock_body),
-            checked = prefs.appLock,
-            icon = Icons.Filled.Lock,
-            onChange = { vm.setAppLock(it) },
-        )
-        if (prefs.appLock) {
-            Text(
-                text = stringResource(R.string.settings_app_lock_note),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 12.dp),
+    val items: List<@Composable () -> Unit> = listOf<@Composable () -> Unit>(
+        {
+            Column(Modifier.fillMaxWidth()) {
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_app_lock),
+                    subtitle = stringResource(R.string.settings_app_lock_body),
+                    checked = prefs.appLock,
+                    icon = Icons.Filled.Lock,
+                    onChange = { vm.setAppLock(it) },
+                )
+                if (prefs.appLock) {
+                    Text(
+                        text = stringResource(R.string.settings_app_lock_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 12.dp),
+                    )
+                }
+            }
+        },
+        {
+            Column(Modifier.fillMaxWidth()) {
+                SettingsActionRow(
+                    title = stringResource(R.string.settings_tips),
+                    subtitle = stringResource(R.string.settings_tips_body),
+                    icon = Icons.Filled.Refresh,
+                    onClick = {
+                        vm.setGesturesSeen(false)
+                        tipsRestored = true
+                    },
+                )
+                if (tipsRestored) {
+                    Text(
+                        text = stringResource(R.string.settings_tips_done),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 10.dp),
+                    )
+                }
+            }
+        },
+        {
+            SettingsActionRow(
+                title = stringResource(R.string.settings_feedback),
+                subtitle = stringResource(R.string.settings_feedback_body),
+                icon = Icons.Filled.Description,
+                onClick = actions.onSendFeedback,
             )
-        }
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_tips),
-            subtitle = stringResource(R.string.settings_tips_body),
-            icon = Icons.Filled.Refresh,
-            onClick = {
-                vm.setGesturesSeen(false)
-                tipsRestored = true
-            },
-        )
-        if (tipsRestored) {
-            Text(
-                text = stringResource(R.string.settings_tips_done),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 10.dp),
-            )
-        }
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_feedback),
-            subtitle = stringResource(R.string.settings_feedback_body),
-            icon = Icons.Filled.Description,
-            onClick = actions.onSendFeedback,
-        )
-    }
+        },
+    )
+    SettingsGroup(items = items, reduceMotion = rememberReducedMotion(prefs.motionReduced))
 }
 
 /* -------------------------------- data ------------------------------- */
@@ -602,67 +657,76 @@ internal fun SettingsDataSection(
     }
 
     SettingsSectionHeader(stringResource(R.string.settings_section_data))
-    SettingsGroup {
-        SettingsRow(
-            title = stringResource(R.string.settings_cache),
-            subtitle = stringResource(R.string.settings_cache_body),
-            value = readableSize(cacheBytes),
-            icon = Icons.Filled.Storage,
-            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
-            HoldToConfirmButton(
-                label = stringResource(R.string.settings_cache_clear),
-                hint = if (cacheCleared) {
-                    stringResource(R.string.settings_cache_cleared)
-                } else {
-                    stringResource(R.string.settings_cache_clear_hint)
-                },
-                onConfirm = {
-                    vm.clearCache()
-                    cacheCleared = true
-                },
+    val items: List<@Composable () -> Unit> = listOf<@Composable () -> Unit>(
+        {
+            Column(Modifier.fillMaxWidth()) {
+                SettingsRow(
+                    title = stringResource(R.string.settings_cache),
+                    subtitle = stringResource(R.string.settings_cache_body),
+                    value = readableSize(cacheBytes),
+                    icon = Icons.Filled.Storage,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
+                    HoldToConfirmButton(
+                        label = stringResource(R.string.settings_cache_clear),
+                        hint = if (cacheCleared) {
+                            stringResource(R.string.settings_cache_cleared)
+                        } else {
+                            stringResource(R.string.settings_cache_clear_hint)
+                        },
+                        onConfirm = {
+                            vm.clearCache()
+                            cacheCleared = true
+                        },
+                    )
+                }
+            }
+        },
+        {
+            Column(Modifier.fillMaxWidth()) {
+                SettingsRow(
+                    title = stringResource(R.string.settings_library),
+                    subtitle = stringResource(R.string.settings_library_body),
+                    icon = Icons.Filled.Star,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.settings_library_counts,
+                        prefs.favorites.size,
+                        prefs.recent.size,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 10.dp),
+                )
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
+                    HoldToConfirmButton(
+                        label = stringResource(R.string.settings_library_clear),
+                        hint = if (libraryCleared) {
+                            stringResource(R.string.settings_library_cleared)
+                        } else {
+                            stringResource(R.string.settings_library_clear_hint)
+                        },
+                        onConfirm = {
+                            vm.clearLibrary()
+                            libraryCleared = true
+                        },
+                    )
+                }
+            }
+        },
+        {
+            SettingsActionRow(
+                title = stringResource(R.string.settings_log),
+                subtitle = stringResource(R.string.settings_log_body),
+                icon = Icons.Filled.Code,
+                onClick = actions.onExportLog,
             )
-        }
-        SettingsDivider()
-        SettingsRow(
-            title = stringResource(R.string.settings_library),
-            subtitle = stringResource(R.string.settings_library_body),
-            icon = Icons.Filled.Star,
-            iconTint = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = stringResource(
-                R.string.settings_library_counts,
-                prefs.favorites.size,
-                prefs.recent.size,
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.padding(start = 60.dp, end = 16.dp, bottom = 10.dp),
-        )
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 12.dp)) {
-            HoldToConfirmButton(
-                label = stringResource(R.string.settings_library_clear),
-                hint = if (libraryCleared) {
-                    stringResource(R.string.settings_library_cleared)
-                } else {
-                    stringResource(R.string.settings_library_clear_hint)
-                },
-                onConfirm = {
-                    vm.clearLibrary()
-                    libraryCleared = true
-                },
-            )
-        }
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_log),
-            subtitle = stringResource(R.string.settings_log_body),
-            icon = Icons.Filled.Code,
-            onClick = actions.onExportLog,
-        )
-    }
+        },
+    )
+    SettingsGroup(items = items, reduceMotion = rememberReducedMotion(prefs.motionReduced))
 }
 
 /* -------------------------------- tentang ---------------------------- */
@@ -670,51 +734,58 @@ internal fun SettingsDataSection(
 @Composable
 internal fun SettingsAboutSection(actions: SettingsActions) {
     SettingsSectionHeader(stringResource(R.string.settings_section_about))
-    SettingsGroup {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(
-                text = stringResource(R.string.settings_app_name),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
+    val items: List<@Composable () -> Unit> = listOf<@Composable () -> Unit>(
+        {
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                    text = stringResource(R.string.settings_app_name),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.settings_built_with),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        {
+            SettingsRow(
+                title = stringResource(R.string.settings_version),
+                value = stringResource(
+                    R.string.settings_version_value,
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.VERSION_CODE,
+                ),
+                icon = Icons.Filled.Info,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = stringResource(R.string.settings_built_with),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        },
+        {
+            SettingsActionRow(
+                title = stringResource(R.string.settings_repo),
+                subtitle = stringResource(R.string.settings_repo_body),
+                icon = Icons.Filled.Code,
+                onClick = { actions.onOpenLink(REPO_URL) },
             )
-        }
-        SettingsDivider()
-        SettingsRow(
-            title = stringResource(R.string.settings_version),
-            value = stringResource(
-                R.string.settings_version_value,
-                BuildConfig.VERSION_NAME,
-                BuildConfig.VERSION_CODE,
-            ),
-            icon = Icons.Filled.Info,
-            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_repo),
-            subtitle = stringResource(R.string.settings_repo_body),
-            icon = Icons.Filled.Code,
-            onClick = { actions.onOpenLink(REPO_URL) },
-        )
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_license),
-            value = stringResource(R.string.settings_license_value),
-            icon = Icons.Filled.Description,
-            onClick = actions.onShowLicense,
-        )
-        SettingsDivider()
-        SettingsActionRow(
-            title = stringResource(R.string.settings_whats_new),
-            subtitle = stringResource(R.string.settings_whats_new_body),
-            icon = Icons.Filled.Star,
-            iconTint = MaterialTheme.colorScheme.primary,
-            onClick = actions.onShowWhatsNew,
-        )
-    }
+        },
+        {
+            SettingsActionRow(
+                title = stringResource(R.string.settings_license),
+                value = stringResource(R.string.settings_license_value),
+                icon = Icons.Filled.Description,
+                onClick = actions.onShowLicense,
+            )
+        },
+        {
+            SettingsActionRow(
+                title = stringResource(R.string.settings_whats_new),
+                subtitle = stringResource(R.string.settings_whats_new_body),
+                icon = Icons.Filled.Star,
+                iconTint = MaterialTheme.colorScheme.primary,
+                onClick = actions.onShowWhatsNew,
+            )
+        },
+    )
+    SettingsGroup(items = items)
 }
