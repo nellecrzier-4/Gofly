@@ -1,7 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui
 
 import android.net.Uri
-import android.os.Build
 import android.util.Patterns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
@@ -40,7 +39,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -48,12 +46,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -63,16 +58,13 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudQueue
-import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
@@ -86,6 +78,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -103,34 +98,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nellecrzier.gofileexpressive.BuildConfig
@@ -144,7 +126,7 @@ import com.nellecrzier.gofileexpressive.SessionStore
 import com.nellecrzier.gofileexpressive.TransferInfo
 import com.nellecrzier.gofileexpressive.TransferStore
 import com.nellecrzier.gofileexpressive.ui.folder.FolderScreen
-import com.nellecrzier.gofileexpressive.ui.glass.liquidGlassEffect
+import com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion
 import com.nellecrzier.gofileexpressive.ui.security.AppLockGate
 import com.nellecrzier.gofileexpressive.ui.home.HomeScreen
 import com.nellecrzier.gofileexpressive.ui.login.LoginScreen
@@ -166,11 +148,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 data class Crumb(val id: String, val name: String)
 
+private data class AppTab(val key: String, val label: String, val icon: ImageVector)
+
 private val APP_TABS = listOf(
-    HyperTab("home", "Beranda", Icons.Filled.Home),
-    HyperTab("folder", "File", Icons.Filled.Folder),
-    HyperTab("library", "Pustaka", Icons.Filled.Star),
-    HyperTab("settings", "Setelan", Icons.Filled.Settings),
+    AppTab("home", "Beranda", Icons.Filled.Home),
+    AppTab("folder", "File", Icons.Filled.Folder),
+    AppTab("library", "Pustaka", Icons.Filled.Star),
+    AppTab("settings", "Setelan", Icons.Filled.Settings),
 )
 
 private val TAB_ORDER = APP_TABS.map { it.key }
@@ -193,7 +177,7 @@ internal fun readableSize(bytes: Long): String {
 @Composable
 fun GofileApp(activity: MainActivity) {
     val context = LocalContext.current
-    val systemReduceMotion = rememberReduceMotion()
+    val systemReduceMotion = rememberReducedMotion()
 
     // ViewModel dibuat di luar tema supaya preferensi (tema, aksen, skala teks)
     // sudah tersedia saat palet dipilih.
@@ -376,7 +360,7 @@ fun GofileApp(activity: MainActivity) {
             if (prefs.language != initialLanguage) activity.recreate()
         }
 
-        // Pemberitahuan hilang sendiri seperti pil toast HyperSpring.
+        // Pemberitahuan hilang sendiri setelah beberapa detik.
         LaunchedEffect(notice) {
             if (notice != null) {
                 delay(4600)
@@ -386,30 +370,6 @@ fun GofileApp(activity: MainActivity) {
 
         val canGoBack = loginStep == "ready" && (currentTab != "home" || stack.size > 1)
         var backProgress by remember { mutableFloatStateOf(0f) }
-
-        // Kaca hidup: snapshot konten di belakang bar navigasi, diburamkan di API 31+.
-        val blurEffect = remember {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) BlurEffect(26f, 26f) else null
-        }
-        val backdrop = rememberGraphicsLayer()
-        var navBarTopLeft by remember { mutableStateOf(Offset.Zero) }
-        var navBarSize by remember { mutableStateOf(IntSize.Zero) }
-        val screenDensity = LocalDensity.current.density
-        // Shader kaca HyperSpring (AGSL, Android 13+). Ukurannya mengikuti
-        // kapsul navigasi; kalau shader gagal, blur biasa tetap dipakai.
-        val glassEffect = remember(navBarSize, screenDensity, blurEffect) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                navBarSize.width > 0 && navBarSize.height > 0
-            ) {
-                liquidGlassEffect(
-                    widthPx = navBarSize.width.toFloat(),
-                    heightPx = navBarSize.height.toFloat(),
-                    density = screenDensity,
-                )
-            } else {
-                null
-            }
-        }
 
         fun goBack() {
             if (currentTab == "folder" && folderVm.back(session.token)) return
@@ -426,10 +386,9 @@ fun GofileApp(activity: MainActivity) {
             }
         }
 
-        Box(Modifier.fillMaxSize().background(Hyper.Bg)) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             if (loginStep == "ready") {
                 if (checkingSession) {
-                    DotGridBackground(Modifier.fillMaxSize(), reduceMotion = reduceMotion, interactive = false)
                     Column(
                         Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -438,33 +397,17 @@ fun GofileApp(activity: MainActivity) {
                         ExpressiveLoader(
                             size = 52.dp,
                             reduceMotion = reduceMotion,
-                            color = Hyper.Accent,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.height(14.dp))
                         Text(
                             stringResource(R.string.session_preparing),
                             style = MaterialTheme.typography.labelLarge,
-                            color = Hyper.Text2,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
-                    // Perekam konten: hanya strip di belakang bar yang disimpan.
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .drawWithContent {
-                                drawContent()
-                                val effect = glassEffect ?: blurEffect
-                                if (effect != null && navBarSize.width > 0 && navBarSize.height > 0) {
-                                    backdrop.record(this, layoutDirection, navBarSize) {
-                                        translate(-navBarTopLeft.x, -navBarTopLeft.y) {
-                                            this@drawWithContent.drawContent()
-                                        }
-                                    }
-                                    backdrop.renderEffect = effect
-                                }
-                            },
-                    ) {
+                    Box(Modifier.fillMaxSize()) {
                         // Halaman bergeser mengikuti gestur back prediktif.
                         Box(
                             Modifier
@@ -488,15 +431,15 @@ fun GofileApp(activity: MainActivity) {
                                     } else {
                                         val forward = TAB_ORDER.indexOf(targetState) >= TAB_ORDER.indexOf(initialState)
                                         (
-                                            fadeIn(tween(200, easing = HyperEase)) +
-                                                scaleIn(tween(260, easing = HyperExpoOut), initialScale = 0.97f) +
-                                                slideInHorizontally(tween(260, easing = HyperExpoOut)) { full ->
+                                            fadeIn(tween(200)) +
+                                                scaleIn(tween(260), initialScale = 0.97f) +
+                                                slideInHorizontally(tween(260)) { full ->
                                                     if (forward) full / 12 else -full / 12
                                                 }
                                             ) togetherWith (
-                                            fadeOut(tween(140, easing = HyperPower3Out)) +
-                                                scaleOut(tween(180, easing = HyperPower3Out), targetScale = 0.99f) +
-                                                slideOutHorizontally(tween(200, easing = HyperPower3Out)) { full ->
+                                            fadeOut(tween(140)) +
+                                                scaleOut(tween(180), targetScale = 0.99f) +
+                                                slideOutHorizontally(tween(200)) { full ->
                                                     if (forward) -full / 16 else full / 16
                                                 }
                                             )
@@ -568,23 +511,24 @@ fun GofileApp(activity: MainActivity) {
                         }
                     }
 
-                    HyperNavBar(
-                        tabs = APP_TABS,
-                        current = currentTab,
-                        reduceMotion = reduceMotion,
-                        backdrop = if (blurEffect != null) backdrop else null,
-                        onBoundsChange = { topLeft, size ->
-                            if (topLeft != navBarTopLeft) navBarTopLeft = topLeft
-                            if (size != navBarSize) navBarSize = size
-                        },
-                        onSelect = { tab ->
-                            currentTab = tab
-                            if (tab == "folder") openFolderTab()
-                        },
+                    NavigationBar(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .navigationBarsPadding(),
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ) {
+                        APP_TABS.forEach { tab ->
+                            NavigationBarItem(
+                                selected = currentTab == tab.key,
+                                onClick = {
+                                    currentTab = tab.key
+                                    if (tab.key == "folder") openFolderTab()
+                                },
+                                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                label = { Text(tab.label, maxLines = 1) },
+                            )
+                        }
+                    }
                 }
             } else {
                 LoginScreen(
@@ -611,12 +555,12 @@ fun GofileApp(activity: MainActivity) {
                 enter = if (reduceMotion) {
                     fadeIn(tween(120))
                 } else {
-                    slideInVertically(tween(240, easing = HyperExpoOut)) { it / 2 } + fadeIn(tween(180))
+                    slideInVertically(tween(240)) { it / 2 } + fadeIn(tween(180))
                 },
                 exit = if (reduceMotion) {
                     fadeOut(tween(100))
                 } else {
-                    slideOutVertically(tween(180, easing = HyperPower3Out)) { it / 3 } + fadeOut(tween(140))
+                    slideOutVertically(tween(180)) { it / 3 } + fadeOut(tween(140))
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -628,7 +572,7 @@ fun GofileApp(activity: MainActivity) {
                     ),
             ) {
                 notice?.let { text ->
-                    HyperToast(
+                    AppToast(
                         text = text,
                         error = noticeIsError,
                         onDismiss = { notice = null },
@@ -640,27 +584,26 @@ fun GofileApp(activity: MainActivity) {
         if (showCreateFolder) {
             AlertDialog(
                 onDismissRequest = { showCreateFolder = false },
-                containerColor = Hyper.Card,
-                shape = RoundedCornerShape(24.dp),
-                title = { Text(stringResource(R.string.folder_new_folder), color = Hyper.Text) },
+                shape = RoundedCornerShape(28.dp),
+                title = { Text(stringResource(R.string.folder_new_folder)) },
                 text = {
-                    HyperTextField(
+                    OutlinedTextField(
                         value = newFolderName,
                         onValueChange = { newFolderName = it },
-                        label = stringResource(R.string.folder_name_label),
+                        label = { Text(stringResource(R.string.folder_name_label)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
                     )
                 },
                 confirmButton = {
                     TextButton(
                         onClick = { createFolder() },
                         enabled = newFolderName.isNotBlank() && !busy,
-                    ) {
-                        Text(stringResource(R.string.action_create), color = Hyper.Accent)
-                    }
+                    ) { Text(stringResource(R.string.action_create)) }
                 },
                 dismissButton = {
                     TextButton(onClick = { showCreateFolder = false }) {
-                        Text(stringResource(R.string.action_cancel), color = Hyper.Text2)
+                        Text(stringResource(R.string.action_cancel))
                     }
                 },
             )
@@ -673,11 +616,11 @@ fun GofileApp(activity: MainActivity) {
 /* ================================= toast ================================== */
 
 @Composable
-private fun HyperToast(text: String, error: Boolean, onDismiss: () -> Unit) {
+private fun AppToast(text: String, error: Boolean, onDismiss: () -> Unit) {
     Surface(
         shape = CircleShape,
-        color = Hyper.Card,
-        border = BorderStroke(1.dp, if (error) Hyper.AccentEdge else Hyper.Hairline),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 6.dp,
         modifier = Modifier
             .fillMaxWidth()
@@ -690,14 +633,14 @@ private fun HyperToast(text: String, error: Boolean, onDismiss: () -> Unit) {
             Icon(
                 imageVector = if (error) Icons.Filled.ErrorOutline else Icons.Filled.CheckCircle,
                 contentDescription = null,
-                tint = Hyper.Accent,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(10.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Hyper.Text,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
