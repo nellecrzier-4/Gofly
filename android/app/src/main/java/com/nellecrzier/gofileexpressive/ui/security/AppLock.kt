@@ -40,7 +40,6 @@ import androidx.fragment.app.FragmentActivity
 import com.nellecrzier.gofileexpressive.R
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import com.nellecrzier.gofileexpressive.ui.rememberReduceMotion
 
 /**
  * Kunci aplikasi biometrik/PIN.
