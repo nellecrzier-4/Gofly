@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -23,9 +24,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,10 +56,6 @@ import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.nellecrzier.gofileexpressive.R
 import com.nellecrzier.gofileexpressive.ui.ExpressiveLoader
-import com.nellecrzier.gofileexpressive.ui.Hyper
-import com.nellecrzier.gofileexpressive.ui.HyperButton
-import com.nellecrzier.gofileexpressive.ui.HyperCard
-import com.nellecrzier.gofileexpressive.ui.HyperIconButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -116,20 +116,25 @@ fun ShareQrSheet(
                     Text(
                         text = stringResource(R.string.share_qr_title),
                         style = MaterialTheme.typography.titleLarge,
-                        color = Hyper.Text,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = middleEllipsis(title, 42),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
                 }
-                HyperIconButton(
-                    icon = Icons.Filled.Close,
-                    description = stringResource(R.string.share_close),
+                FilledTonalIconButton(
                     onClick = onDismiss,
-                )
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.share_close),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -176,19 +181,24 @@ fun ShareQrSheet(
                 Text(
                     text = stringResource(R.string.share_qr_error),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Hyper.Accent,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 10.dp, start = 4.dp),
                 )
             }
 
             Spacer(Modifier.height(14.dp))
-            HyperCard(shape = RoundedCornerShape(18.dp), fill = Hyper.CardRaised) {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+            ) {
                 SelectionContainer {
                     Text(
                         text = link,
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
-                        color = Hyper.Text2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 132.dp)
@@ -199,27 +209,37 @@ fun ShareQrSheet(
             }
 
             Spacer(Modifier.height(12.dp))
-            HyperButton(
-                text = stringResource(
-                    if (copied) R.string.share_action_copied else R.string.share_action_copy,
-                ),
-                icon = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
+            Button(
                 onClick = { copied = copyToClipboard(context, link, linkLabel) },
-                modifier = Modifier.fillMaxWidth(),
-                reduceMotion = reduceMotion,
-            )
+                shape = RoundedCornerShape(percent = 50),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+            ) {
+                Icon(
+                    imageVector = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(
+                        if (copied) R.string.share_action_copied else R.string.share_action_copy,
+                    ),
+                )
+            }
 
             Spacer(Modifier.height(10.dp))
             Text(
                 text = stringResource(R.string.share_qr_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text2,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
             Text(
                 text = stringResource(R.string.share_qr_local),
                 style = MaterialTheme.typography.bodySmall,
-                color = Hyper.Text3,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp),
             )
         }
