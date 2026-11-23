@@ -46,4 +46,7 @@
     <string name="login_back">Kembali</string>
     <string name="login_skip">Lewati</string>
     <string name="login_step">Langkah %1$d dari %2$d</string>
+    <string name="login_clipboard_empty">Clipboard kosong. Salin tautan dari email GoFile dulu.</string>
+    <string name="login_clipboard_invalid">Teks di clipboard bukan tautan login GoFile.</string>
+    <string name="login_token_paste_hint">Tempel tautan lengkap dari email GoFile, atau token 32 karakternya.</string>
 </resources>

@@ -46,4 +46,7 @@
     <string name="login_back">Back</string>
     <string name="login_skip">Skip</string>
     <string name="login_step">Step %1$d of %2$d</string>
+    <string name="login_clipboard_empty">Clipboard is empty. Copy the link from the GoFile email first.</string>
+    <string name="login_clipboard_invalid">The clipboard does not contain a GoFile login link.</string>
+    <string name="login_token_paste_hint">Paste the full link from the GoFile email, or its 32-character token.</string>
 </resources>

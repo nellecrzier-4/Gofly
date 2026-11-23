@@ -78,12 +78,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.toPath
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,6 +94,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -156,6 +158,7 @@ internal fun LoginScreen(
     onLogin: (String) -> Unit,
     onGuest: () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val clipboard = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
     var page by rememberSaveable { mutableStateOf(if (step == "token") PAGE_TOKEN else PAGE_WELCOME) }
@@ -204,12 +207,12 @@ internal fun LoginScreen(
     fun paste(): Boolean {
         val text = clipboard.getText()?.text?.trim().orEmpty()
         if (text.isBlank()) {
-            notice = "Clipboard kosong. Salin tautan dari email GoFile dulu."
+            notice = context.getString(R.string.login_clipboard_empty)
             return false
         }
         val token = GofileApi.extractToken(text)
         if (token == null) {
-            notice = "Teks di clipboard bukan tautan login GoFile."
+            notice = context.getString(R.string.login_clipboard_invalid)
             return false
         }
         onTokenChange(token)
@@ -225,7 +228,7 @@ internal fun LoginScreen(
         else -> {
             val token = GofileApi.extractToken(trimmedToken)
             if (token == null) {
-                notice = "Tempel tautan lengkap dari email GoFile, atau token 32 karakternya."
+                notice = context.getString(R.string.login_token_paste_hint)
                 false
             } else if (busy) false else {
                 onTokenChange(token)
@@ -309,7 +312,7 @@ internal fun LoginScreen(
                     onGuidance = { guidanceOpen = !guidanceOpen },
                     onPaste = { paste() },
                     onGuest = onGuest,
-                    onPasteLink = { paste() },
+                    onPasteLink = { page = PAGE_TOKEN; paste() },
                     onSend = onSend,
                     onBack = { goTo(if (page == PAGE_TOKEN) PAGE_EMAIL else PAGE_WELCOME) },
                     onSubmit = { submit() },
@@ -347,7 +350,7 @@ internal fun LoginScreen(
                     onGuidance = { guidanceOpen = !guidanceOpen },
                     onPaste = { paste() },
                     onGuest = onGuest,
-                    onPasteLink = { paste() },
+                    onPasteLink = { page = PAGE_TOKEN; paste() },
                     onSend = onSend,
                     onBack = { goTo(if (page == PAGE_TOKEN) PAGE_EMAIL else PAGE_WELCOME) },
                     onSubmit = { submit() },
@@ -425,14 +428,29 @@ private fun LoginFormColumn(
             }
         }
 
-        if (page != PAGE_WELCOME) {
-            Spacer(Modifier.height(10.dp))
-            HeroInline(progress = heroProgress, size = heroSize, reduceMotion = reduceMotion)
-        }
+        Spacer(Modifier.height(10.dp))
+        HeroInline(
+            page = page,
+            progress = heroProgress,
+            size = heroSize,
+            reduceMotion = reduceMotion,
+        )
 
-        Spacer(Modifier.height(if (page == PAGE_WELCOME) 24.dp else 12.dp))
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Column(Modifier.widthIn(max = 440.dp)) {
+        Spacer(Modifier.height(12.dp))
+        // Area tengah bisa digulir: keyboard, font scale 1.3, atau layar pendek
+        // tidak boleh memampatkan teks/CTA.
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Column(
+                Modifier
+                    .widthIn(max = 440.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 AnimatedContent(
                     targetState = page,
                     transitionSpec = {
@@ -452,8 +470,11 @@ private fun LoginFormColumn(
                     label = "loginStep",
                 ) { current ->
                     when (current) {
-                        PAGE_WELCOME -> WelcomeContent(reduceMotion = reduceMotion)
-                        PAGE_EMAIL -> EmailContent(
+                        PAGE_WELCOME -> Column(Modifier.fillMaxWidth()) {
+                            WelcomeContent(reduceMotion = reduceMotion)
+                        }
+                        PAGE_EMAIL -> Column(Modifier.fillMaxWidth()) {
+                            EmailContent(
                             email = email,
                             emailReady = emailReady,
                             showError = showEmailError,
@@ -462,10 +483,12 @@ private fun LoginFormColumn(
                             reduceMotion = reduceMotion,
                             onEmailChange = onEmailChange,
                             onGuest = onGuest,
-                            onPasteLink = onPasteLink,
-                            onSubmit = onSubmit,
-                        )
-                        else -> TokenContent(
+                                onPasteLink = onPasteLink,
+                                onSubmit = onSubmit,
+                            )
+                        }
+                        else -> Column(Modifier.fillMaxWidth()) {
+                            TokenContent(
                             tokenInput = tokenInput,
                             tokenValid = tokenValid,
                             tokenVisible = tokenVisible,
@@ -478,15 +501,16 @@ private fun LoginFormColumn(
                             onTokenVisible = onTokenVisible,
                             onGuidance = onGuidance,
                             onPaste = onPaste,
-                            onResend = onSend,
-                            onSubmit = onSubmit,
-                        )
+                                onResend = onSend,
+                                onSubmit = onSubmit,
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(12.dp))
         StepProgress(page = page, reduceMotion = reduceMotion)
         Spacer(Modifier.height(14.dp))
 
@@ -559,6 +583,7 @@ private fun submitLabel(page: Int, busy: Boolean): Int = when {
 
 @Composable
 private fun HeroInline(
+    page: Int,
     progress: Float,
     size: androidx.compose.ui.unit.Dp,
     reduceMotion: Boolean,
@@ -569,17 +594,29 @@ private fun HeroInline(
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.login_title),
+                text = stringResource(
+                    when (page) {
+                        PAGE_WELCOME -> R.string.login_welcome_title
+                        PAGE_EMAIL -> R.string.login_email_title
+                        else -> R.string.login_token_title
+                    },
+                ),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = stringResource(R.string.login_subtitle),
+                text = stringResource(
+                    when (page) {
+                        PAGE_WELCOME -> R.string.login_welcome_body
+                        PAGE_EMAIL -> R.string.login_email_body
+                        else -> R.string.login_token_body
+                    },
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -619,36 +656,17 @@ private fun HeroMark(
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val welcomeMorph = remember { Morph(MaterialShapes.Sunny, MaterialShapes.SoftBurst) }
-    val stepMorph = remember { Morph(MaterialShapes.SoftBurst, MaterialShapes.Gem) }
-    val idle = if (progress < 0.5f && !reduceMotion) {
-        val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "heroIdle")
-        val value by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-                animation = tween(2400, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
-            ),
-            label = "heroIdleProgress",
-        )
-        value
+    val shape = if (progress < 0.5f) {
+        MaterialShapes.Sunny.toShape()
     } else {
-        0.35f
+        MaterialShapes.Gem.toShape()
     }
-    val path = remember(progress, reduceMotion) { Path() }
-    val morph = if (progress < 0.5f) welcomeMorph else stepMorph
-    val p = if (progress < 0.5f) {
-        0.25f + idle * 0.2f
-    } else {
-        (progress - 0.5f) * 2f
-    }
-    val heroColor = MaterialTheme.colorScheme.primary
-    Canvas(modifier.size(size)) {
-        path.reset()
-        morph.toPath(p, path)
-        drawPath(path, color = heroColor)
-    }
+    Box(
+        modifier
+            .size(size)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.primary),
+    )
 }
 
 /* ----------------------------- isi langkah ---------------------------- */
@@ -657,20 +675,6 @@ private fun HeroMark(
 private fun WelcomeContent(reduceMotion: Boolean) {
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
-    Text(
-        text = stringResource(R.string.login_welcome_title),
-        style = MaterialTheme.typography.headlineMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.staggeredEnter(0, reduceMotion, entered),
-    )
-    Spacer(Modifier.height(8.dp))
-    Text(
-        text = stringResource(R.string.login_welcome_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.staggeredEnter(1, reduceMotion, entered),
-    )
-    Spacer(Modifier.height(18.dp))
     val features = listOf(
         Triple(Icons.Filled.CloudQueue, R.string.login_feature_upload, R.string.login_feature_upload_body),
         Triple(Icons.Filled.Search, R.string.login_feature_search, R.string.login_feature_search_body),
@@ -748,20 +752,6 @@ private fun EmailContent(
     val spatial = motionScheme.fastSpatialSpec<Float>()
     val effects = motionScheme.fastEffectsSpec<Float>()
 
-    Text(
-        text = stringResource(R.string.login_email_title),
-        style = MaterialTheme.typography.headlineSmall,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.staggeredEnter(0, reduceMotion, entered),
-    )
-    Spacer(Modifier.height(6.dp))
-    Text(
-        text = stringResource(R.string.login_email_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.staggeredEnter(1, reduceMotion, entered),
-    )
-    Spacer(Modifier.height(16.dp))
     OutlinedTextField(
         value = email,
         onValueChange = onEmailChange,
@@ -861,21 +851,6 @@ private fun TokenContent(
         animationSpec = if (reduceMotion) tween(0) else spatial,
         label = "guidanceChevron",
     )
-
-    Text(
-        text = stringResource(R.string.login_token_title),
-        style = MaterialTheme.typography.headlineSmall,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.staggeredEnter(0, reduceMotion, entered),
-    )
-    Spacer(Modifier.height(6.dp))
-    Text(
-        text = stringResource(R.string.login_token_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.staggeredEnter(1, reduceMotion, entered),
-    )
-    Spacer(Modifier.height(14.dp))
 
     Surface(
         shape = RoundedCornerShape(18.dp),
