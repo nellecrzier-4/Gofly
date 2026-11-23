@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.share
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -25,7 +26,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -494,10 +494,10 @@ fun ContentSettingsSheet(
                             shape = RoundedCornerShape(percent = 50),
                         ) {
                             if (renaming) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
+                                AppLoadingIndicator(
+                                    size = 18.dp,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion(),
                                 )
                                 Spacer(Modifier.width(10.dp))
                             }
@@ -515,10 +515,10 @@ fun ContentSettingsSheet(
                 shape = RoundedCornerShape(percent = 50),
             ) {
                 if (saving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
+                    AppLoadingIndicator(
+                        size = 18.dp,
                         color = MaterialTheme.colorScheme.onPrimary,
+                        reduceMotion = com.nellecrzier.gofileexpressive.ui.motion.rememberReducedMotion(),
                     )
                     Spacer(Modifier.width(10.dp))
                 }

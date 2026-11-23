@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.login
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -34,7 +35,6 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -250,10 +250,10 @@ internal fun LoginScreen(
                 modifier = Modifier.weight(1f).height(56.dp),
             ) {
                 if (busy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
+                    AppLoadingIndicator(
+                        size = 18.dp,
                         color = MaterialTheme.colorScheme.onPrimary,
+                        reduceMotion = reduceMotion,
                     )
                     Spacer(Modifier.width(10.dp))
                 }

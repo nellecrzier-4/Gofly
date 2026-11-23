@@ -2,6 +2,7 @@
 
 package com.nellecrzier.gofileexpressive.ui.home
 
+import com.nellecrzier.gofileexpressive.ui.components.AppLoadingIndicator
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
@@ -36,7 +37,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -215,7 +215,7 @@ internal fun HomeScreen(
         Spacer(Modifier.height(12.dp))
         if (busy) {
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                AppLoadingIndicator(size = 18.dp, reduceMotion = reduceMotion)
                 Spacer(Modifier.width(10.dp))
                 Text("Menyinkronkan isi folder…", style = MaterialTheme.typography.bodyMedium)
             }
