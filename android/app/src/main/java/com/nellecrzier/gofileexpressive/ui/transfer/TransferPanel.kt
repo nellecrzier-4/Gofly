@@ -41,7 +41,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -61,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -80,6 +81,8 @@ import com.nellecrzier.gofileexpressive.transfer.TransferControls
 import com.nellecrzier.gofileexpressive.transfer.TransferFormat
 import com.nellecrzier.gofileexpressive.transfer.TransferHistory
 import com.nellecrzier.gofileexpressive.ui.components.HoldToConfirmButton
+import com.nellecrzier.gofileexpressive.ui.components.animatedConnectedShape
+import com.nellecrzier.gofileexpressive.ui.components.connectedShape
 import com.nellecrzier.gofileexpressive.ui.motion.motionScheme
 import kotlin.math.abs
 import java.text.DateFormat
@@ -237,13 +240,24 @@ internal fun TransferPanel(
                         modifier = Modifier.padding(bottom = 6.dp),
                     )
                 }
+                // Daftar ini adalah Column bergulir (bukan LazyColumn), jadi jarak
+                // antar-baris dibuat 2.dp seperti daftar bersambung Material 3.
                 Column(
                     Modifier
                         .heightIn(max = 420.dp)
                         .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
+                    val count = rows.size
                     rows.forEachIndexed { index, info ->
                         val dismissible = info.isFinished
+                        // Bentuk bersambung: baris pertama sudut luar di atas, terakhir
+                        // di bawah. Saat gerak diredupkan bentuk dipasang statis.
+                        val rowShape: Shape = if (reduceMotion) {
+                            connectedShape(index, count)
+                        } else {
+                            animatedConnectedShape(index, count, reduceMotion)
+                        }
                         SwipeToDismiss(
                             enabled = dismissible,
                             onDismiss = {
@@ -254,13 +268,13 @@ internal fun TransferPanel(
                             TransferRow(
                                 info = info,
                                 reduceMotion = reduceMotion,
+                                shape = rowShape,
                                 onDetails = { detailsId = info.id },
                                 onPause = { TransferControls.pause(context, info.id) },
                                 onResume = { TransferControls.resume(context, info.id) },
                                 onCancel = { TransferControls.cancel(context, info.id) },
                             )
                         }
-                        if (index != rows.lastIndex) Spacer(Modifier.height(8.dp))
                     }
                 }
             }
@@ -400,6 +414,7 @@ private fun TransferRow(
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
+    shape: Shape = RoundedCornerShape(16.dp),
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = info.progress.coerceIn(0, 100) / 100f,
@@ -410,10 +425,19 @@ private fun TransferRow(
     val finished = info.state == TransferInfo.STATE_SUCCESS
     val failed = info.state == TransferInfo.STATE_ERROR
     val paused = info.state == TransferInfo.STATE_PAUSED
+    val running = info.state == TransferInfo.STATE_RUNNING
+    val retrying = info.state == TransferInfo.STATE_RETRYING
+    // Amplitudo gelombang: berombak saat transfer berjalan/mencoba lagi,
+    // datar saat jeda/antri/selesai, dan selalu datar bila gerak diredupkan.
+    val waveAmplitude by animateFloatAsState(
+        targetValue = if (!reduceMotion && (running || retrying)) 1f else 0f,
+        animationSpec = if (reduceMotion) tween(0) else motionScheme.defaultEffectsSpec<Float>(),
+        label = "transferWaveAmplitude",
+    )
 
     Surface(
         onClick = onDetails,
-        shape = RoundedCornerShape(16.dp),
+        shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -497,17 +521,18 @@ private fun TransferRow(
                     )
                 }
             } else {
-                LinearProgressIndicator(
+                // Indikator bergelombang M3 Expressive; tinggi kontainer (10.dp)
+                // datang dari komponennya sendiri supaya gelombang tidak terpotong.
+                LinearWavyProgressIndicator(
                     progress = { if (finished) 1f else animatedProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     color = when {
                         failed -> MaterialTheme.colorScheme.primary
                         paused -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         else -> MaterialTheme.colorScheme.onSurface
                     },
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    amplitude = { waveAmplitude },
                 )
             }
         }
