@@ -1,5 +1,6 @@
 package com.nellecrzier.gofileexpressive.ui.preview
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -9,17 +10,31 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
-import com.nellecrzier.gofileexpressive.ui.Hyper
+
+/**
+ * Palet warna Material 3 untuk blok Markdown, diambil dari tema di lapisan
+ * composable lalu diteruskan ke penyusun AnnotatedString.
+ */
+internal data class MarkdownColors(
+    val text: Color = Color.Unspecified,
+    val muted: Color = Color.Unspecified,
+    val faint: Color = Color.Unspecified,
+    val accent: Color = Color.Unspecified,
+    val codeFill: Color = Color.Unspecified,
+)
 
 /**
  * Markdown → AnnotatedString. Tidak ada HTML dan tidak ada parser pihak
  * ketiga: cukup blok yang dipakai di README (judul, tebal/miring, kode
  * inline, blok kode berpagar, daftar, kutipan, tautan, garis pemisah).
  *
- * Tautan hanya diberi gaya koral bergaris bawah; pratinjau tidak membuka
+ * Tautan hanya diberi gaya aksen bergaris bawah; pratinjau tidak membuka
  * Intent apa pun — aksi "Buka dengan" tetap milik pemanggil.
  */
-internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
+internal fun buildMarkdownAnnotatedString(
+    source: String,
+    colors: MarkdownColors = MarkdownColors(),
+): AnnotatedString {
     val builder = AnnotatedString.Builder()
     val lines = source.replace("\r\n", "\n").replace('\r', '\n').split('\n')
     val paragraph = StringBuilder()
@@ -34,7 +49,7 @@ internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
     fun flushCode() {
         if (code.isEmpty()) return
         blockGap()
-        builder.withStyle(CODE_BLOCK_STYLE) {
+        builder.withStyle(codeBlockStyle(colors)) {
             append(code.toString().trimEnd('\n'))
         }
         code.clear()
@@ -44,7 +59,7 @@ internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
     fun flushParagraph() {
         if (paragraph.isEmpty()) return
         blockGap()
-        builder.appendInline(paragraph.toString())
+        builder.appendInline(paragraph.toString(), colors)
         paragraph.clear()
         listOpen = false
     }
@@ -79,8 +94,8 @@ internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
             flushParagraph()
             blockGap()
             val level = heading.groupValues[1].length
-            builder.withStyle(headingStyle(level)) {
-                appendInline(heading.groupValues[2])
+            builder.withStyle(headingStyle(level, colors)) {
+                appendInline(heading.groupValues[2], colors)
             }
             continue
         }
@@ -88,16 +103,16 @@ internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
         if (RULE.matches(trimmed)) {
             flushParagraph()
             blockGap()
-            builder.withStyle(RULE_STYLE) { append("────────────────────") }
+            builder.withStyle(ruleStyle(colors)) { append("────────────────────") }
             continue
         }
 
         if (trimmed.startsWith(">")) {
             flushParagraph()
             blockGap()
-            builder.withStyle(QUOTE_STYLE) {
+            builder.withStyle(quoteStyle(colors)) {
                 append("\u258D  ")
-                appendInline(trimmed.removePrefix(">").trimStart())
+                appendInline(trimmed.removePrefix(">").trimStart(), colors)
             }
             continue
         }
@@ -112,7 +127,7 @@ internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
             }
             val depth = (bullet.groupValues[1].length / 2).coerceIn(0, 4)
             builder.append("   ".repeat(depth) + "\u2022  ")
-            builder.appendInline(bullet.groupValues[2])
+            builder.appendInline(bullet.groupValues[2], colors)
             listOpen = true
             continue
         }
@@ -127,7 +142,7 @@ internal fun buildMarkdownAnnotatedString(source: String): AnnotatedString {
             }
             val depth = (ordered.groupValues[1].length / 2).coerceIn(0, 4)
             builder.append("   ".repeat(depth) + ordered.groupValues[2] + ".  ")
-            builder.appendInline(ordered.groupValues[3])
+            builder.appendInline(ordered.groupValues[3], colors)
             listOpen = true
             continue
         }
@@ -158,13 +173,13 @@ private val INLINE = Regex(
         "|(_[^_\\n]+_)",
 )
 
-private fun AnnotatedString.Builder.appendInline(text: String) {
+private fun AnnotatedString.Builder.appendInline(text: String, colors: MarkdownColors) {
     var cursor = 0
     for (match in INLINE.findAll(text)) {
         if (match.range.first > cursor) append(text.substring(cursor, match.range.first))
         val token = match.value
         when {
-            token.startsWith("`") -> withStyle(INLINE_CODE_STYLE) {
+            token.startsWith("`") -> withStyle(inlineCodeStyle(colors)) {
                 append(token.removeSurrounding("`"))
             }
             token.startsWith("**") -> withStyle(BOLD_STYLE) {
@@ -176,10 +191,10 @@ private fun AnnotatedString.Builder.appendInline(text: String) {
             token.startsWith("~~") -> withStyle(STRIKE_STYLE) {
                 append(token.removeSurrounding("~~"))
             }
-            token.startsWith("![") -> withStyle(LINK_STYLE) {
+            token.startsWith("![") -> withStyle(linkStyle(colors)) {
                 append(token.substringAfter("![").substringBefore("]"))
             }
-            token.startsWith("[") -> withStyle(LINK_STYLE) {
+            token.startsWith("[") -> withStyle(linkStyle(colors)) {
                 append(token.substringAfter("[").substringBefore("]"))
             }
             token.startsWith("*") -> withStyle(ITALIC_STYLE) {
@@ -194,29 +209,35 @@ private fun AnnotatedString.Builder.appendInline(text: String) {
     if (cursor < text.length) append(text.substring(cursor))
 }
 
-private fun headingStyle(level: Int): SpanStyle = when (level) {
-    1 -> SpanStyle(fontSize = 27.sp, fontWeight = FontWeight.Bold, color = Hyper.Text)
-    2 -> SpanStyle(fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Hyper.Text)
-    3 -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Hyper.Text)
-    4 -> SpanStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Hyper.Text)
-    else -> SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Hyper.Text2)
+private fun headingStyle(level: Int, colors: MarkdownColors): SpanStyle = when (level) {
+    1 -> SpanStyle(fontSize = 27.sp, fontWeight = FontWeight.Bold, color = colors.text)
+    2 -> SpanStyle(fontSize = 23.sp, fontWeight = FontWeight.Bold, color = colors.text)
+    3 -> SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = colors.text)
+    4 -> SpanStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = colors.text)
+    else -> SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.muted)
 }
 
 private val BOLD_STYLE = SpanStyle(fontWeight = FontWeight.Bold)
 private val ITALIC_STYLE = SpanStyle(fontStyle = FontStyle.Italic)
 private val STRIKE_STYLE = SpanStyle(textDecoration = TextDecoration.LineThrough)
-private val LINK_STYLE = SpanStyle(color = Hyper.Accent, textDecoration = TextDecoration.Underline)
-private val QUOTE_STYLE = SpanStyle(color = Hyper.Text2)
-private val RULE_STYLE = SpanStyle(color = Hyper.Text3)
-private val INLINE_CODE_STYLE = SpanStyle(
+
+private fun linkStyle(colors: MarkdownColors): SpanStyle =
+    SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)
+
+private fun quoteStyle(colors: MarkdownColors): SpanStyle = SpanStyle(color = colors.muted)
+
+private fun ruleStyle(colors: MarkdownColors): SpanStyle = SpanStyle(color = colors.faint)
+
+private fun inlineCodeStyle(colors: MarkdownColors): SpanStyle = SpanStyle(
     fontFamily = FontFamily.Monospace,
     fontSize = 13.sp,
-    color = Hyper.Text,
-    background = Hyper.CardRaised,
+    color = colors.text,
+    background = colors.codeFill,
 )
-private val CODE_BLOCK_STYLE = SpanStyle(
+
+private fun codeBlockStyle(colors: MarkdownColors): SpanStyle = SpanStyle(
     fontFamily = FontFamily.Monospace,
     fontSize = 13.sp,
-    color = Hyper.Text,
-    background = Hyper.CardRaised,
+    color = colors.text,
+    background = colors.codeFill,
 )
