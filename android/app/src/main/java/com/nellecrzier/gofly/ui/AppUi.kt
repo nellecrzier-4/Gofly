@@ -611,8 +611,8 @@ fun GofileApp(activity: MainActivity) {
                                                 targetValue = if (active) 1f else 0f,
                                                 animationSpec = when {
                                                     reduceMotion -> tween(90)
-                                                    active -> tween(240, delayMillis = 70, easing = FastOutSlowInEasing)
-                                                    else -> tween(80, easing = FastOutLinearInEasing)
+                                                    active -> tween(320, delayMillis = 50, easing = FastOutSlowInEasing)
+                                                    else -> tween(140, easing = FastOutLinearInEasing)
                                                 },
                                                 label = "tabVisibility",
                                             )
@@ -627,8 +627,14 @@ fun GofileApp(activity: MainActivity) {
                                                     }
                                                     .graphicsLayer {
                                                         alpha = progress
-                                                        if (!reduceMotion && active) {
-                                                            translationX = (1f - progress) * 28.dp.toPx() * enterDir
+                                                        if (!reduceMotion) {
+                                                            // Tab masuk meluncur dari arahnya; tab keluar bergeser
+                                                            // sedikit ke arah berlawanan sambil memudar.
+                                                            val dist = if (active) 28.dp.toPx() else -12.dp.toPx()
+                                                            translationX = (1f - progress) * dist * enterDir
+                                                            val sc = 0.985f + 0.015f * progress
+                                                            scaleX = sc
+                                                            scaleY = sc
                                                         }
                                                     },
                                             ) {

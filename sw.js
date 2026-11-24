@@ -9,7 +9,7 @@
  * Cache diberi versi; cache lama dibersihkan saat activate.
  */
 
-const VERSION = "v10";
+const VERSION = "v11";
 const SHELL_CACHE = `gofly-shell-${VERSION}`;
 const API_CACHE = `gofly-api-${VERSION}`;
 const FONT_CACHE = `gofly-fonts-${VERSION}`;

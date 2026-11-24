@@ -58,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -92,15 +93,28 @@ internal fun HomeScreen(
 
     val shown = rememberTabEntered()
 
+    val scrollState = rememberScrollState()
     Column(
         Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp),
     ) {
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.staggeredEnter(0, reduceMotion, shown), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .staggeredEnter(0, reduceMotion, shown)
+                .graphicsLayer {
+                    // Header memudar + paralaks ringan saat digulir (dilewati bila gerak dikurangi).
+                    if (!reduceMotion) {
+                        val p = (scrollState.value / 260f).coerceIn(0f, 1f)
+                        alpha = 1f - 0.6f * p
+                        translationY = scrollState.value * 0.25f
+                    }
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.tab_home),

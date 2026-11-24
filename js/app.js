@@ -375,6 +375,25 @@ async function loginWithLink(event) {
   }
 }
 
+/* Transisi halus antar-tampilan: View Transitions API bila ada, langsung bila gerak dikurangi. */
+function smoothUpdate(update) {
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || typeof document.startViewTransition !== "function") {
+    update();
+    return;
+  }
+  try {
+    document.startViewTransition(update);
+  } catch {
+    update();
+  }
+}
+
+function scrollToTopSmooth() {
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+}
+
 function showAuth() {
   els.manager.hidden = true;
   els.auth.hidden = false;
@@ -500,6 +519,7 @@ async function loadFolder(id, name, { reset = false, silent = false } = {}) {
   closePreview();
   clearSelection();
   state.loadError = "";
+  if (!silent) scrollToTopSmooth();
 
   renderBreadcrumbs();
   els.managerTitle.textContent = name;
@@ -696,6 +716,7 @@ function renderFiles() {
   els.empty.hidden = true;
   els.fileGrid.hidden = false;
   els.fileGrid.classList.toggle("list-view", state.view === "list");
+  els.fileGrid.classList.toggle("is-long", items.length > 60);
   els.fileGrid.innerHTML = items
     .map((item, index) => {
       const glyph = iconFor(item);
@@ -1805,7 +1826,7 @@ function focusCard(offset) {
   const index = cards.indexOf(document.activeElement);
   const next = cards[Math.max(0, Math.min(cards.length - 1, (index < 0 ? 0 : index) + offset))];
   next?.focus();
-  next?.scrollIntoView({ block: "nearest" });
+  next?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function gridColumns() {
@@ -2062,7 +2083,7 @@ function wireManager() {
         candidate.classList.toggle("is-active", candidate === button);
         candidate.setAttribute("aria-pressed", String(candidate === button));
       });
-      renderFiles();
+      smoothUpdate(renderFiles);
     }),
   );
 

@@ -2717,3 +2717,94 @@ body.has-selection .transfer-panel {
     background: rgba(0, 0, 0, 0.08);
   }
 }
+
+/* ============================================================
+   Smooth scrolling & extra motion
+   Progressive enhancement; reduced-motion block above still wins
+   (its !important rules cancel every duration/scroll-behavior here).
+   ============================================================ */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+}
+.details-body,
+.preview-body,
+.modal-body,
+.transfer-body,
+.menu {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Long folders: skip rendering off-screen cards (class set from JS). */
+.file-grid.is-long .file-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}
+
+/* GPU-friendly hints only on things that actually animate. */
+.file-card,
+.btn,
+.icon-btn,
+.seg {
+  will-change: transform;
+}
+
+/* Spring-ish interaction feedback */
+.file-card {
+  transition: transform 280ms cubic-bezier(0.34, 1.4, 0.64, 1), background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease, box-shadow var(--dur) ease;
+}
+@media (hover: hover) {
+  .file-grid:not(.list-view) .file-card:hover {
+    transform: translateY(-3px);
+  }
+  .stat {
+    transition: transform 240ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  .stat:hover {
+    transform: translateY(-2px);
+  }
+}
+.seg,
+.crumb,
+.text-btn,
+.sel-btn {
+  transition: transform 160ms var(--ease), background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.seg:active,
+.crumb:active,
+.text-btn:active,
+.sel-btn:active {
+  transform: scale(0.95);
+}
+.sync-btn-spin,
+#sync-btn:active .sync-icon {
+  transform: rotate(120deg);
+  transition: transform 400ms var(--ease);
+}
+
+/* Cross-fade between views (grid <-> list, etc.) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Scroll-linked reveal for the hero and the topbar (Chromium/Safari TP; ignored elsewhere). */
+@supports (animation-timeline: scroll()) {
+  .hero-row {
+    animation: hero-scroll linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 260px;
+  }
+  @keyframes hero-scroll {
+    to {
+      opacity: 0.35;
+      transform: translateY(-14px);
+    }
+  }
+}

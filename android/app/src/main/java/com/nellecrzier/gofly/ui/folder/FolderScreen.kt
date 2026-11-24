@@ -1320,7 +1320,11 @@ private fun FileList(
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
+        itemsIndexed(
+            items,
+            key = { _, item -> item.id },
+            contentType = { _, item -> if (item.isFolder) "folder" else "file" },
+        ) { index, item ->
             val rowShape = animatedConnectedShape(index, items.size, reduceMotion)
             Box(
                 Modifier
@@ -1592,7 +1596,11 @@ private fun FileGrid(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        gridItemsIndexed(items, key = { _, it -> it.id }) { index, item ->
+        gridItemsIndexed(
+            items,
+            key = { _, it -> it.id },
+            contentType = { _, it -> if (it.isFolder) "folder" else "file" },
+        ) { index, item ->
             GridCard(
                 modifier = Modifier
                     .animateItem()
